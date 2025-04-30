@@ -1,0 +1,34 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Кошик</h1>
+    {% if cart_items %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-3">Товар</th>
+                        <th class="py-3">Кількість</th>
+                        <th class="py-3">Ціна</th>
+                        <th class="py-3">Загалом</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                        <tr class="border-b">
+                            <td class="py-3">{{ item.furniture.name }}</td>
+                            <td class="py-3">{{ item.quantity }}</td>
+                            <td class="py-3">{{ item.furniture.price }} грн</td>
+                            <td class="py-3">{{ item.furniture.price|floatformat:2 }} грн</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <h4 class="text-xl font-bold text-gray-900 mt-6">Загальна сума: {{ total_price }} грн</h4>
+            <a href="{% url 'checkout' %}" class="inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 mt-4">
+                Оформити замовлення
+            </a>
+        </div>
+    {% else %}
+        <p class="text-gray-600">Кошик порожній.</p>
+    {% endif %}
+{% endblock %}

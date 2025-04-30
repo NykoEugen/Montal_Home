@@ -1,0 +1,25 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ furniture.name }}</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                {% if furniture.image %}
+                    <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-auto rounded-md">
+                {% else %}
+                    <div class="w-full h-64 bg-gray-200 flex items-center justify-center rounded-md">
+                        <span class="text-gray-500">Немає зображення</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                <p class="text-gray-600 mb-4">{{ furniture.description }}</p>
+                <p class="text-2xl font-bold text-gray-900 mb-2">Ціна: {{ furniture.price }} грн</p>
+                <p class="text-gray-600 mb-4">Категорія: {{ furniture.category.name }}</p>
+                <button data-id="{{ furniture.id }}" class="add-to-cart inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700">
+                    Додати до кошика
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %}

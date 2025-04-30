@@ -1,0 +1,7 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+img {
+    max-height: 200px;
+    object-fit: cover;
+}

@@ -1,0 +1,30 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Каталог меблів</h1>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for item in furniture %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                {% else %}
+                    <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                        <span class="text-gray-500">Немає зображення</span>
+                    </div>
+                {% endif %}
+                <div class="p-4">
+                    <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
+                    <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>
+                    <p class="text-lg font-bold text-gray-900 mt-2">{{ item.price }} грн</p>
+                    <div class="mt-4 flex space-x-2">
+                        <a href="{% url 'furniture_detail' item.id %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                            Деталі
+                        </a>
+                        <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                            Додати до кошика
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
