@@ -10,6 +10,7 @@
                         <th class="py-3">Кількість</th>
                         <th class="py-3">Ціна</th>
                         <th class="py-3">Загалом</th>
+                        <th class="py-3"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -19,6 +20,11 @@
                             <td class="py-3">{{ item.quantity }}</td>
                             <td class="py-3">{{ item.furniture.price }} грн</td>
                             <td class="py-3">{{ item.furniture.price|floatformat:2 }} грн</td>
+                            <td class="py-3">
+                                <button data-id="{{ item.furniture.id }}" class="remove-from-cart text-red-600 hover:text-red-800">
+                                    Видалити
+                                </button>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

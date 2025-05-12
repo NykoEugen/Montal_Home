@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    const removeFromCartButtons = document.querySelectorAll('.remove-from-cart');
+
     addToCartButtons.forEach(button => {
         button.addEventListener('click', async () => {
             const furnitureId = button.getAttribute('data-id');
@@ -13,6 +15,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             alert(data.message);
             document.getElementById('cart-count').textContent = data.cart_count;
+        });
+    });
+
+    removeFromCartButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+            const furnitureId = button.getAttribute('data-id');
+            const response = await fetch(`/remove-from-cart/${furnitureId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await response.json();
+            alert(data.message);
+            document.getElementById('cart-count').textContent = data.cart_count;
+            // Оновлюємо сторінку кошика
+            if (window.location.pathname === '/cart/') {
+                window.location.reload();
+            }
         });
     });
 });
