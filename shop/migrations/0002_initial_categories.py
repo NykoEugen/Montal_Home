@@ -1,8 +1,10 @@
 from django.db import migrations
+from typing import Dict, List
 
-def create_initial_categories(apps, schema_editor):
+def create_initial_categories(apps, schema_editor) -> None:
+    """Створює початкові категорії."""
     Category = apps.get_model('shop', 'Category')
-    categories = [
+    categories: List[Dict[str, str]] = [
         {'name': 'Стільці', 'slug': 'chairs'},
         {'name': 'Столи кухонні', 'slug': 'kitchen-tables'},
         {'name': 'Крісла', 'slug': 'armchairs'},
