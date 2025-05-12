@@ -16,7 +16,15 @@
                 <p class="text-gray-600 mb-4">{{ furniture.description }}</p>
                 <p class="text-2xl font-bold text-gray-900 mb-2">Ціна: {{ furniture.price }} грн</p>
                 <p class="text-gray-600 mb-4">Категорія: {{ furniture.category.name }}</p>
-                <button data-id="{{ furniture.id }}" class="add-to-cart inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700">
+                {% if furniture.parameters %}
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Параметри:</h3>
+                    <ul class="list-disc pl-5 text-gray-600">
+                        {% for key, value in furniture.parameters.items %}
+                            <li>{{ key|title }}: {{ value }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <button data-id="{{ furniture.id }}" class="add-to-cart inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 mt-4">
                     Додати до кошика
                 </button>
             </div>
