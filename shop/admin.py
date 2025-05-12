@@ -9,12 +9,12 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Furniture)
 class FurnitureAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'price', 'slug']
-    list_filter = ['category']
+    list_display = ['name', 'category', 'price', 'is_promotional', 'promotional_price', 'slug']
+    list_filter = ['category', 'is_promotional']
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     fieldsets = (
-        (None, {'fields': ('name', 'slug', 'category', 'price', 'description', 'image')}),
+        (None, {'fields': ('name', 'slug', 'category', 'price', 'is_promotional', 'promotional_price', 'description', 'image')}),
         ('Параметри', {'fields': ('parameters',)}),
     )
 

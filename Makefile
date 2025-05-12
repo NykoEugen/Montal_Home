@@ -36,3 +36,11 @@ test:
 
 .PHONY: precommit
 precommit: autofmt lint test
+
+.PHONY: migrations
+migrations:
+    python manage.py makemigrations .
+
+.PHONY: migrate
+migrate:
+    python manage.py migrate .

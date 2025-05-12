@@ -1,5 +1,39 @@
 {% extends 'shop/base.html' %}
 {% block content %}
+    <div class="container mx-auto px-4 py-8">
+    <!-- Карусель акційних пропозицій -->
+    {% if promotional_furniture %}
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Акційні пропозиції</h2>
+        <div class="relative overflow-hidden">
+            <div id="promoCarousel" class="flex transition-transform duration-500">
+                {% for item in promotional_furniture %}
+                <div class="min-w-full md:min-w-[33.33%] px-2">
+                    <a href="{% url 'shop:furniture_detail' item.slug %}" class="block">
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                            {% if item.image %}
+                                <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                            {% else %}
+                                <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                    <span>Зображення відсутнє</span>
+                                </div>
+                            {% endif %}
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold">{{ item.name }}</h3>
+                                <p class="text-red-600 font-semibold">{{ item.promotional_price }} грн</p>
+                                <p class="text-gray-500 line-through">{{ item.price }} грн</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <button id="prevButton" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full">❮</button>
+            <button id="nextButton" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full">❯</button>
+        </div>
+    </div>
+    {% endif %}
+
     <h1 class="text-3xl font-bold text-gray-900 mb-8">Каталог меблів</h1>
     <form class="mb-6 flex flex-col sm:flex-row gap-4">
         <div>
@@ -34,7 +68,7 @@
                     <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>
                     <p class="text-lg font-bold text-gray-900 mt-2">{{ item.price }} грн</p>
                     <div class="mt-4 flex space-x-2">
-                        <a href="{% url 'furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                        <a href="{% url 'shop:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
                             Деталі
                         </a>
                         <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
@@ -44,5 +78,6 @@
                 </div>
             </div>
         {% endfor %}
+    </div>
     </div>
 {% endblock %}

@@ -21,12 +21,17 @@ def home(request) -> HttpResponse:
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
         )
 
-    return render(request, 'shop/home.html', {
+    furniture_list = Furniture.objects.all()
+    promotional_furniture = Furniture.objects.filter(is_promotional=True, promotional_price__isnull=False)
+    context: Dict[str, Any] = {
         'categories': categories,
         'furniture': furniture,
         'search_query': search_query,
         'selected_category': category_slug,
-    })
+        'furniture_list': furniture_list,
+        'promotional_furniture': promotional_furniture,
+    }
+    return render(request, 'shop/home.html', context)
 
 
 def furniture_detail(request, furniture_slug: str) -> HttpResponse:
