@@ -1,0 +1,39 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Історія замовлень</h1>
+    <form class="mb-6">
+        <div class="flex gap-4">
+            <input type="email" name="email" value="{{ email|default_if_none:'' }}" placeholder="Введіть ваш email" 
+                   class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+            <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">Переглянути</button>
+        </div>
+    </form>
+    {% if orders %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-3">Номер замовлення</th>
+                        <th class="py-3">Дата</th>
+                        <th class="py-3">Товари</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr class="border-b">
+                            <td class="py-3">{{ order.id }}</td>
+                            <td class="py-3">{{ order.created_at|date:"d.m.Y H:i" }}</td>
+                            <td class="py-3">
+                                {% for item in order.items.all %}
+                                    {{ item.furniture.name }} ({{ item.quantity }})<br>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif email %}
+        <p class="text-gray-600">Замовлення не знайдено для цього email.</p>
+    {% endif %}
+{% endblock %}
