@@ -41,39 +41,53 @@ def furniture_detail(request, furniture_slug: str) -> HttpResponse:
 
 
 @require_POST
-def add_to_cart(request, furniture_id: int) -> JsonResponse:
-    furniture: Furniture = get_object_or_404(Furniture, id=furniture_id)
-    cart: Dict[str, int] = request.session.get('cart', {})
-    cart[str(furniture_id)] = cart.get(str(furniture_id), 0) + 1
-    request.session['cart'] = cart
-    return JsonResponse({
-        'message': f'{furniture.name} додано до кошика!',
-        'cart_count': sum(cart.values())
-    })
+def add_to_cart(request) -> JsonResponse:
+    furniture_id: str = request.POST.get('furniture_id')
+    try:
+        furniture: Furniture = get_object_or_404(Furniture, id=furniture_id)
+        cart: Dict[str, int] = request.session.get('cart', {})
+        cart[furniture_id] = cart.get(furniture_id, 0) + 1
+        request.session['cart'] = cart
+        request.session.modified = True
+        return JsonResponse({
+            'message': f'{furniture.name} додано до кошика!',
+            'cart_count': sum(cart.values())
+        })
+    except Exception as e:
+        return JsonResponse({'message': str(e)}, status=400)
 
 
 @require_POST
-def remove_from_cart(request, furniture_id: int) -> JsonResponse:
-    cart: Dict[str, int] = request.session.get('cart', {})
-    furniture_id_str: str = str(furniture_id)
-    if furniture_id_str in cart:
-        del cart[furniture_id_str]
-        request.session['cart'] = cart
-        return JsonResponse({
-            'message': 'Товар видалено з кошика!',
-            'cart_count': sum(cart.values())
-        })
-    return JsonResponse({'message': 'Товар не знайдено в кошику!'}, status=400)
-
+def remove_from_cart(request) -> JsonResponse:
+    furniture_id: str = request.POST.get('furniture_id')
+    try:
+        cart: Dict[str, int] = request.session.get('cart', {})
+        if furniture_id in cart:
+            del cart[furniture_id]
+            request.session['cart'] = cart
+            request.session.modified = True
+            return JsonResponse({
+                'message': 'Товар видалено з кошика!',
+                'cart_count': sum(cart.values())
+            })
+        return JsonResponse({'message': 'Товар не знайдено в кошику!'}, status=400)
+    except Exception as e:
+        return JsonResponse({'message': str(e)}, status=400)
 
 def view_cart(request) -> HttpResponse:
-    cart: Dict[str, int] = request.session.get('cart', {})
-    cart_items: List[Dict[str, Any]] = []
+    cart = request.session.get('cart', {})
+    cart_items = []
     total_price: float = 0
     for furniture_id, quantity in cart.items():
         furniture: Furniture = get_object_or_404(Furniture, id=int(furniture_id))
-        total_price += float(furniture.price) * quantity
-        cart_items.append({'furniture': furniture, 'quantity': quantity})
+        item_price = float(
+            furniture.promotional_price if furniture.is_promotional and furniture.promotional_price else furniture.price)
+        total_price += item_price * quantity
+        cart_items.append({
+            'furniture': furniture,
+            'quantity': quantity,
+            'item_price': item_price,
+        })
     return render(request, 'shop/cart.html', {
         'cart_items': cart_items,
         'total_price': total_price
@@ -87,26 +101,43 @@ def checkout(request) -> HttpResponse:
         cart: Dict[str, int] = request.session.get('cart', {})
         if not cart:
             messages.error(request, "Кошик порожній!")
-            return redirect('view_cart')
+            return redirect('shop:view_cart')
 
         order: Order = Order.objects.create(customer_name=customer_name, customer_email=customer_email)
         for furniture_id, quantity in cart.items():
             furniture: Furniture = get_object_or_404(Furniture, id=int(furniture_id))
-            OrderItem.objects.create(order=order, furniture=furniture, quantity=quantity)
+            price = furniture.promotional_price if furniture.is_promotional and furniture.promotional_price else furniture.price
+            OrderItem.objects.create(
+                order=order,
+                furniture=furniture,
+                quantity=quantity,
+                price=price,
+            )
 
         request.session['cart'] = {}
         messages.success(request, "Замовлення успішно оформлено!")
-        return redirect('home')
+        return redirect('shop:home')
 
     return render(request, 'shop/checkout.html')
 
 
 def order_history(request) -> HttpResponse:
-    email: str | None = request.GET.get('email')
-    orders: List[Order] = []
+    email = request.GET.get('email')
+    orders_data = []
     if email:
-        orders = Order.objects.filter(customer_email=email).order_by('-created_at')
-    return render(request, 'shop/order_history.html', {'orders': orders, 'email': email})
+        orders = Order.objects.filter(customer_email=email).order_by('-created_at').prefetch_related('orderitem_set__furniture')
+        for order in orders:
+            total_price = sum(item.price * item.quantity for item in order.orderitem_set.all())
+            orders_data.append({
+                'order': order,
+                'items': order.orderitem_set.all(),
+                'total_price': float(total_price)
+            })
+        return render(request, 'shop/order_history.html', {
+            'orders_data': orders_data,
+            'email': email
+        })
+    return render(request, 'shop/order_history.html')
 
 def catalog(request) -> HttpResponse:
     categories: List[Category] = Category.objects.all()

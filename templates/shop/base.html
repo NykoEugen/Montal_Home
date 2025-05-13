@@ -34,8 +34,8 @@
                     <a href="{% url 'shop:contacts' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Контакти
                     </a>
-                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                        Кошик
+                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900">
+                        Кошик (<span id="cart-count">{{ cart_count|default:0 }}</span>)
                     </a>
                     <a href="{% url 'shop:order_history' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Історія замовлень

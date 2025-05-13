@@ -8,30 +8,45 @@
             <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">Переглянути</button>
         </div>
     </form>
-    {% if orders %}
+    {% if orders_data %}
         <div class="bg-white rounded-lg shadow-md p-6">
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="border-b">
-                        <th class="py-3">Номер замовлення</th>
-                        <th class="py-3">Дата</th>
-                        <th class="py-3">Товари</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                        <tr class="border-b">
-                            <td class="py-3">{{ order.id }}</td>
-                            <td class="py-3">{{ order.created_at|date:"d.m.Y H:i" }}</td>
-                            <td class="py-3">
-                                {% for item in order.items.all %}
-                                    {{ item.furniture.name }} ({{ item.quantity }})<br>
-                                {% endfor %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% for data in orders_data %}
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Замовлення №{{ data.order.id }} від {{ data.order.created_at|date:"d.m.Y H:i" }}</h2>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b bg-gray-100">
+                                <th class="py-3 px-4">Товар</th>
+                                <th class="py-3 px-4">Ціна</th>
+                                <th class="py-3 px-4">Кількість</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in data.items %}
+                                <tr class="border-b">
+                                    <td class="py-3 px-4">
+                                        <a href="{% url 'shop:furniture_detail' item.furniture.slug %}" class="text-blue-600 hover:underline">
+                                            {{ item.furniture.name }}
+                                        </a>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        {% if item.furniture.is_promotional and item.furniture.promotional_price %}
+                                            <span class="text-red-600">{{ item.price|floatformat:2 }} грн</span>
+                                            <span class="text-gray-500 line-through">{{ item.furniture.price|floatformat:2 }} грн</span>
+                                        {% else %}
+                                            {{ item.price|floatformat:2 }} грн
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4">{{ item.quantity }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <p class="mt-4 text-lg font-bold text-gray-800">
+                        Загальна сума: {{ data.total_price|floatformat:2 }} грн
+                    </p>
+                </div>
+            {% endfor %}
         </div>
     {% elif email %}
         <p class="text-gray-600">Замовлення не знайдено для цього email.</p>

@@ -24,7 +24,8 @@
             </div>
             <p class="mt-4">{{ furniture.description }}</p>
             <div class="mt-6">
-                <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700" onclick="addToCart({{ furniture.id }})">
+                <button class="add-to-cart bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                        data-id="{{ furniture.id }}" data-url="{% url 'shop:add_to_cart' %}">
                     Додати до кошика
                 </button>
             </div>
