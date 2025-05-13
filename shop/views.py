@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -21,12 +22,17 @@ def home(request) -> HttpResponse:
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
         )
 
-    return render(request, 'shop/home.html', {
+    furniture_list = Furniture.objects.all()
+    promotional_furniture = Furniture.objects.filter(is_promotional=True, promotional_price__isnull=False)
+    context: Dict[str, Any] = {
         'categories': categories,
         'furniture': furniture,
         'search_query': search_query,
         'selected_category': category_slug,
-    })
+        'furniture_list': furniture_list,
+        'promotional_furniture': promotional_furniture,
+    }
+    return render(request, 'shop/home.html', context)
 
 
 def furniture_detail(request, furniture_slug: str) -> HttpResponse:
@@ -101,3 +107,31 @@ def order_history(request) -> HttpResponse:
     if email:
         orders = Order.objects.filter(customer_email=email).order_by('-created_at')
     return render(request, 'shop/order_history.html', {'orders': orders, 'email': email})
+
+def catalog(request) -> HttpResponse:
+    categories: List[Category] = Category.objects.all()
+    context: Dict[str, Any] = {'categories': categories}
+    return render(request, 'shop/catalog.html', context)
+
+def category_detail(request, category_slug: str) -> HttpResponse:
+    category = get_object_or_404(Category, slug=category_slug)
+    furniture: List[Furniture] = Furniture.objects.filter(category=category)
+    paginator = Paginator(furniture, 9)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context: Dict[str, Any] = {'category': category, 'page_obj': page_obj}
+    return render(request, 'shop/category_detail.html', context)
+
+def promotions(request) -> HttpResponse:
+    promotional_furniture: List[Furniture] = Furniture.objects.filter(is_promotional=True, promotional_price__isnull=False)
+    paginator = Paginator(promotional_furniture, 9)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context: Dict[str, Any] = {'page_obj': page_obj}
+    return render(request, 'shop/promotions.html', context)
+
+def where_to_buy(request) -> HttpResponse:
+    return render(request, 'shop/where_to_buy.html')
+
+def contacts(request) -> HttpResponse:
+    return render(request, 'shop/contacts.html')

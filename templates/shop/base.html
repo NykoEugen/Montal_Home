@@ -14,15 +14,30 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex">
-                    <a href="{% url 'home' %}" class="flex-shrink-0 flex items-center text-2xl font-bold text-gray-800">
+                    <a href="{% url 'shop:home' %}" class="flex-shrink-0 flex items-center text-2xl font-bold text-gray-800">
                         Меблі
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="{% url 'view_cart' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                        Кошик (<span id "cart-count">{{ request.session.cart|length }}</span>)
+                    <a href="{% url 'shop:home' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Головна
                     </a>
-                    <a href="{% url 'order_history' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:catalog' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Каталог
+                    </a>
+                    <a href="{% url 'shop:promotions' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Акції
+                    </a>
+                    <a href="{% url 'shop:where_to_buy' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Де купити
+                    </a>
+                    <a href="{% url 'shop:contacts' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Контакти
+                    </a>
+                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Кошик
+                    </a>
+                    <a href="{% url 'shop:order_history' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Історія замовлень
                     </a>
                 </div>
@@ -40,6 +55,12 @@
         {% block content %}
         {% endblock %}
     </div>
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 Меблевий магазин</p>
+        </div>
+    </footer>
     <script src="{% static 'js/cart.js' %}"></script>
+    <script src="{% static 'js/carousel.js' %}"></script>
 </body>
 </html>

@@ -1,33 +1,34 @@
 {% extends 'shop/base.html' %}
 {% block content %}
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ furniture.name }}</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                {% if furniture.image %}
-                    <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-auto rounded-md">
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <div class="md:w-1/2">
+            {% if furniture.image %}
+                <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-auto object-cover rounded">
+            {% else %}
+                <div class="w-full h-64 bg-gray-200 flex items-center justify-center rounded">
+                    <span>Зображення відсутнє</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="md:w-1/2 md:pl-8">
+            <h1 class="text-3xl font-bold">{{ furniture.name }}</h1>
+            <p class="text-gray-600 mt-2">{{ furniture.category.name }}</p>
+            <div class="mt-4">
+                {% if furniture.is_promotional and furniture.promotional_price %}
+                    <p class="text-2xl text-red-600 font-semibold">{{ furniture.promotional_price }} грн</p>
+                    <p class="text-lg text-gray-500 line-through">{{ furniture.price }} грн</p>
                 {% else %}
-                    <div class="w-full h-64 bg-gray-200 flex items-center justify-center rounded-md">
-                        <span class="text-gray-500">Немає зображення</span>
-                    </div>
+                    <p class="text-2xl text-gray-800 font-semibold">{{ furniture.price }} грн</p>
                 {% endif %}
             </div>
-            <div>
-                <p class="text-gray-600 mb-4">{{ furniture.description }}</p>
-                <p class="text-2xl font-bold text-gray-900 mb-2">Ціна: {{ furniture.price }} грн</p>
-                <p class="text-gray-600 mb-4">Категорія: {{ furniture.category.name }}</p>
-                {% if furniture.parameters %}
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Параметри:</h3>
-                    <ul class="list-disc pl-5 text-gray-600">
-                        {% for key, value in furniture.parameters.items %}
-                            <li>{{ key|title }}: {{ value }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-                <button data-id="{{ furniture.id }}" class="add-to-cart inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 mt-4">
+            <p class="mt-4">{{ furniture.description }}</p>
+            <div class="mt-6">
+                <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700" onclick="addToCart({{ furniture.id }})">
                     Додати до кошика
                 </button>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}
