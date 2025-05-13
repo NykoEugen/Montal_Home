@@ -5,6 +5,7 @@ from typing import Any
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
+    image = models.ImageField(upload_to='categories/', null=True, blank=True, verbose_name="Зображення")
 
     class Meta:
         verbose_name = "Категорія"

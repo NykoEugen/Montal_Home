@@ -6,6 +6,9 @@ from django.utils.text import slugify
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'slug']
     prepopulated_fields = {'slug': ('name',)}
+    fieldsets = (
+        (None, {'fields': ('name', 'slug', 'image')}),
+    )
 
 @admin.register(Furniture)
 class FurnitureAdmin(admin.ModelAdmin):

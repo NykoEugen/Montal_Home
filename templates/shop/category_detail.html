@@ -1,0 +1,68 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ category.name }}</h1>
+        {% if page_obj %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for item in page_obj %}
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-500">Немає зображення</span>
+                            </div>
+                        {% endif %}
+                        <div class="p-4">
+                            <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
+                            <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>
+                            {% if item.is_promotional and item.promotional_price %}
+                                <p class="text-lg font-bold text-red-600">{{ item.promotional_price }} грн</p>
+                                <p class="text-gray-500 line-through">{{ item.price }} грн</p>
+                            {% else %}
+                                <p class="text-lg font-bold text-gray-900">{{ item.price }} грн</p>
+                            {% endif %}
+                            <div class="mt-4 flex space-x-2">
+                                <a href="{% url 'shop:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                                    Деталі
+                                </a>
+                                <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                                    Додати до кошика
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <!-- Навігація пагінації -->
+            {% if page_obj.has_other_pages %}
+                <div class="mt-8 flex justify-center space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}"
+                           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                            Попередня
+                        </a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="px-4 py-2 bg-gray-800 text-white rounded-md">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}"
+                               class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}"
+                           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                            Наступна
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="text-gray-600">Товарів у цій категорії поки немає.</p>
+        {% endif %}
+    </div>
+{% endblock %}

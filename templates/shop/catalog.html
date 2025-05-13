@@ -1,0 +1,24 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Каталог категорій</h1>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for category in categories %}
+                <a href="{% url 'shop:category_detail' category.slug %}" class="block">
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                        {% if category.image %}
+                            <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-full h-48 object-cover">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-500">Немає зображення</span>
+                            </div>
+                        {% endif %}
+                        <div class="p-4">
+                            <h2 class="text-xl font-semibold text-gray-800">{{ category.name }}</h2>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
