@@ -9,13 +9,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans flex flex-col min-h-screen">
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <a href="{% url 'shop:home' %}" class="flex-shrink-0 flex items-center text-2xl font-bold text-gray-800">
-                        Меблі
+                        Montal Home
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -34,8 +34,8 @@
                     <a href="{% url 'shop:contacts' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Контакти
                     </a>
-                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                        Кошик
+                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900">
+                        Кошик (<span id="cart-count">{{ cart_count|default:0 }}</span>)
                     </a>
                     <a href="{% url 'shop:order_history' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Історія замовлень
@@ -52,12 +52,58 @@
                 </div>
             {% endfor %}
         {% endif %}
-        {% block content %}
-        {% endblock %}
+        <main class="flex-grow">
+            {% block content %}
+            {% endblock %}
+        </main>
     </div>
-    <footer class="bg-gray-800 text-white py-4 mt-8">
-        <div class="container mx-auto px-4 text-center">
-            <p>© 2025 Меблевий магазин</p>
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Логотип -->
+                <div>
+                    <a href="{% url 'shop:home' %}" class="flex items-center space-x-2">
+                        {% if False %}
+                            <img src="{% static 'images/logo.png' %}" alt="Логотип" class="h-12">
+                        {% else %}
+                            <span class="text-2xl font-bold">Магазин меблів</span>
+                        {% endif %}
+                    </a>
+                    <p class="mt-4 text-gray-300">Якісні меблі для вашого дому та офісу.</p>
+                </div>
+                <!-- Контакти -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Контакти</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li>
+                            <span class="font-medium">Email:</span>
+                            <a href="mailto:info@furniturestore.com" class="hover:text-white">info@furniturestore.com</a>
+                        </li>
+                        <li>
+                            <span class="font-medium">Телефон:</span>
+                            <a href="tel:+380123456789" class="hover:text-white">+38 (012) 345-67-89</a>
+                        </li>
+                        <li>
+                            <span class="font-medium">Адреса:</span>
+                            <span>вул. Меблева, 123, Київ, Україна</span>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Каталог та навігація -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Навігація</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="{% url 'shop:catalog' %}" class="hover:text-white">Каталог</a></li>
+                        <li><a href="{% url 'shop:promotions' %}" class="hover:text-white">Акції</a></li>
+                        <li><a href="{% url 'shop:where_to_buy' %}" class="hover:text-white">Де купити</a></li>
+                        <li><a href="{% url 'shop:contacts' %}" class="hover:text-white">Контакти</a></li>
+                        <li><a href="{% url 'shop:order_history' %}" class="hover:text-white">Історія замовлень</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center">
+                <p class="text-gray-300">© 2025 Магазин меблів. Усі права захищено.</p>
+            </div>
         </div>
     </footer>
     <script src="{% static 'js/cart.js' %}"></script>

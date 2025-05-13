@@ -50,7 +50,11 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     furniture = models.ForeignKey(Furniture, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
 
     class Meta:
         verbose_name = "Елемент замовлення"
         verbose_name_plural = "Елементи замовлення"
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name} ({self.quantity})"

@@ -18,10 +18,19 @@
                         <tr class="border-b">
                             <td class="py-3">{{ item.furniture.name }}</td>
                             <td class="py-3">{{ item.quantity }}</td>
-                            <td class="py-3">{{ item.furniture.price }} грн</td>
-                            <td class="py-3">{{ item.furniture.price|floatformat:2 }} грн</td>
                             <td class="py-3">
-                                <button data-id="{{ item.furniture.id }}" class="remove-from-cart text-red-600 hover:text-red-800">
+                                {% if item.furniture.is_promotional and item.furniture.promotional_price %}
+                                    <span class="text-red-600">{{ item.item_price|floatformat:2 }} грн</span>
+                                    <span class="text-gray-500 line-through">{{ item.furniture.price|floatformat:2 }} грн</span>
+                                {% else %}
+                                    {{ item.item_price|floatformat:2 }} грн
+                                {% endif %}
+                            </td>
+                            <td class="py-3">{{ item.total_price|floatformat:2 }} грн</td>
+                            <td class="py-3">
+                                <button data-id="{{ item.furniture.id }}"
+                                        data-url="{% url 'shop:remove_from_cart' %}"
+                                        class="remove-from-cart text-red-600 hover:text-red-800">
                                     Видалити
                                 </button>
                             </td>
@@ -30,7 +39,7 @@
                 </tbody>
             </table>
             <h4 class="text-xl font-bold text-gray-900 mt-6">Загальна сума: {{ total_price }} грн</h4>
-            <a href="{% url 'checkout' %}" class="inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 mt-4">
+            <a href="{% url 'shop:checkout' %}" class="inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 mt-4">
                 Оформити замовлення
             </a>
         </div>

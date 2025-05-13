@@ -26,7 +26,8 @@
                                 <a href="{% url 'shop:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
                                     Деталі
                                 </a>
-                                <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                                <button class="add-to-cart bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                                    data-id="{{ item.id }}" data-url="{% url 'shop:add_to_cart' %}">
                                     Додати до кошика
                                 </button>
                             </div>

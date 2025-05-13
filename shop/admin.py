@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import admin
 from .models import Category, Furniture, Order, OrderItem
 from django.utils.text import slugify
@@ -21,10 +23,22 @@ class FurnitureAdmin(admin.ModelAdmin):
         ('Параметри', {'fields': ('parameters',)}),
     )
 
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    fields = ['furniture', 'price', 'quantity', 'get_parameters']
+    readonly_fields = ['furniture', 'price', 'quantity', 'get_parameters']
+
+    def get_parameters(self, obj):
+        return json.dumps(obj.parameters, ensure_ascii=False, indent=2)
+
+    get_parameters.short_description = 'Параметри'
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id', 'customer_name', 'customer_email', 'created_at']
     search_fields = ['customer_name', 'customer_email']
+    inlines = [OrderItemInline]
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
