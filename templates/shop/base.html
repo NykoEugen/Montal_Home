@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body class="bg-gray-100 font-sans flex flex-col min-h-screen">
+<body class="bg-gray-100 font-sans w-screen">
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -22,7 +22,7 @@
                     <a href="{% url 'shop:home' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Головна
                     </a>
-                    <a href="{% url 'shop:catalog' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'categories:categories_list' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Каталог
                     </a>
                     <a href="{% url 'shop:promotions' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
@@ -93,7 +93,7 @@
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Навігація</h3>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="{% url 'shop:catalog' %}" class="hover:text-white">Каталог</a></li>
+                        <li><a href="{% url 'categories:categories_list' %}" class="hover:text-white">Каталог</a></li>
                         <li><a href="{% url 'shop:promotions' %}" class="hover:text-white">Акції</a></li>
                         <li><a href="{% url 'shop:where_to_buy' %}" class="hover:text-white">Де купити</a></li>
                         <li><a href="{% url 'shop:contacts' %}" class="hover:text-white">Контакти</a></li>
