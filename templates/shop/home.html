@@ -10,7 +10,7 @@
             <div id="promoCarousel" class="flex transition-transform duration-500">
                 {% for item in promotional_furniture %}
                 <div class="min-w-full md:min-w-[33.33%] px-2">
-                    <a href="{% url 'shop:furniture_detail' item.slug %}" class="block">
+                    <a href="{% url 'furniture:furniture_detail' item.slug %}" class="block">
                         <div class="bg-white rounded-lg shadow-md overflow-hidden">
                             {% if item.image %}
                                 <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
@@ -54,7 +54,7 @@
     <h2 class="text-2xl font-bold text-gray-900 mb-4">Категорії</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {% for category in categories %}
-            <a href="{% url 'shop:category_detail' category.slug %}" class="block">
+            <a href="{% url 'categories:category_detail' category.slug %}" class="block">
                 <div class="bg-white rounded-lg shadow-md overflow-hidden">
                     {% if category.image %}
                         <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-full h-48 object-cover">

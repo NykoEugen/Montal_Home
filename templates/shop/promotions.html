@@ -19,7 +19,7 @@
                             <p class="text-lg font-bold text-red-600">{{ item.promotional_price }} грн</p>
                             <p class="text-gray-500 line-through">{{ item.price }} грн</p>
                             <div class="mt-4 flex space-x-2">
-                                <a href="{% url 'shop:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                                <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
                                     Деталі
                                 </a>
                                 <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">

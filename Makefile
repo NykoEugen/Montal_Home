@@ -38,9 +38,11 @@ test:
 precommit: autofmt lint test
 
 .PHONY: migrations
-migrations:
-    python manage.py makemigrations .
+setupdb:
+	@echo "Starting migrations..."
+	python manage.py makemigrations
 
 .PHONY: migrate
 migrate:
-    python manage.py migrate .
+	@echo "MAke migrations..."
+	python manage.py migrate
