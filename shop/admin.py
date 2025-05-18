@@ -4,6 +4,7 @@ from django.contrib import admin
 
 from categories.models import Category
 from furniture.models import Furniture
+from sub_categories.models import SubCategory
 
 from .models import Order, OrderItem
 
@@ -15,17 +16,24 @@ class CategoryAdmin(admin.ModelAdmin):
     fieldsets = ((None, {"fields": ("name", "slug", "image")}),)
 
 
+@admin.register(SubCategory)
+class SubCategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug"]
+    prepopulated_fields = {"slug": ("name",)}
+    fieldsets = ((None, {"fields": ("name", "slug", "category", "image")}),)
+
+
 @admin.register(Furniture)
 class FurnitureAdmin(admin.ModelAdmin):
     list_display = [
         "name",
-        "category",
+        "sub_category",
         "price",
         "is_promotional",
         "promotional_price",
         "slug",
     ]
-    list_filter = ["category", "is_promotional"]
+    list_filter = ["sub_category", "is_promotional"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
     fieldsets = (
@@ -35,7 +43,7 @@ class FurnitureAdmin(admin.ModelAdmin):
                 "fields": (
                     "name",
                     "slug",
-                    "category",
+                    "sub_category",
                     "price",
                     "is_promotional",
                     "promotional_price",

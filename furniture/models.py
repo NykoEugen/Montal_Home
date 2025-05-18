@@ -1,14 +1,14 @@
 from django.db import models
 from django.db.models import JSONField
 
-from categories.models import Category
+from sub_categories.models import SubCategory
 
 
 class Furniture(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
-    category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, related_name="furniture"
+    sub_category = models.ForeignKey(
+        SubCategory, on_delete=models.CASCADE, related_name="furniture"
     )
     price = models.DecimalField(max_digits=10, decimal_places=2)
     is_promotional = models.BooleanField(default=False, verbose_name="Акційний")

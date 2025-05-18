@@ -46,3 +46,8 @@ setupdb:
 migrate:
 	@echo "MAke migrations..."
 	python manage.py migrate
+
+.PHONY: run
+run:
+	@echo "Starting..."
+	python manage.py runserver
