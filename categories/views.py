@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, render
 
 from categories.models import Category
 from furniture.models import Furniture
+from sub_categories.models import SubCategory
 
 
 def categories_list(request: HttpRequest) -> HttpResponse:
@@ -14,9 +15,9 @@ def categories_list(request: HttpRequest) -> HttpResponse:
 
 def category_detail(request: HttpRequest, category_slug: str) -> HttpResponse:
     category = get_object_or_404(Category, slug=category_slug)
-    furniture = Furniture.objects.filter(category=category)
-    paginator = Paginator(furniture, 9)
+    sub_categories = SubCategory.objects.filter(category=category)
+    paginator = Paginator(sub_categories, 9)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    context = {"category": category, "page_obj": page_obj}
-    return render(request, "categories/category_detail.html", context)
+    context = {"sub_categories": sub_categories, "page_obj": page_obj}
+    return render(request, "sub_categories/sub_categories_list.html", context)
