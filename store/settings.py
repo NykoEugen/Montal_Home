@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-
-import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -82,10 +80,6 @@ WSGI_APPLICATION = "store.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-# DATABASES = {
-#     'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
-# }
 
 DATABASES = {
     "default": {
