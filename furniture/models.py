@@ -21,7 +21,6 @@ class Furniture(models.Model):
     )
     description = models.TextField()
     image = models.ImageField(upload_to="furniture/", null=True, blank=True)
-    parameters = JSONField(default=dict, blank=True)  # Гнучкі параметри для розширення
 
     class Meta:
         db_table = "furniture"
