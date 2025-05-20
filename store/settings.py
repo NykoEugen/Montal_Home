@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "categories.apps.CategoriesConfig",
     "furniture.apps.FurnitureConfig",
     "sub_categories.apps.SubCategoriesConfig",
+    "params.apps.ParamConfig",
 ]
 
 MIDDLEWARE = [
@@ -137,3 +138,32 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+FURNITURE_PARAM_LABELS = {
+    "width": "Ширина (см)",
+    "height": "Висота (см)",
+    "depth": "Глибина (см)",
+    "color": "Колір",
+    "material_coating": "Матеріал покриття",
+    "material_frame": "Матеріал каркасу",
+    "manufacture": "Країна виробник",
+    "length": "Довжина (см)",
+    "max_length": "Максимальна довжина (см)",
+    "tabletop material": "Матеріал стільниці",
+    "table_type": "Тип",
+    "layout mechanism": "Механізм розкладки",
+    "form": "Форма",
+    "berth": "Спальне місце",
+    "lifting_mechanism": "Під'ємний механізм",
+    "chair_type": "Тип крісла",
+    "max_weight": "Максимальне навантаження (кг)",
+    "headrest": "Підголовник",
+    "adjustment": "Регулювання",
+    "warranty": "Гарантія",
+    "furniture_type": "М'які меблі",
+    "filler_type": "Тип наповнювача",
+    "armrest": "Підлокітники",
+    "hardness_level": "Рівень жорсткості",
+    "mattress_height": "Висота матрацу (см)",
+
+}
