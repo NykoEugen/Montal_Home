@@ -17,9 +17,13 @@ class FurnitureParameterInline(admin.TabularInline):
     verbose_name_plural = "Параметри"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        # Обмежуємо вибір параметрів тими, що дозволені для підкатегорії
-        if db_field.name == "parameter" and hasattr(self, 'parent_object'):
-            kwargs["queryset"] = self.parent_object.sub_category.allowed_params.all()
+        if db_field.name == "parameter":
+            # Якщо об'єкт Furniture існує і має sub_category
+            if hasattr(self, 'parent_object') and self.parent_object and self.parent_object.sub_category:
+                kwargs["queryset"] = self.parent_object.sub_category.allowed_params.all()
+            else:
+                # Якщо Furniture ще не створений, дозволяємо всі параметри
+                kwargs["queryset"] = Parameter.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_formset(self, request, obj=None, **kwargs):
