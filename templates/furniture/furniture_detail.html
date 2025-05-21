@@ -23,6 +23,19 @@
                 {% endif %}
             </div>
             <p class="mt-4">{{ furniture.description }}</p>
+            {% if parameters %}
+                <div class="mt-6">
+                    <h2 class="text-xl font-semibold text-gray-800">Характеристики</h2>
+                    <ul class="mt-2 space-y-2">
+                        {% for param in parameters %}
+                            <li class="flex justify-between border-b border-gray-200 py-2">
+                                <span class="text-gray-600">{{ param.parameter.label }}</span>
+                                <span class="text-gray-800 font-medium">{{ param.value }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
             <div class="mt-6">
                 <button class="add-to-cart bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                         data-id="{{ furniture.id }}" data-url="{% url 'shop:add_to_cart' %}">
