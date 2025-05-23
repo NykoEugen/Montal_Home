@@ -5,7 +5,7 @@
     <!-- Карусель акційних пропозицій -->
     {% if promotional_furniture %}
     <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-4">Акційні пропозиції</h2>
+        <h2 class="text-2xl font-bold mb-4 text-brown-800">Акційні пропозиції</h2>
         <div class="relative overflow-hidden">
             <div id="promoCarousel" class="flex transition-transform duration-500">
                 {% for item in promotional_furniture %}
@@ -15,22 +15,22 @@
                             {% if item.image %}
                                 <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
                             {% else %}
-                                <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                    <span>Зображення відсутнє</span>
+                                <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                    <span class="text-brown-500">Зображення відсутнє</span>
                                 </div>
                             {% endif %}
                             <div class="p-4">
-                                <h3 class="text-lg font-semibold">{{ item.name }}</h3>
+                                <h3 class="text-lg font-semibold text-brown-800">{{ item.name }}</h3>
                                 <p class="text-red-600 font-semibold">{{ item.promotional_price }} грн</p>
-                                <p class="text-gray-500 line-through">{{ item.price }} грн</p>
+                                <p class="text-brown-500 line-through">{{ item.price }} грн</p>
                             </div>
                         </div>
                     </a>
                 </div>
                 {% endfor %}
             </div>
-            <button id="prevButton" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full">❮</button>
-            <button id="nextButton" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white p-2 rounded-full">❯</button>
+            <button id="prevButton" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full">❮</button>
+            <button id="nextButton" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full">❯</button>
         </div>
     </div>
     {% endif %}
@@ -41,8 +41,8 @@
             <img src="{% static 'images/about.jpg' %}" alt="Про компанію" class="w-full h-64 object-cover rounded">
         </div>
         <div class="md:w-1/2 md:pl-6 mt-4 md:mt-0">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Про компанію</h2>
-            <p class="text-gray-600">
+            <h2 class="text-2xl font-bold text-brown-800 mb-4">Про компанію</h2>
+            <p class="text-brown-600">
                 Ми – провідний меблевий магазин, що пропонує якісні та стильні меблі для вашого дому.
                 Наша місія – створювати затишок у кожному домі завдяки широкому асортименту та доступним цінам.
                 Понад 10 років ми допомагаємо клієнтам втілювати їхні мрії про ідеальний інтер’єр.
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Категорії -->
-    <h2 class="text-2xl font-bold text-gray-900 mb-4">Категорії</h2>
+    <h2 class="text-2xl font-bold text-brown-800 mb-4">Категорії</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {% for category in categories %}
             <a href="{% url 'categories:category_detail' category.slug %}" class="block">
@@ -59,62 +59,16 @@
                     {% if category.image %}
                         <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-full h-48 object-cover">
                     {% else %}
-                        <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                            <span class="text-gray-500">Немає зображення</span>
+                        <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                            <span class="text-brown-500">Немає зображення</span>
                         </div>
                     {% endif %}
                     <div class="p-4">
-                        <h3 class="text-xl font-semibold text-gray-800">{{ category.name }}</h3>
+                        <h3 class="text-xl font-semibold text-brown-800">{{ category.name }}</h3>
                     </div>
                 </div>
             </a>
         {% endfor %}
     </div>
-
-{#    <h1 class="text-3xl font-bold text-gray-900 mb-8">Каталог меблів</h1>#}
-{#    <form class="mb-6 flex flex-col sm:flex-row gap-4">#}
-{#        <div>#}
-{#            <label for="category" class="text-gray-700 font-semibold mr-2">Фільтр за категорією:</label>#}
-{#            <select name="category" id="category" onchange="this.form.submit()" class="px-4 py-2 border rounded-md">#}
-{#                <option value="">Усі категорії</option>#}
-{#                {% for category in categories %}#}
-{#                    <option value="{{ category.slug }}" {% if category.slug == selected_category %}selected{% endif %}>#}
-{#                        {{ category.name }}#}
-{#                    </option>#}
-{#                {% endfor %}#}
-{#            </select>#}
-{#        </div>#}
-{#        <div class="flex-grow">#}
-{#            <input type="text" name="q" value="{{ search_query|default_if_none:'' }}" placeholder="Пошук за назвою або описом..."#}
-{#                   class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600">#}
-{#        </div>#}
-{#        <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">Шукати</button>#}
-{#    </form>#}
-{#    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">#}
-{#        {% for item in furniture %}#}
-{#            <div class="bg-white rounded-lg shadow-md overflow-hidden">#}
-{#                {% if item.image %}#}
-{#                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">#}
-{#                {% else %}#}
-{#                    <div class="w-full h-48 bg-gray-200 flex items-center justify-center">#}
-{#                        <span class="text-gray-500">Немає зображення</span>#}
-{#                    </div>#}
-{#                {% endif %}#}
-{#                <div class="p-4">#}
-{#                    <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>#}
-{#                    <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>#}
-{#                    <p class="text-lg font-bold text-gray-900 mt-2">{{ item.price }} грн</p>#}
-{#                    <div class="mt-4 flex space-x-2">#}
-{#                        <a href="{% url 'shop:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">#}
-{#                            Деталі#}
-{#                        </a>#}
-{#                        <button data-id="{{ item.id }}" class="add-to-cart inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">#}
-{#                            Додати до кошика#}
-{#                        </button>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
-{#        {% endfor %}#}
-{#    </div>#}
     </div>
 {% endblock %}

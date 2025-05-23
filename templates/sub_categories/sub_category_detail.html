@@ -2,57 +2,56 @@
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="flex flex-col lg:flex-row">
-
             <div class="lg:w-1/4 lg:pr-8 mb-6 lg:mb-0">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Фільтри</h2>
-            <form method="get" class="space-y-4">
-                <!-- Сортування за ціною -->
-                <div>
-                    <label for="sort" class="block text-sm font-medium text-gray-700">Сортування за ціною</label>
-                    <select name="sort" id="sort" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <option value="" {% if not current_sort %}selected{% endif %}>За замовчуванням</option>
-                        <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Від дешевого до дорогого</option>
-                        <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Від дорогого до дешевого</option>
-                    </select>
-                </div>
-                <!-- Фільтри за параметрами -->
-                {% for key, param in filter_options.items %}
+                <h2 class="text-xl font-semibold text-brown-800 mb-4">Фільтри</h2>
+                <form method="get" class="space-y-4">
+                    <!-- Сортування за ціною -->
                     <div>
-                        <label for="param_{{ key }}" class="block text-sm font-medium text-gray-700">{{ param.label }}</label>
-                        <select name="param_{{ key }}" id="param_{{ key }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            <option value="" {% if current_filters|length == 0 %}selected{% else %}
-                                {% with param_key='param_'|add:key found=false %}
-                                    {% for filter_key, filter_value in current_filters %}
-                                        {% if filter_key == param_key %}
-                                            {% if not filter_value %}selected{% endif %}
-                                            {% with found=true %}{% endwith %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% if not found %}selected{% endif %}
-                                {% endwith %}
-                            {% endif %}>Усі</option>
-                            {% for value in param.values %}
-                                <option value="{{ value }}"
-                                        {% for filter_key, filter_value in current_filters %}
-                                            {% if filter_key == 'param_'|add:key and filter_value == value %}selected{% endif %}
-                                        {% endfor %}>
-                                    {{ value }}
-                                </option>
-                            {% endfor %}
+                        <label for="sort" class="block text-sm font-medium text-brown-700">Сортування за ціною</label>
+                        <select name="sort" id="sort" class="mt-1 block w-full border-beige-300 rounded-md shadow-sm focus:ring-brown-600 focus:border-brown-600">
+                            <option value="" {% if not current_sort %}selected{% endif %}>За замовчуванням</option>
+                            <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Від дешевого до дорогого</option>
+                            <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Від дорогого до дешевого</option>
                         </select>
                     </div>
-                {% endfor %}
-                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                    Застосувати фільтри
-                </button>
-                <!-- Кнопка для скидання фільтрів -->
-                <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="block text-center text-blue-600 hover:underline mt-2">
-                    Скинути фільтри
-                </a>
-            </form>
-        </div>
+                    <!-- Фільтри за параметрами -->
+                    {% for key, param in filter_options.items %}
+                        <div>
+                            <label for="param_{{ key }}" class="block text-sm font-medium text-brown-700">{{ param.label }}</label>
+                            <select name="param_{{ key }}" id="param_{{ key }}" class="mt-1 block w-full border-beige-300 rounded-md shadow-sm focus:ring-brown-600 focus:border-brown-600">
+                                <option value="" {% if current_filters|length == 0 %}selected{% else %}
+                                    {% with param_key='param_'|add:key found=false %}
+                                        {% for filter_key, filter_value in current_filters %}
+                                            {% if filter_key == param_key %}
+                                                {% if not filter_value %}selected{% endif %}
+                                                {% with found=true %}{% endwith %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not found %}selected{% endif %}
+                                    {% endwith %}
+                                {% endif %}>Усі</option>
+                                {% for value in param.values %}
+                                    <option value="{{ value }}"
+                                            {% for filter_key, filter_value in current_filters %}
+                                                {% if filter_key == 'param_'|add:key and filter_value == value %}selected{% endif %}
+                                            {% endfor %}>
+                                        {{ value }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="w-full bg-black text-white px-4 py-2 rounded-md hover:bg-brown-700">
+                        Застосувати фільтри
+                    </button>
+                    <!-- Кнопка для скидання фільтрів -->
+                    <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="block text-center bg-black text-white rounded-md hover:text-brown-700 mt-2">
+                        Скинути фільтри
+                    </a>
+                </form>
+            </div>
             <div class="lg:w-3/4">
-                <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ sub_category.name }}</h1>
+                <h1 class="text-3xl font-bold text-brown-800 mb-8">{{ sub_category.name }}</h1>
                 {% if page_obj %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for item in page_obj %}
@@ -60,24 +59,24 @@
                                 {% if item.image %}
                                     <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
                                 {% else %}
-                                    <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                        <span class="text-gray-500">Немає зображення</span>
+                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                        <span class="text-brown-500">Немає зображення</span>
                                     </div>
                                 {% endif %}
                                 <div class="p-4">
-                                    <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
-                                    <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>
+                                    <h2 class="text-xl font-semibold text-brown-800">{{ item.name }}</h2>
+                                    <p class="text-brown-600 mt-2">{{ item.description|truncatewords:20 }}</p>
                                     {% if item.is_promotional and item.promotional_price %}
                                         <p class="text-lg font-bold text-red-600">{{ item.promotional_price }} грн</p>
-                                        <p class="text-gray-500 line-through">{{ item.price }} грн</p>
+                                        <p class="text-brown-500 line-through">{{ item.price }} грн</p>
                                     {% else %}
-                                        <p class="text-lg font-bold text-gray-900">{{ item.price }} грн</p>
+                                        <p class="text-lg font-bold text-brown-800">{{ item.price }} грн</p>
                                     {% endif %}
                                     <div class="mt-4 flex space-x-2">
-                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-black text-white px-4 py-2 rounded-md hover:bg-brown-700">
                                             Деталі
                                         </a>
-                                        <button class="add-to-cart bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                                        <button class="add-to-cart bg-black text-white px-6 py-2 rounded hover:beige-700"
                                             data-id="{{ item.id }}" data-url="{% url 'shop:add_to_cart' %}">
                                             Додати до кошика
                                         </button>
@@ -91,30 +90,30 @@
                         <div class="mt-8 flex justify-center space-x-2">
                             {% if page_obj.has_previous %}
                                 <a href="?page={{ page_obj.previous_page_number }}"
-                                   class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                   class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
                                     Попередня
                                 </a>
                             {% endif %}
                             {% for num in page_obj.paginator.page_range %}
                                 {% if page_obj.number == num %}
-                                    <span class="px-4 py-2 bg-gray-800 text-white rounded-md">{{ num }}</span>
+                                    <span class="px-4 py-2 bg-brown-800 text-white rounded-md">{{ num }}</span>
                                 {% else %}
                                     <a href="?page={{ num }}"
-                                       class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                       class="px-4 py-2 bg-gray-200 text-brown-800 rounded-md hover:bg-beige-700">
                                         {{ num }}
                                     </a>
                                 {% endif %}
                             {% endfor %}
                             {% if page_obj.has_next %}
                                 <a href="?page={{ page_obj.next_page_number }}"
-                                   class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                   class="px-4 py-2 bg-gray-200 text-brown-800 rounded-md hover:bg-beige-700">
                                     Наступна
                                 </a>
                             {% endif %}
                         </div>
                     {% endif %}
                 {% else %}
-                    <p class="text-gray-600">Товарів у цій підкатегорії поки немає.</p>
+                    <p class="text-brown-600">Товарів у цій підкатегорії поки немає.</p>
                 {% endif %}
             </div>
         </div>

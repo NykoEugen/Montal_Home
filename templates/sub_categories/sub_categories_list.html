@@ -1,7 +1,7 @@
 {% extends 'shop/base.html' %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Підкатегорії</h1>
+        <h1 class="text-3xl font-bold text-brown-800 mb-8">Підкатегорії</h1>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for sub_category in sub_categories %}
                 <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="block">
@@ -9,12 +9,12 @@
                         {% if sub_category.image %}
                             <img src="{{ sub_category.image.url }}" alt="{{ sub_category.name }}" class="w-full h-48 object-cover">
                         {% else %}
-                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                <span class="text-gray-500">Немає зображення</span>
+                            <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                <span class="text-brown-500">Немає зображення</span>
                             </div>
                         {% endif %}
                         <div class="p-4">
-                            <h2 class="text-xl font-semibold text-gray-800">{{ sub_category.name }}</h2>
+                            <h2 class="text-xl font-semibold text-brown-800">{{ sub_category.name }}</h2>
                         </div>
                     </div>
                 </a>

@@ -1,7 +1,109 @@
-body {
-    font-family: 'Inter', sans-serif;
+/* Color Palette for easy maintenance */
+:root {
+    --beige-100: #efefeb; /* Light beige for backgrounds */
+    --beige-200: #dad3d1; /* Slightly darker beige for placeholders and borders */
+    --beige-300: #d1c5bd; /* Medium beige for input borders */
+    --beige-700: #c1b0a3; /* Medium beige for borders */
+    --brown-500: #5a4137; /* Medium brown for text and accents */
+    --brown-600: #513b24; /* Darker brown for hover states */
+    --brown-700: #403125; /* Dark brown for bold text */
+    --brown-800: #3e3427; /* Very dark brown for footer and buttons */
 }
-img {
-    max-height: 200px;
-    object-fit: cover;
+
+/* Global Styles */
+body {
+    background-color: var(--beige-100);
+}
+
+/* Navigation */
+nav.bg-white {
+    background-color: #FFFFFF; /* Keep white for clean look */
+}
+
+nav a.text-brown-600 {
+    color: var(--brown-600);
+}
+
+nav a.text-brown-600:hover {
+    color: var(--brown-700);
+}
+
+nav a.text-brown-800 {
+    color: var(--brown-800);
+}
+
+/* Breadcrumb */
+nav[aria-label="Breadcrumb"] a {
+    color: var(--brown-500);
+}
+
+nav[aria-label="Breadcrumb"] a:hover {
+    color: var(--brown-700);
+}
+
+nav[aria-label="Breadcrumb"] span.text-brown-700 {
+    color: var(--brown-700);
+}
+
+/* Messages */
+div.bg-beige-100 {
+    background-color: var(--beige-100);
+    border-left-color: var(--brown-500);
+}
+
+div.text-brown-700 {
+    color: var(--brown-700);
+}
+
+/* Footer */
+footer.bg-brown-800 {
+    background-color: var(--brown-800);
+}
+
+footer p.text-beige-200,
+footer ul.text-beige-200 {
+    color: var(--beige-200);
+}
+
+footer div.border-beige-700 {
+    border-color: var(--beige-700);
+}
+
+/* Carousel */
+button.bg-brown-800 {
+    background-color: var(--brown-800);
+}
+
+/* Category and Promo Cards */
+div.bg-beige-200 {
+    background-color: var(--beige-200);
+}
+
+div.text-brown-500 {
+    color: var(--brown-500);
+}
+
+h3.text-brown-800 {
+    color: var(--brown-800);
+}
+
+/* About Section */
+p.text-brown-600 {
+    color: var(--brown-600);
+}
+
+/* Form Inputs */
+select.border-beige-300 {
+    border-color: var(--beige-300);
+}
+
+select.focus\:ring-brown-600:focus,
+select.focus\:border-brown-600:focus {
+    border-color: var(--brown-600);
+    --tw-ring-color: var(--brown-600);
+}
+
+/* Parameter List Borders */
+li.border-beige-200 {
+    border-color: var(--beige-200);
 }
