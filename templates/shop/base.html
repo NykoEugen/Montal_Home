@@ -8,36 +8,38 @@
     <title>Інтернет-магазин меблів</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
-<body class="bg-gray-100 font-sans w-screen">
+<body class="bg-beige-100 font-sans w-screen">
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex">
-                    <a href="{% url 'shop:home' %}" class="flex-shrink-0 flex items-center text-2xl font-bold text-gray-800">
-                        Montal Home
+                    <a href="{% url 'shop:home' %}" class="logo-link flex-shrink-0 flex items-center text-2xl font-bold text-brown-800">
+                       Montal Home
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="{% url 'shop:home' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:home' %}" class="nav-link">
                         Головна
                     </a>
-                    <a href="{% url 'categories:categories_list' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'categories:categories_list' %}" class="nav-link">
                         Каталог
                     </a>
-                    <a href="{% url 'shop:promotions' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:promotions' %}" class="nav-link">
                         Акції
                     </a>
-                    <a href="{% url 'shop:where_to_buy' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:where_to_buy' %}" class="nav-link">
                         Де купити
                     </a>
-                    <a href="{% url 'shop:contacts' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:contacts' %}" class="nav-link">
                         Контакти
                     </a>
-                    <a href="{% url 'shop:view_cart' %}" class="text-gray-600 hover:text-gray-900">
+                    <a href="{% url 'shop:view_cart' %}" class="nav-link">
                         Кошик (<span id="cart-count">{{ cart_count|default:0 }}</span>)
                     </a>
-                    <a href="{% url 'shop:order_history' %}" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    <a href="{% url 'shop:order_history' %}" class="nav-link">
                         Історія замовлень
                     </a>
                 </div>
@@ -46,16 +48,16 @@
     </nav>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <nav class="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <nav class="text-sm text-brown-500 mb-4" aria-label="Breadcrumb">
             <ol class="list-none p-0 inline-flex">
                 {% for crumb in breadcrumbs %}
                     {% if forloop.last %}
                         <li class="flex items-center">
-                            <span class="text-gray-700 font-medium">{{ crumb.name }}</span>
+                            <span class="text-brown-700 font-medium">{{ crumb.name }}</span>
                         </li>
                     {% else %}
                         <li class="flex items-center">
-                            <a href="{{ crumb.url }}" class="hover:text-gray-900">{{ crumb.name }}</a>
+                            <a href="{{ crumb.url }}" class="nav-link">{{ crumb.name }}</a>
                             <svg class="fill-current w-3 h-3 mx-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
                                 <path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/>
                             </svg>
@@ -67,7 +69,7 @@
 
         {% if messages %}
             {% for message in messages %}
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+                <div class="bg-beige-100 border-l-4 border-brown-500 text-brown-700 p-4 mb-4" role="alert">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -77,56 +79,67 @@
             {% endblock %}
         </main>
     </div>
-    <footer class="bg-gray-800 text-white py-12">
+    <footer class="bg-brown-800 text-white py-12">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Логотип -->
                 <div>
-                    <a href="{% url 'shop:home' %}" class="flex items-center space-x-2">
+                    <a href="{% url 'shop:home' %}" class="logo-link flex items-center space-x-2">
                         {% if False %}
                             <img src="{% static 'images/logo.png' %}" alt="Логотип" class="h-12">
                         {% else %}
                             <span class="text-2xl font-bold">Магазин меблів</span>
                         {% endif %}
                     </a>
-                    <p class="mt-4 text-gray-300">Якісні меблі для вашого дому та офісу.</p>
+                    <p class="mt-4 text-beige-200">Якісні меблі для вашого дому та офісу.</p>
                 </div>
                 <!-- Контакти -->
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Контакти</h3>
-                    <ul class="space-y-2 text-gray-300">
+                    <ul class="space-y-2 text-beige-200">
                         <li>
                             <span class="font-medium">Email:</span>
-                            <a href="mailto:info@furniturestore.com" class="hover:text-white">info@furniturestore.com</a>
+                            <a href="mailto:info@furniturestore.com" class="nav-link">info@furniturestore.com</a>
                         </li>
                         <li>
                             <span class="font-medium">Телефон:</span>
-                            <a href="tel:+380123456789" class="hover:text-white">+38 (012) 345-67-89</a>
+                            <a href="tel:+380123456789" class="nav-link">+38 (012) 345-67-89</a>
                         </li>
                         <li>
                             <span class="font-medium">Адреса:</span>
                             <span>вул. Меблева, 123, Київ, Україна</span>
+                        </li>
+                        <li>
+                            <a href="https://www.instagram.com/yourusername" target="_blank" class="social-icon nav-link">
+                                <i class="fab fa-instagram"></i> | planet_style
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.tiktok.com/@yourusername" target="_blank" class="social-icon nav-link">
+                                <i class="fab fa-tiktok"></i> | planet_style
+                            </a>
                         </li>
                     </ul>
                 </div>
                 <!-- Каталог та навігація -->
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Навігація</h3>
-                    <ul class="space-y-2 text-gray-300">
-                        <li><a href="{% url 'categories:categories_list' %}" class="hover:text-white">Каталог</a></li>
-                        <li><a href="{% url 'shop:promotions' %}" class="hover:text-white">Акції</a></li>
-                        <li><a href="{% url 'shop:where_to_buy' %}" class="hover:text-white">Де купити</a></li>
-                        <li><a href="{% url 'shop:contacts' %}" class="hover:text-white">Контакти</a></li>
-                        <li><a href="{% url 'shop:order_history' %}" class="hover:text-white">Історія замовлень</a></li>
+                    <ul class="space-y-2 text-beige-200">
+                        <li><a href="{% url 'categories:categories_list' %}" class="nav-link">Каталог</a></li>
+                        <li><a href="{% url 'shop:promotions' %}" class="nav-link">Акції</a></li>
+                        <li><a href="{% url 'shop:where_to_buy' %}" class="nav-link">Де купити</a></li>
+                        <li><a href="{% url 'shop:contacts' %}" class="nav-link">Контакти</a></li>
+                        <li><a href="{% url 'shop:order_history' %}" class="nav-link">Історія замовлень</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="mt-8 pt-8 border-t border-gray-700 text-center">
-                <p class="text-gray-300">© 2025 Магазин меблів. Усі права захищено.</p>
+            <div class="mt-8 pt-8 border-t border-beige-700 text-center">
+                <p class="text-beige-200">© 2025 Магазин меблів. Усі права захищено.</p>
             </div>
         </div>
     </footer>
     <script src="{% static 'js/cart.js' %}"></script>
     <script src="{% static 'js/carousel.js' %}"></script>
+    <script src="{% static 'js/filters.js' %}"></script>
 </body>
 </html>

@@ -1,28 +1,28 @@
 {% extends 'shop/base.html' %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Акційні пропозиції</h1>
+        <h1 class="text-3xl font-bold text-brown-800 mb-8">Акційні пропозиції</h1>
         {% if page_obj %}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for item in page_obj %}
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="furniture-card">
                         {% if item.image %}
                             <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
                         {% else %}
-                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                <span class="text-gray-500">Немає зображення</span>
+                            <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                <span class="text-brown-500">Немає зображення</span>
                             </div>
                         {% endif %}
                         <div class="p-4">
-                            <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
-                            <p class="text-gray-600 mt-2">{{ item.description|truncatewords:20 }}</p>
+                            <h2 class="text-xl font-semibold text-brown-800">{{ item.name }}</h2>
+                            <p class="text-brown-600 mt-2">{{ item.description|truncatewords:20 }}</p>
                             <p class="text-lg font-bold text-red-600">{{ item.promotional_price }} грн</p>
-                            <p class="text-gray-500 line-through">{{ item.price }} грн</p>
+                            <p class="text-brown-500 line-through">{{ item.price }} грн</p>
                             <div class="mt-4 flex space-x-2">
-                                <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900">
+                                <a href="{% url 'furniture:furniture_detail' item.slug %}" class="btn-grad">
                                     Деталі
                                 </a>
-                                <button class="add-to-cart bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                                <button class="add-to-cart btn-grad"
                                     data-id="{{ item.id }}" data-url="{% url 'shop:add_to_cart' %}">
                                     Додати до кошика
                                 </button>
@@ -36,30 +36,30 @@
                 <div class="mt-8 flex justify-center space-x-2">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}"
-                           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                           class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
                             Попередня
                         </a>
                     {% endif %}
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
-                            <span class="px-4 py-2 bg-gray-800 text-white rounded-md">{{ num }}</span>
+                            <span class="px-4 py-2 bg-brown-800 text-white rounded-md">{{ num }}</span>
                         {% else %}
                             <a href="?page={{ num }}"
-                               class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                               class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
                                 {{ num }}
                             </a>
                         {% endif %}
                     {% endfor %}
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}"
-                           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                           class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
                             Наступна
                         </a>
                     {% endif %}
                 </div>
             {% endif %}
         {% else %}
-            <p class="text-gray-600">Наразі немає акційних пропозицій.</p>
+            <p class="text-brown-600">Наразі немає акційних пропозицій.</p>
         {% endif %}
     </div>
 {% endblock %}
