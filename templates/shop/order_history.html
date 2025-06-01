@@ -5,7 +5,7 @@
         <div class="flex gap-4">
             <input type="email" name="email" value="{{ email|default_if_none:'' }}" placeholder="Введіть ваш email"
                    class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600" required>
-            <button type="submit" class="bg-brown-800 text-white px-4 py-2 rounded-md hover:bg-brown-700">Переглянути</button>
+            <button type="submit" class="btn-grad">Переглянути</button>
         </div>
     </form>
     {% if orders_data %}
