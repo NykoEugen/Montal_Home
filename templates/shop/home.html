@@ -4,35 +4,36 @@
     <div class="container mx-auto px-4 py-8">
     <!-- Карусель акційних пропозицій -->
     {% if promotional_furniture %}
-    <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-4 text-brown-800">Акційні пропозиції</h2>
-        <div class="relative overflow-hidden">
-            <div id="promoCarousel" class="flex transition-transform duration-500">
-                {% for item in promotional_furniture %}
-                <div class="min-w-full md:min-w-[33.33%] px-2">
-                    <a href="{% url 'furniture:furniture_detail' item.slug %}" class="block">
-                        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                            {% if item.image %}
-                                <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
-                            {% else %}
-                                <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
-                                    <span class="text-brown-500">Зображення відсутнє</span>
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold mb-4 text-brown-800">Акційні пропозиції</h2>
+            <div class="relative overflow-hidden carousel-wrapper">
+                <div id="promoCarousel" class="flex transition-transform duration-500 ease-out">
+                    {% for item in promotional_furniture %}
+                    <div class="carousel-item px-2">
+                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="block">
+                            <div class="category-card">
+                                {% if item.image %}
+                                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                                {% else %}
+                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                        <span class="text-brown-500">Зображення відсутнє</span>
+                                    </div>
+                                {% endif %}
+                                <div class="p-4">
+                                    <h3 class="text-lg font-semibold text-brown-800">{{ item.name }}</h3>
+                                    <p class="text-red-600 font-semibold">{{ item.promotional_price }} грн</p>
+                                    <p class="text-brown-500 line-through">{{ item.price }} грн</p>
                                 </div>
-                            {% endif %}
-                            <div class="p-4">
-                                <h3 class="text-lg font-semibold text-brown-800">{{ item.name }}</h3>
-                                <p class="text-red-600 font-semibold">{{ item.promotional_price }} грн</p>
-                                <p class="text-brown-500 line-through">{{ item.price }} грн</p>
                             </div>
-                        </div>
-                    </a>
+                        </a>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
+                <button id="prevButton" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full z-10">❮</button>
+                <button id="nextButton" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full z-10">❯</button>
             </div>
-            <button id="prevButton" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full">❮</button>
-            <button id="nextButton" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-brown-800 text-white p-2 rounded-full">❯</button>
         </div>
-    </div>
+
     {% endif %}
 
     <!-- Блок "Про компанію" -->
@@ -55,7 +56,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {% for category in categories %}
             <a href="{% url 'categories:category_detail' category.slug %}" class="block">
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="category-card">
                     {% if category.image %}
                         <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-full h-48 object-cover">
                     {% else %}

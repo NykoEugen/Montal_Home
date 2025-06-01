@@ -5,7 +5,7 @@
         {% if page_obj %}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for item in page_obj %}
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="category-card">
                         {% if item.image %}
                             <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
                         {% else %}
