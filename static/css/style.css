@@ -71,6 +71,15 @@ footer div.border-beige-700 {
     border-color: var(--beige-700);
 }
 
+.logo-link {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.logo-link:hover {
+    transform: scale(1.1);
+}
+
 .social-links {
     display: flex;
     gap: 16px;
