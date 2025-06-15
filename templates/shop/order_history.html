@@ -1,18 +1,28 @@
 {% extends 'shop/base.html' %}
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Історія замовлень</h1>
-    <form class="mb-6">
+    <form class="mb-6" method="get" id="phone-search-form">
         <div class="flex gap-4">
-            <input type="email" name="email" value="{{ email|default_if_none:'' }}" placeholder="Введіть ваш email"
+            <input type="tel" name="phone_number" value="{{ phone_number|default_if_none:'' }}"
+                   placeholder="Введіть ваш номер телефону (0XXXXXXXXX)"
+                   pattern="0[0-9]{9}"
+                   title="Введіть номер у форматі 0XXXXXXXXX"
                    class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600" required>
             <button type="submit" class="btn-grad">Переглянути</button>
         </div>
+        {% if messages %}
+            {% for message in messages %}
+                <p class="text-red-500 text-sm mt-2">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
     </form>
     {% if orders_data %}
         <div class="bg-white rounded-lg shadow-md p-6">
             {% for data in orders_data %}
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-brown-800 mb-2">Замовлення №{{ data.order.id }} від {{ data.order.created_at|date:"d.m.Y H:i" }}</h2>
+                    <h2 class="text-xl font-semibold text-brown-800 mb-2">
+                        Замовлення №{{ data.order.id }} від {{ data.order.created_at|date:"d.m.Y H:i" }}
+                    </h2>
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b bg-beige-100">
@@ -25,7 +35,8 @@
                             {% for item in data.items %}
                                 <tr class="border-b border-beige-700">
                                     <td class="py-3 px-4">
-                                        <a href="{% url 'furniture:furniture_detail' item.furniture.slug %}" class="text-brown-600 hover:text-brown-700">
+                                        <a href="{% url 'furniture:furniture_detail' item.furniture.slug %}"
+                                           class="text-brown-600 hover:text-brown-700">
                                             {{ item.furniture.name }}
                                         </a>
                                     </td>
@@ -45,10 +56,15 @@
                     <p class="mt-4 text-lg font-bold text-brown-800">
                         Загальна сума: {{ data.total_price|floatformat:2 }} грн
                     </p>
+                    <p class="mt-2 text-brown-600">
+                        Місто доставки: {{ data.order.delivery_city }}<br>
+                        Відділення: {{ data.order.delivery_branch }}
+                    </p>
                 </div>
             {% endfor %}
         </div>
-    {% elif email %}
-        <p class="text-brown-600">Замовлення не знайдено для цього email.</p>
+    {% elif phone_number %}
+        <p class="text-brown-600">Замовлення не знайдено для цього номера телефону.</p>
     {% endif %}
+
 {% endblock %}

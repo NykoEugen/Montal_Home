@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "furniture.apps.FurnitureConfig",
     "sub_categories.apps.SubCategoriesConfig",
     "params.apps.ParamConfig",
+    "checkout.apps.CheckoutConfig",
 ]
 
 MIDDLEWARE = [

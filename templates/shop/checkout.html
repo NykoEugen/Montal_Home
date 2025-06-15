@@ -2,19 +2,19 @@
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Оформлення замовлення</h1>
     <div class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
-        <form method="post">
+        <form method="post" id="checkout-form" novalidate>
             {% csrf_token %}
-            <div class="mb-4">
-                <label for="customer_name" class="block text-brown-700 font-semibold mb-2">Ім'я</label>
-                <input type="text" id="customer_name" name="customer_name" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600" required>
-            </div>
-            <div class="mb-4">
-                <label for="customer_email" class="block text-brown-700 font-semibold mb-2">Email</label>
-                <input type="email" id="customer_email" name="customer_email" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600" required>
-            </div>
-            <button type="submit" class="btn-grad">
-                Підтвердити замовлення
-            </button>
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <div class="mb-4">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>
     </div>
 {% endblock %}
