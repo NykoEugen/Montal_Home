@@ -8,8 +8,6 @@ from django.views.decorators.http import require_POST
 from categories.models import Category
 from furniture.models import Furniture
 
-from .models import Order, OrderItem
-
 
 def home(request: HttpRequest) -> HttpResponse:
     categories = Category.objects.all()
@@ -103,68 +101,6 @@ def view_cart(request: HttpRequest) -> HttpResponse:
         "shop/cart.html",
         {"cart_items": cart_items, "total_price": total_price},
     )
-
-
-def checkout(request: HttpRequest) -> HttpResponse:
-    if request.method == "POST":
-        customer_name = request.POST.get("customer_name", "")
-        customer_email = request.POST.get("customer_email", "")
-        cart = request.session.get("cart", {})
-        if not cart:
-            messages.error(request, "Кошик порожній!")
-            return redirect("shop:view_cart")
-
-        order = Order.objects.create(
-            customer_name=customer_name, customer_email=customer_email
-        )
-        for furniture_id, quantity in cart.items():
-            furniture: Furniture = get_object_or_404(Furniture, id=int(furniture_id))
-            price = (
-                furniture.promotional_price
-                if furniture.is_promotional and furniture.promotional_price
-                else furniture.price
-            )
-            OrderItem.objects.create(
-                order=order,
-                furniture=furniture,
-                quantity=quantity,
-                price=price,
-            )
-
-        request.session["cart"] = {}
-        messages.success(request, "Замовлення успішно оформлено!")
-        return redirect("shop:home")
-
-    return render(request, "shop/checkout.html")
-
-
-def order_history(request: HttpRequest) -> HttpResponse:
-    email = request.GET.get("email")
-    orders_data = []
-    if email:
-        orders = (
-            Order.objects.filter(customer_email=email)
-            .order_by("-created_at")
-            .prefetch_related("orderitem_set__furniture")
-        )
-        for order in orders:
-            total_price = sum(
-                item.price * item.quantity for item in order.orderitem_set.all()
-            )
-            orders_data.append(
-                {
-                    "order": order,
-                    "items": order.orderitem_set.all(),
-                    "total_price": float(total_price),
-                }
-            )
-        return render(
-            request,
-            "shop/order_history.html",
-            {"orders_data": orders_data, "email": email},
-        )
-    return render(request, "shop/order_history.html")
-
 
 def promotions(request: HttpRequest) -> HttpResponse:
     promotional_furniture = Furniture.objects.filter(

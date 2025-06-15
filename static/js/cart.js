@@ -80,3 +80,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+document.getElementById('phone-search-form').addEventListener('submit', function(e) {
+    const phoneInput = document.querySelector('input[name="phone_number"]');
+    const phonePattern = /^0[0-9]{9}$/;
+
+    if (!phonePattern.test(phoneInput.value)) {
+        e.preventDefault();
+        phoneInput.classList.add('border-red-500');
+        alert('Будь ласка, введіть коректний номер телефону у форматі 0XXXXXXXXX');
+    } else {
+        phoneInput.classList.remove('border-red-500');
+    }
+});

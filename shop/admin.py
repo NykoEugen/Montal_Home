@@ -7,7 +7,7 @@ from furniture.models import Furniture
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
-from .models import Order, OrderItem
+from checkout.models import Order, OrderItem
 
 class FurnitureParameterInline(admin.TabularInline):
     model = FurnitureParameter
