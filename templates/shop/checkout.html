@@ -14,6 +14,17 @@
                     {% endif %}
                 </div>
             {% endfor %}
+            <input type="text" id="city-input" placeholder="Введіть місто" autocomplete="off"
+                   class="border p-2 w-full" />
+            <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10"></ul>
+
+            <label for="warehouse-select" class="block mt-4 mb-2 text-sm font-medium text-gray-700">
+                Оберіть відділення
+            </label>
+            <select id="warehouse-select" name="warehouse" class="border p-2 w-full">
+                <option value="">Спочатку оберіть місто...</option>
+            </select>
+
             <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>
     </div>

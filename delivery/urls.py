@@ -5,6 +5,7 @@ from . import views
 app_name: str = "delivery"
 
 urlpatterns = [
-    path("", views.delivery_address, name="delivery_address"),
+    path("np/cities", views.autocomplete_city, name="autocomplete_city"),
+    path("np/warehouses", views.get_warehouses, name="get_warehouse"),
 
 ]

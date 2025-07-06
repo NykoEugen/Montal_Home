@@ -170,3 +170,4 @@ FURNITURE_PARAM_LABELS = {
     "mattress_height": "Висота матрацу (см)",
 
 }
+NOVA_POSHTA_API_KEY = os.getenv("NOVA_POSHTA_API_KEY")

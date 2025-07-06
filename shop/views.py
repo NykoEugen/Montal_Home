@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from categories.models import Category
+from delivery.views import search_city
 from furniture.models import Furniture
 
 
