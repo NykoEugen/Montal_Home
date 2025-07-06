@@ -5,15 +5,23 @@
         <form method="post" id="checkout-form" novalidate>
             {% csrf_token %}
             {{ form.non_field_errors }}
+
             {% for field in form %}
-                <div class="mb-4">
-                    {{ field.label_tag }}
+                {% if field.is_hidden %}
                     {{ field }}
-                    {% if field.errors %}
-                        <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                    {% endif %}
-                </div>
+                {% else %}
+                    <div class="mb-4">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% endfor %}
+
+            <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10"></ul>
+
             <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>
     </div>

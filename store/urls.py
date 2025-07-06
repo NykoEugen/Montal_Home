@@ -27,4 +27,5 @@ urlpatterns = [
     path("furniture/", include("furniture.urls")),
     path("sub-categories/", include("sub_categories.urls")),
     path("checkout/", include("checkout.urls")),
+    path("delivery/", include("delivery.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
