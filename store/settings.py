@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "sub_categories.apps.SubCategoriesConfig",
     "params.apps.ParamConfig",
     "checkout.apps.CheckoutConfig",
+    "delivery.apps.DeliveryConfig",
 ]
 
 MIDDLEWARE = [
