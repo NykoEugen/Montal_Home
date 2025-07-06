@@ -23,9 +23,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 customer_last_name=form.cleaned_data['customer_last_name'],
                 customer_phone_number=form.cleaned_data['customer_phone_number'],
                 customer_email=form.cleaned_data['customer_email'],
-                delivery_city=form.cleaned_data['delivery_city'],
-                delivery_branch=form.cleaned_data['delivery_branch'],
+                delivery_city=form.cleaned_data['delivery_city_label'],
+                delivery_branch=form.cleaned_data['delivery_branch_name'],
             )
+
             for furniture_id, quantity in cart.items():
                 furniture: Furniture = get_object_or_404(Furniture, id=int(furniture_id))
                 price = (

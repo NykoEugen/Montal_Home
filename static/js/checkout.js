@@ -31,10 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         item.classList.add("px-2", "py-1", "hover:bg-gray-100", "cursor-pointer");
 
                         item.onclick = () => {
-                            console.log("Вибране місто:", city.label, city.ref);
                             input.value = city.label;
                             list.innerHTML = "";
                             list.classList.add("hidden");
+
+                            document.querySelector('[name="delivery_city"]').value = city.ref;
+
+                            let cityNameInput = document.querySelector('[name="delivery_city_name"]');
+                            if (cityNameInput) cityNameInput.value = city.label;
 
                             // Очистити список відділень
                             const warehouseSelect = document.getElementById("warehouse-select");
@@ -44,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             fetch(`/delivery/np/warehouses?city_ref=${city.ref}`)
                                 .then(res => res.json())
                                 .then(data => {
+                                    const branchHiddenInput = document.querySelector('[name="delivery_branch"]');
+                                    branchHiddenInput.value = "";
+
                                     warehouseSelect.innerHTML = ""; // Очистити перед додаванням
 
                                     if (!data.length) {
@@ -57,6 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                         option.textContent = wh.label;
                                         warehouseSelect.appendChild(option);
                                     });
+
+                                    warehouseSelect.onchange = () => {
+                                        let selectedOption = warehouseSelect.options[warehouseSelect.selectedIndex];
+                                        document.querySelector('[name="delivery_branch"]').value = selectedOption.value;
+
+                                        let branchNameInput = document.querySelector('[name="delivery_branch_name"]');
+                                        if (branchNameInput) branchNameInput.value = selectedOption.textContent;
+                                    };
                                 });
                         };
 

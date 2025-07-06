@@ -5,25 +5,22 @@
         <form method="post" id="checkout-form" novalidate>
             {% csrf_token %}
             {{ form.non_field_errors }}
-            {% for field in form %}
-                <div class="mb-4">
-                    {{ field.label_tag }}
-                    {{ field }}
-                    {% if field.errors %}
-                        <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            <input type="text" id="city-input" placeholder="Введіть місто" autocomplete="off"
-                   class="border p-2 w-full" />
-            <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10"></ul>
 
-            <label for="warehouse-select" class="block mt-4 mb-2 text-sm font-medium text-gray-700">
-                Оберіть відділення
-            </label>
-            <select id="warehouse-select" name="warehouse" class="border p-2 w-full">
-                <option value="">Спочатку оберіть місто...</option>
-            </select>
+            {% for field in form %}
+                {% if field.is_hidden %}
+                    {{ field }}
+                {% else %}
+                    <div class="mb-4">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10"></ul>
 
             <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>

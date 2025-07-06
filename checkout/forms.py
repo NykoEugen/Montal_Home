@@ -41,22 +41,41 @@ class CheckoutForm(forms.Form):
     )
     # Added for future Nova Poshta integration
     delivery_city = forms.CharField(
-        max_length=100,
+        max_length=200,
         required=True,
+        label="Місто доставки",
+        widget=forms.HiddenInput()
+    )
+
+    delivery_city_label = forms.CharField(
+        required=False,
+        label="Місто доставки",
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600',
-            'placeholder': 'Введіть місто доставки'
-        }),
-        label="Місто доставки"
+            'id': 'city-input',
+            'autocomplete': 'off',
+            'placeholder': 'Введіть місто доставки',
+            'class': 'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600'
+        })
     )
     delivery_branch = forms.CharField(
         max_length=200,
         required=True,
-        widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600',
-            'placeholder': 'Введіть номер або адресу відділення'
-        }),
-        label="Відділення Нової Пошти"
+        label="Відділення Нової Пошти",
+        widget=forms.HiddenInput()
+    )
+
+    delivery_branch_label = forms.CharField(
+        required=False,
+        label="Оберіть відділення",
+        widget=forms.Select(attrs={
+            'id': 'warehouse-select',
+            'class': 'border p-2 w-full'
+        })
+    )
+
+    delivery_branch_name = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False
     )
 
     def clean_customer_phone_number(self):

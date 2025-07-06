@@ -20,15 +20,12 @@ def search_city(city_name: str) -> JsonResponse:
     }
 
     response = requests.post(url, json=payload)
-    print(f"City response {response.json()}")
-    #{"success": True, "data": [{"TotalCount": 26, "Addresses": [{}]
     return response.json()
 
 @csrf_exempt
 @require_GET
 def get_warehouses(request):
     city_ref = request.GET.get("city_ref", "").strip()
-    print("city_ref отримано:", city_ref)
     if not city_ref:
         return JsonResponse([], safe=False)
 
@@ -43,7 +40,6 @@ def get_warehouses(request):
 
     response = requests.post("https://api.novaposhta.ua/v2.0/json/", json=payload)
     data = response.json()
-    print("NP WAREHOUSES RESPONSE:", data)
 
     if not data.get("success"):
         return JsonResponse([], safe=False)
@@ -62,7 +58,6 @@ def get_warehouses(request):
 @require_GET
 def autocomplete_city(request):
     query = request.GET.get("q", "").strip()
-    print(f"Запит на місто: {query}")
     if not query:
         return JsonResponse([], safe=False)
 
@@ -96,5 +91,5 @@ def autocomplete_city(request):
         if item.get("DeliveryCity")
     ]
 
-    cache.set(cache_key, result, timeout=3600)
+    cache.set(cache_key, result, timeout=60*60*12)
     return JsonResponse(result, safe=False)
