@@ -51,3 +51,10 @@ migrate:
 run:
 	@echo "Starting..."
 	python manage.py runserver
+
+.PHONY: install
+install:
+	@if [ ! -d "venv" ]; then \
+		python3 -m venv venv; \
+	fi
+	. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
