@@ -1,0 +1,1721 @@
+[
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$gjo2Ek4GFZ76OUNoloQ3fp$iX90k8XWn39GMI8knVcWUz0ar3WOa5pFuLVEZ8kbGf8=",
+    "last_login": "2025-07-06T14:48:46.778Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-05-20T15:38:49.243Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gp570xdk2y8w8huzbja006il12ama3ej",
+  "fields": {
+    "session_data": ".eJxVjEsOgzAMBe_idRUF8YnDsvueIbJjp6GtQIKwQty9ILFot2_mzQaB1pLDuugcBoEeKrj9bkzxreMJ5EXjczJxGss8sDkVc9HFPCbRz_1y_wKZlny8G04-sZC0rKRRPKOrvYj6rnUdRmsRXaqlQVEl7NjZhNy6iOpJxB7RSHOBfoMG-mrfv6gbPa4:1uIWE7:1W08z08ScparF4WTbGqlfT3HPz_u_m3OmqfcZ00WI1U",
+    "expire_date": "2025-06-06T17:30:35.102Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "j5ggdt44auy6jarld3o5fs0zqyu6zjth",
+  "fields": {
+    "session_data": ".eJxVjDsOwyAQBe9CHSEif1hcps8Z0C67xE4ikMCuLN_dtuQiad_Mm1V5XObRL1WKn1gN6q5uvxth-Eg6Ab8xvbIOOc1lIn0q-qJVPzPL93G5f4ER63i8W4ouEiN3JCiBHYFtHLO4vrM9BGMAbGy4BRZB6MmaCNTZAOKQ2RzRgGVWw7ptO3isPMs:1uYkCv:06XwujVj-_QELHX7EV78hXo46AXvUSvexmSgEX7t83I",
+    "expire_date": "2025-07-21T11:40:25.569Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "lqrjqi2eoineipaktfsud1fxir75ctl3",
+  "fields": {
+    "session_data": ".eJxVjEsOgzAMBe_idRUFAYnDsvueIbJjp6GtQOKzQty9ILFhOzPvbZBoWqDboIKu2h8QaV1KXGedYi_QHfjGmNJXh1PIh4b3aNI4LFPP5kzMZWfzGkV_z6u9HRSay7FuOIfMQtKykiYJjL4OIhpc6x0maxF9rqVBUSV07G1Gbn1CDSRiYf8DGtM9qw:1uSgz7:-wyDYd9HtJjIHghECnd28B_SZtugfRNYJz_OI7PY8hg",
+    "expire_date": "2025-07-04T19:01:09.057Z"
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 1,
+  "fields": {
+    "name": "М'які меблі",
+    "slug": "myaki-mebli",
+    "image": ""
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 2,
+  "fields": {
+    "name": "Стільці",
+    "slug": "stilci",
+    "image": ""
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 3,
+  "fields": {
+    "name": "Ліжка",
+    "slug": "lizhka",
+    "image": ""
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 4,
+  "fields": {
+    "name": "Комп'ютерні крісла",
+    "slug": "kompyuterni-krisla",
+    "image": ""
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 5,
+  "fields": {
+    "name": "Столи",
+    "slug": "stoli",
+    "image": ""
+  }
+},
+{
+  "model": "categories.category",
+  "pk": 6,
+  "fields": {
+    "name": "Матраци",
+    "slug": "matraci",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 1,
+  "fields": {
+    "name": "Base chair",
+    "slug": "base-chair",
+    "sub_category": 1,
+    "price": "2000.00",
+    "is_promotional": true,
+    "promotional_price": "1800.00",
+    "description": "hgasv",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 2,
+  "fields": {
+    "name": "Basic 02",
+    "slug": "basic-02",
+    "sub_category": 1,
+    "price": "1800.00",
+    "is_promotional": true,
+    "promotional_price": "1700.00",
+    "description": "jshdkjhasd",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 3,
+  "fields": {
+    "name": "Premium-001",
+    "slug": "premium-001",
+    "sub_category": 1,
+    "price": "3500.00",
+    "is_promotional": false,
+    "promotional_price": null,
+    "description": "jxhkjvhasjkdh",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 4,
+  "fields": {
+    "name": "Madrid",
+    "slug": "madrid",
+    "sub_category": 2,
+    "price": "15000.00",
+    "is_promotional": true,
+    "promotional_price": "14000.00",
+    "description": "hjffhjfjhfjh",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 6,
+  "fields": {
+    "name": "Rio-2",
+    "slug": "rio-2",
+    "sub_category": 1,
+    "price": "2000.00",
+    "is_promotional": true,
+    "promotional_price": "1900.00",
+    "description": "sdasdvs",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 7,
+  "fields": {
+    "name": "Lux",
+    "slug": "lux",
+    "sub_category": 1,
+    "price": "5800.00",
+    "is_promotional": true,
+    "promotional_price": "5500.00",
+    "description": ",nvjksdhvk",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 8,
+  "fields": {
+    "name": "Solo-2",
+    "slug": "solo-2",
+    "sub_category": 1,
+    "price": "2430.00",
+    "is_promotional": true,
+    "promotional_price": "2300.00",
+    "description": "jhsHVASKJV",
+    "image": ""
+  }
+},
+{
+  "model": "furniture.furniture",
+  "pk": 9,
+  "fields": {
+    "name": "Flex",
+    "slug": "flex",
+    "sub_category": 1,
+    "price": "4980.00",
+    "is_promotional": true,
+    "promotional_price": "4780.00",
+    "description": "jvjkanjkd",
+    "image": ""
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 1,
+  "fields": {
+    "name": "Кухонні стільці",
+    "slug": "kuhonni-stilci",
+    "category": 2,
+    "image": "",
+    "allowed_params": [
+      5,
+      6,
+      7
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 2,
+  "fields": {
+    "name": "Дивани",
+    "slug": "divani",
+    "category": 1,
+    "image": "",
+    "allowed_params": [
+      1,
+      2,
+      3,
+      5,
+      7,
+      11,
+      20,
+      23
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 3,
+  "fields": {
+    "name": "Крісла",
+    "slug": "krisla",
+    "category": 1,
+    "image": "",
+    "allowed_params": [
+      1,
+      8,
+      11,
+      12,
+      22,
+      23
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 4,
+  "fields": {
+    "name": "Кухонні столи",
+    "slug": "kuhonni-stoli",
+    "category": 5,
+    "image": "",
+    "allowed_params": [
+      1,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 5,
+  "fields": {
+    "name": "Журнальні столи",
+    "slug": "zhurnalni-stoli",
+    "category": 5,
+    "image": "",
+    "allowed_params": [
+      1,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 6,
+  "fields": {
+    "name": "Комп'ютерні столи",
+    "slug": "kompyuterni-stoli",
+    "category": 5,
+    "image": "",
+    "allowed_params": [
+      1,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 7,
+  "fields": {
+    "name": "Барні столи",
+    "slug": "barni-stoli",
+    "category": 5,
+    "image": "",
+    "allowed_params": [
+      1,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ]
+  }
+},
+{
+  "model": "sub_categories.subcategory",
+  "pk": 8,
+  "fields": {
+    "name": "Дерев'яні ліжка",
+    "slug": "derevyani-lizhka",
+    "category": 3,
+    "image": "",
+    "allowed_params": [
+      14,
+      15
+    ]
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 1,
+  "fields": {
+    "key": "width",
+    "label": "Ширина (см)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 2,
+  "fields": {
+    "key": "height",
+    "label": "Висота (см)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 3,
+  "fields": {
+    "key": "depth",
+    "label": "Глибина (см)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 4,
+  "fields": {
+    "key": "color",
+    "label": "Колір"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 5,
+  "fields": {
+    "key": "material_coating",
+    "label": "Матеріал покриття"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 6,
+  "fields": {
+    "key": "material_frame",
+    "label": "Матеріал каркасу"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 7,
+  "fields": {
+    "key": "manufacture",
+    "label": "Країна виробник"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 8,
+  "fields": {
+    "key": "length",
+    "label": "Довжина (см)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 9,
+  "fields": {
+    "key": "max_length",
+    "label": "Максимальна довжина (см)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 10,
+  "fields": {
+    "key": "tabletop material",
+    "label": "Матеріал стільниці"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 11,
+  "fields": {
+    "key": "table_type",
+    "label": "Тип"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 12,
+  "fields": {
+    "key": "layout mechanism",
+    "label": "Механізм розкладки"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 13,
+  "fields": {
+    "key": "form",
+    "label": "Форма"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 14,
+  "fields": {
+    "key": "berth",
+    "label": "Спальне місце"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 15,
+  "fields": {
+    "key": "lifting_mechanism",
+    "label": "Під'ємний механізм"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 16,
+  "fields": {
+    "key": "chair_type",
+    "label": "Тип крісла"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 17,
+  "fields": {
+    "key": "max_weight",
+    "label": "Максимальне навантаження (кг)"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 18,
+  "fields": {
+    "key": "headrest",
+    "label": "Підголовник"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 19,
+  "fields": {
+    "key": "adjustment",
+    "label": "Регулювання"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 20,
+  "fields": {
+    "key": "warranty",
+    "label": "Гарантія"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 21,
+  "fields": {
+    "key": "furniture_type",
+    "label": "М'які меблі"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 22,
+  "fields": {
+    "key": "filler_type",
+    "label": "Тип наповнювача"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 23,
+  "fields": {
+    "key": "armrest",
+    "label": "Підлокітники"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 24,
+  "fields": {
+    "key": "hardness_level",
+    "label": "Рівень жорсткості"
+  }
+},
+{
+  "model": "params.parameter",
+  "pk": 25,
+  "fields": {
+    "key": "mattress_height",
+    "label": "Висота матрацу (см)"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 1,
+  "fields": {
+    "furniture": 1,
+    "parameter": 5,
+    "value": "Велюр"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 2,
+  "fields": {
+    "furniture": 1,
+    "parameter": 6,
+    "value": "Дерево"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 3,
+  "fields": {
+    "furniture": 1,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 4,
+  "fields": {
+    "furniture": 2,
+    "parameter": 5,
+    "value": "Еко-шкіра"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 5,
+  "fields": {
+    "furniture": 2,
+    "parameter": 6,
+    "value": "Пластик"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 6,
+  "fields": {
+    "furniture": 2,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 7,
+  "fields": {
+    "furniture": 3,
+    "parameter": 5,
+    "value": "Шкіра"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 8,
+  "fields": {
+    "furniture": 3,
+    "parameter": 6,
+    "value": "Дерево (дуб)"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 9,
+  "fields": {
+    "furniture": 3,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 10,
+  "fields": {
+    "furniture": 4,
+    "parameter": 5,
+    "value": "Велюр"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 11,
+  "fields": {
+    "furniture": 4,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 14,
+  "fields": {
+    "furniture": 6,
+    "parameter": 5,
+    "value": "Замша"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 15,
+  "fields": {
+    "furniture": 6,
+    "parameter": 6,
+    "value": "Сосна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 16,
+  "fields": {
+    "furniture": 6,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 17,
+  "fields": {
+    "furniture": 7,
+    "parameter": 5,
+    "value": "Шкіра"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 18,
+  "fields": {
+    "furniture": 7,
+    "parameter": 6,
+    "value": "Дерево (дуб)"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 19,
+  "fields": {
+    "furniture": 7,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 20,
+  "fields": {
+    "furniture": 8,
+    "parameter": 5,
+    "value": "Велюр"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 21,
+  "fields": {
+    "furniture": 8,
+    "parameter": 6,
+    "value": "Сосна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 22,
+  "fields": {
+    "furniture": 8,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 23,
+  "fields": {
+    "furniture": 9,
+    "parameter": 5,
+    "value": "Шкіра"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 24,
+  "fields": {
+    "furniture": 9,
+    "parameter": 6,
+    "value": "Дерево (дуб)"
+  }
+},
+{
+  "model": "params.furnitureparameter",
+  "pk": 25,
+  "fields": {
+    "furniture": 9,
+    "parameter": 7,
+    "value": "Україна"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 1,
+  "fields": {
+    "customer_name": "Евгеній",
+    "customer_last_name": "Ніколенко",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "Дніпро",
+    "delivery_branch": "№ 31",
+    "created_at": "2025-06-15T08:31:58.132Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 2,
+  "fields": {
+    "customer_name": "РПгнп",
+    "customer_last_name": "ДЛРОЩШр",
+    "customer_phone_number": "0995543388",
+    "customer_email": "",
+    "delivery_city": "b36d1742-a9af-11eb-80fb-b8830365bd04",
+    "delivery_branch": "d27f6df4-ae7d-11eb-8134-b8830365bd14",
+    "created_at": "2025-06-15T12:19:45.285Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 3,
+  "fields": {
+    "customer_name": "Артем",
+    "customer_last_name": "Пивоваров",
+    "customer_phone_number": "0992247733",
+    "customer_email": "",
+    "delivery_city": "Київ",
+    "delivery_branch": "Відділення №105 (до 30 кг на одне місце): вул. Дегтярівська, 58",
+    "created_at": "2025-06-15T12:33:03.823Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 4,
+  "fields": {
+    "customer_name": "Анастасія",
+    "customer_last_name": "Кивенко",
+    "customer_phone_number": "0993883726",
+    "customer_email": "",
+    "delivery_city": "Дніпро",
+    "delivery_branch": "Відділення №31 (до 30 кг): вул. Робоча, 89",
+    "created_at": "2025-06-15T17:55:55.408Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 5,
+  "fields": {
+    "customer_name": "Евген",
+    "customer_last_name": "Николенко",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "db5c88f0-391c-11dd-90d9-001a92567626",
+    "delivery_branch": "511fd007-e1c2-11e3-8c4a-0050568002cf",
+    "created_at": "2025-07-06T18:31:43.682Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 6,
+  "fields": {
+    "customer_name": "Евгеній",
+    "customer_last_name": "Николенко",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "db5c88f0-391c-11dd-90d9-001a92567626",
+    "delivery_branch": "511fd007-e1c2-11e3-8c4a-0050568002cf",
+    "created_at": "2025-07-06T18:45:56.541Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 7,
+  "fields": {
+    "customer_name": "Евген",
+    "customer_last_name": "Ник",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "м. Дніпро, Дніпропетровська обл.",
+    "delivery_branch": "511fd007-e1c2-11e3-8c4a-0050568002cf",
+    "created_at": "2025-07-06T18:50:13.451Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 8,
+  "fields": {
+    "customer_name": "Евген",
+    "customer_last_name": "Ник",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "db5c88f0-391c-11dd-90d9-001a92567626",
+    "delivery_branch": "511fd007-e1c2-11e3-8c4a-0050568002cf",
+    "created_at": "2025-07-06T19:08:39.848Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 9,
+  "fields": {
+    "customer_name": "евген",
+    "customer_last_name": "Ніко",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "м. Дніпро, Дніпропетровська обл.",
+    "delivery_branch": "Відділення №31 (до 30 кг): вул. Робоча, 89",
+    "created_at": "2025-07-06T19:14:42.525Z"
+  }
+},
+{
+  "model": "checkout.order",
+  "pk": 10,
+  "fields": {
+    "customer_name": "Евген",
+    "customer_last_name": "Нико",
+    "customer_phone_number": "0730674638",
+    "customer_email": "",
+    "delivery_city": "м. Дніпро, Дніпропетровська обл.",
+    "delivery_branch": "Відділення №2: просп. Богдана Хмельницького, 31Д",
+    "created_at": "2025-07-07T11:40:25.564Z"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 1,
+  "fields": {
+    "order": 1,
+    "furniture": 3,
+    "quantity": 1,
+    "price": "3500.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 2,
+  "fields": {
+    "order": 1,
+    "furniture": 1,
+    "quantity": 1,
+    "price": "1800.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 3,
+  "fields": {
+    "order": 2,
+    "furniture": 2,
+    "quantity": 1,
+    "price": "1700.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 4,
+  "fields": {
+    "order": 3,
+    "furniture": 2,
+    "quantity": 1,
+    "price": "1700.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 5,
+  "fields": {
+    "order": 3,
+    "furniture": 3,
+    "quantity": 1,
+    "price": "3500.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 6,
+  "fields": {
+    "order": 4,
+    "furniture": 1,
+    "quantity": 1,
+    "price": "1800.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 7,
+  "fields": {
+    "order": 4,
+    "furniture": 3,
+    "quantity": 1,
+    "price": "3500.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 8,
+  "fields": {
+    "order": 5,
+    "furniture": 1,
+    "quantity": 1,
+    "price": "1800.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 9,
+  "fields": {
+    "order": 6,
+    "furniture": 1,
+    "quantity": 1,
+    "price": "1800.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 10,
+  "fields": {
+    "order": 7,
+    "furniture": 2,
+    "quantity": 1,
+    "price": "1700.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 11,
+  "fields": {
+    "order": 8,
+    "furniture": 4,
+    "quantity": 1,
+    "price": "14000.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 12,
+  "fields": {
+    "order": 9,
+    "furniture": 8,
+    "quantity": 1,
+    "price": "2300.00"
+  }
+},
+{
+  "model": "checkout.orderitem",
+  "pk": 13,
+  "fields": {
+    "order": 10,
+    "furniture": 7,
+    "quantity": 1,
+    "price": "5500.00"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 1,
+  "fields": {
+    "action_time": "2025-05-20T15:40:00.325Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "1",
+    "object_repr": "М'які меблі",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 2,
+  "fields": {
+    "action_time": "2025-05-20T15:40:09.508Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "2",
+    "object_repr": "Стільці",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 3,
+  "fields": {
+    "action_time": "2025-05-20T15:40:37.561Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "1",
+    "object_repr": "Кухонні стільці",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 4,
+  "fields": {
+    "action_time": "2025-05-20T16:03:56.893Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "1",
+    "object_repr": "Base chair",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 5,
+  "fields": {
+    "action_time": "2025-05-20T16:28:09.095Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "1",
+    "object_repr": "Base chair",
+    "action_flag": 2,
+    "change_message": "[]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 6,
+  "fields": {
+    "action_time": "2025-05-20T16:28:30.939Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "1",
+    "object_repr": "Кухонні стільці",
+    "action_flag": 2,
+    "change_message": "[]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 7,
+  "fields": {
+    "action_time": "2025-05-20T18:31:37.770Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "1",
+    "object_repr": "Кухонні стільці",
+    "action_flag": 2,
+    "change_message": "[{\"changed\": {\"fields\": [\"\\u0414\\u043e\\u0437\\u0432\\u043e\\u043b\\u0435\\u043d\\u0456 \\u043f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440\\u0438\"]}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 8,
+  "fields": {
+    "action_time": "2025-05-20T18:31:42.117Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "1",
+    "object_repr": "Кухонні стільці",
+    "action_flag": 2,
+    "change_message": "[]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 9,
+  "fields": {
+    "action_time": "2025-05-20T18:33:01.046Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "1",
+    "object_repr": "Base chair",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Base chair: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0412\\u0435\\u043b\\u044e\\u0440\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Base chair: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0414\\u0435\\u0440\\u0435\\u0432\\u043e\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Base chair: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 10,
+  "fields": {
+    "action_time": "2025-05-21T11:27:56.564Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "2",
+    "object_repr": "Basic 02",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 11,
+  "fields": {
+    "action_time": "2025-05-21T11:28:48.929Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "2",
+    "object_repr": "Basic 02",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Basic 02: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0415\\u043a\\u043e-\\u0448\\u043a\\u0456\\u0440\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Basic 02: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u041f\\u043b\\u0430\\u0441\\u0442\\u0438\\u043a\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Basic 02: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 12,
+  "fields": {
+    "action_time": "2025-05-21T11:29:18.459Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "3",
+    "object_repr": "Premium-001",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 13,
+  "fields": {
+    "action_time": "2025-05-21T11:30:08.574Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "3",
+    "object_repr": "Premium-001",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Premium-001: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0428\\u043a\\u0456\\u0440\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Premium-001: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0414\\u0435\\u0440\\u0435\\u0432\\u043e (\\u0434\\u0443\\u0431)\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Premium-001: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 14,
+  "fields": {
+    "action_time": "2025-05-21T17:04:08.471Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "2",
+    "object_repr": "Дивани",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 15,
+  "fields": {
+    "action_time": "2025-05-21T17:05:22.657Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "4",
+    "object_repr": "Madrid",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 16,
+  "fields": {
+    "action_time": "2025-05-21T17:05:59.956Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "4",
+    "object_repr": "Madrid",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Madrid: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0412\\u0435\\u043b\\u044e\\u0440\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Madrid: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 17,
+  "fields": {
+    "action_time": "2025-05-23T08:01:54.044Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "4",
+    "object_repr": "Madrid",
+    "action_flag": 2,
+    "change_message": "[{\"changed\": {\"fields\": [\"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0438\\u0439\", \"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0430 \\u0446\\u0456\\u043d\\u0430\"]}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 18,
+  "fields": {
+    "action_time": "2025-06-01T09:19:06.187Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "3",
+    "object_repr": "Ліжка",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 19,
+  "fields": {
+    "action_time": "2025-06-01T09:19:22.869Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "4",
+    "object_repr": "Комп'ютерні крісла",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 20,
+  "fields": {
+    "action_time": "2025-06-01T09:19:37.287Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "5",
+    "object_repr": "Столи",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 21,
+  "fields": {
+    "action_time": "2025-06-01T09:19:46.956Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "categories",
+      "category"
+    ],
+    "object_id": "6",
+    "object_repr": "Матраци",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 22,
+  "fields": {
+    "action_time": "2025-06-01T09:23:37.885Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "3",
+    "object_repr": "Крісла",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 23,
+  "fields": {
+    "action_time": "2025-06-01T09:26:03.827Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "4",
+    "object_repr": "Кухонні столи",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 24,
+  "fields": {
+    "action_time": "2025-06-01T09:27:21.560Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "5",
+    "object_repr": "Журнальні столи",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 25,
+  "fields": {
+    "action_time": "2025-06-01T09:28:21.983Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "6",
+    "object_repr": "Комп'ютерні столи",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 26,
+  "fields": {
+    "action_time": "2025-06-01T09:29:21.074Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "7",
+    "object_repr": "Барні столи",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 27,
+  "fields": {
+    "action_time": "2025-06-01T09:31:06.947Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "sub_categories",
+      "subcategory"
+    ],
+    "object_id": "8",
+    "object_repr": "Дерев'яні ліжка",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 28,
+  "fields": {
+    "action_time": "2025-06-01T09:32:37.866Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "5",
+    "object_repr": "Rio-2",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Rio-2: \\u0428\\u0438\\u0440\\u0438\\u043d\\u0430 (\\u0441\\u043c) = 70\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Rio-2: \\u0412\\u0438\\u0441\\u043e\\u0442\\u0430 (\\u0441\\u043c) = 120\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 29,
+  "fields": {
+    "action_time": "2025-06-01T09:34:08.045Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "5",
+    "object_repr": "Rio-2",
+    "action_flag": 3,
+    "change_message": ""
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 30,
+  "fields": {
+    "action_time": "2025-06-01T09:34:23.791Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "6",
+    "object_repr": "Rio-2",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 31,
+  "fields": {
+    "action_time": "2025-06-01T09:35:02.215Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "6",
+    "object_repr": "Rio-2",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Rio-2: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0417\\u0430\\u043c\\u0448\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Rio-2: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0421\\u043e\\u0441\\u043d\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Rio-2: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 32,
+  "fields": {
+    "action_time": "2025-06-01T09:35:26.165Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "7",
+    "object_repr": "Lux",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 33,
+  "fields": {
+    "action_time": "2025-06-01T09:36:16.025Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "7",
+    "object_repr": "Lux",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Lux: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0428\\u043a\\u0456\\u0440\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Lux: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0414\\u0435\\u0440\\u0435\\u0432\\u043e (\\u0434\\u0443\\u0431)\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Lux: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 34,
+  "fields": {
+    "action_time": "2025-06-01T09:36:43.413Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "8",
+    "object_repr": "Solo-2",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 35,
+  "fields": {
+    "action_time": "2025-06-01T09:37:22.718Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "8",
+    "object_repr": "Solo-2",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Solo-2: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0412\\u0435\\u043b\\u044e\\u0440\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Solo-2: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0421\\u043e\\u0441\\u043d\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Solo-2: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 36,
+  "fields": {
+    "action_time": "2025-06-01T09:37:47.247Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "9",
+    "object_repr": "Flex",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 37,
+  "fields": {
+    "action_time": "2025-06-01T09:38:26.336Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "9",
+    "object_repr": "Flex",
+    "action_flag": 2,
+    "change_message": "[{\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Flex: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043f\\u043e\\u043a\\u0440\\u0438\\u0442\\u0442\\u044f = \\u0428\\u043a\\u0456\\u0440\\u0430\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Flex: \\u041c\\u0430\\u0442\\u0435\\u0440\\u0456\\u0430\\u043b \\u043a\\u0430\\u0440\\u043a\\u0430\\u0441\\u0443 = \\u0414\\u0435\\u0440\\u0435\\u0432\\u043e (\\u0434\\u0443\\u0431)\"}}, {\"added\": {\"name\": \"\\u041f\\u0430\\u0440\\u0430\\u043c\\u0435\\u0442\\u0440 \\u043c\\u0435\\u0431\\u043b\\u0456\\u0432\", \"object\": \"Flex: \\u041a\\u0440\\u0430\\u0457\\u043d\\u0430 \\u0432\\u0438\\u0440\\u043e\\u0431\\u043d\\u0438\\u043a = \\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0430\"}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 38,
+  "fields": {
+    "action_time": "2025-06-01T09:38:45.419Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "2",
+    "object_repr": "Basic 02",
+    "action_flag": 2,
+    "change_message": "[{\"changed\": {\"fields\": [\"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0438\\u0439\", \"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0430 \\u0446\\u0456\\u043d\\u0430\"]}}]"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 39,
+  "fields": {
+    "action_time": "2025-06-01T09:38:55.559Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "furniture",
+      "furniture"
+    ],
+    "object_id": "1",
+    "object_repr": "Base chair",
+    "action_flag": 2,
+    "change_message": "[{\"changed\": {\"fields\": [\"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0438\\u0439\", \"\\u0410\\u043a\\u0446\\u0456\\u0439\\u043d\\u0430 \\u0446\\u0456\\u043d\\u0430\"]}}]"
+  }
+}
+]
