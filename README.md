@@ -32,6 +32,7 @@ NOVA_POSHTA_API_KEY=your_novaposhta_key
 ```sh
 python manage.py migrate
 python manage.py collectstatic --noinput
+python manage.py loaddata data.json
 ```
 
 ### 5. Run the server
