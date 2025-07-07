@@ -64,7 +64,3 @@ docker-compose up --build
 ```sh
 make test
 ```
-
----
-
-If you have any questions, check the settings in `store/settings.py` and `docker-compose.yml`. 
