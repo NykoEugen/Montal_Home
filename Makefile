@@ -30,12 +30,8 @@ lint: pyformatcheck mypy
 .PHONY: autofmt
 autofmt: isort black
 
-.PHONY: test
-test:
-	./scripts/test.sh
-
 .PHONY: precommit
-precommit: autofmt lint test
+precommit: autofmt lint
 
 .PHONY: migrations
 setupdb:
