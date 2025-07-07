@@ -16,18 +16,20 @@ class Parameter(models.Model):
 
 class FurnitureParameter(models.Model):
     furniture = models.ForeignKey(
-        'furniture.Furniture', on_delete=models.CASCADE, related_name="parameters"
+        "furniture.Furniture", on_delete=models.CASCADE, related_name="parameters"
     )
     parameter = models.ForeignKey(
         Parameter, on_delete=models.CASCADE, related_name="furniture_parameters"
     )
-    value = models.CharField(max_length=200)  # Значення параметра, наприклад "120" або "blue"
+    value = models.CharField(
+        max_length=200
+    )  # Значення параметра, наприклад "120" або "blue"
 
     class Meta:
         db_table = "furniture_parameters"
         verbose_name = "Параметр меблів"
         verbose_name_plural = "Параметри меблів"
-        unique_together = ('furniture', 'parameter')  # Один параметр на меблі
+        unique_together = ("furniture", "parameter")  # Один параметр на меблі
 
     def __str__(self):
         return f"{self.furniture.name}: {self.parameter.label} = {self.value}"

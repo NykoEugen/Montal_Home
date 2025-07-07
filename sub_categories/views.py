@@ -27,14 +27,16 @@ def sub_categories_details(
 
     # Фільтрація за параметрами
     for param_key, value in parameter_filters:
-        key = param_key.replace('param_', '')  # Видаляємо префікс
-        furniture = furniture.filter(parameters__parameter__key=key, parameters__value=value)
+        key = param_key.replace("param_", "")  # Видаляємо префікс
+        furniture = furniture.filter(
+            parameters__parameter__key=key, parameters__value=value
+        )
 
-    sort = request.GET.get('sort', '')
-    if sort == 'price_asc':
-        furniture = furniture.order_by('price')
-    elif sort == 'price_desc':
-        furniture = furniture.order_by('-price')
+    sort = request.GET.get("sort", "")
+    if sort == "price_asc":
+        furniture = furniture.order_by("price")
+    elif sort == "price_desc":
+        furniture = furniture.order_by("-price")
 
     paginator = Paginator(furniture, 9)
     page_number = request.GET.get("page")
@@ -44,16 +46,12 @@ def sub_categories_details(
     for param in sub_category.allowed_params.all():
         values = (
             FurnitureParameter.objects.filter(
-                furniture__sub_category=sub_category,
-                parameter__key=param.key
+                furniture__sub_category=sub_category, parameter__key=param.key
             )
-            .values_list('value', flat=True)
+            .values_list("value", flat=True)
             .distinct()
         )
-        filter_options[param.key] = {
-            'label': param.label,
-            'values': sorted(values)
-        }
+        filter_options[param.key] = {"label": param.label, "values": sorted(values)}
 
     context = {
         "sub_category": sub_category,

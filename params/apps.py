@@ -11,4 +11,4 @@ class ParamConfig(AppConfig):
 
         params = FURNITURE_PARAM_LABELS
         for key, label in params.items():
-            Parameter.objects.get_or_create(key=key, defaults={'label': label})
+            Parameter.objects.get_or_create(key=key, defaults={"label": label})

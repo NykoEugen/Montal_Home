@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
-from store.settings import NOVA_POSHTA_API_KEY, CARGO_WAREHOUSE_REF
+from store.settings import CARGO_WAREHOUSE_REF, NOVA_POSHTA_API_KEY
 
 
 def search_city(city_name: str) -> JsonResponse:
@@ -15,14 +15,12 @@ def search_city(city_name: str) -> JsonResponse:
         "apiKey": NOVA_POSHTA_API_KEY,
         "modelName": "Address",
         "calledMethod": "searchSettlements",
-        "methodProperties": {
-            "CityName": city_name,
-            "Limit": 10
-        }
+        "methodProperties": {"CityName": city_name, "Limit": 10},
     }
 
     response = requests.post(url, json=payload)
     return response.json()
+
 
 @csrf_exempt
 @require_GET
@@ -37,7 +35,7 @@ def get_warehouses(request):
         "calledMethod": "getWarehouses",
         "methodProperties": {
             "CityRef": city_ref,
-        }
+        },
     }
 
     response = requests.post("https://api.novaposhta.ua/v2.0/json/", json=payload)
@@ -47,15 +45,13 @@ def get_warehouses(request):
         return JsonResponse([], safe=False)
 
     result = [
-        {
-            "label": wh["Description"],
-            "ref": wh["Ref"]
-        }
+        {"label": wh["Description"], "ref": wh["Ref"]}
         for wh in data["data"]
         if wh.get("TypeOfWarehouse") == CARGO_WAREHOUSE_REF
     ]
 
     return JsonResponse(result, safe=False)
+
 
 @csrf_exempt
 @require_GET
@@ -73,10 +69,7 @@ def autocomplete_city(request):
         "apiKey": NOVA_POSHTA_API_KEY,
         "modelName": "Address",
         "calledMethod": "searchSettlements",
-        "methodProperties": {
-            "CityName": query,
-            "Limit": 10
-        }
+        "methodProperties": {"CityName": query, "Limit": 10},
     }
 
     response = requests.post("https://api.novaposhta.ua/v2.0/json/", json=payload)
@@ -86,13 +79,10 @@ def autocomplete_city(request):
         return JsonResponse([], safe=False)
 
     result = [
-        {
-            "label": item["Present"],
-            "ref": item.get("DeliveryCity") or item["Ref"]
-        }
+        {"label": item["Present"], "ref": item.get("DeliveryCity") or item["Ref"]}
         for item in data["data"][0]["Addresses"]
         if item.get("DeliveryCity")
     ]
 
-    cache.set(cache_key, result, timeout=60*60*12)
+    cache.set(cache_key, result, timeout=60 * 60 * 12)
     return JsonResponse(result, safe=False)

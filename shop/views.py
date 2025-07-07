@@ -103,6 +103,7 @@ def view_cart(request: HttpRequest) -> HttpResponse:
         {"cart_items": cart_items, "total_price": total_price},
     )
 
+
 def promotions(request: HttpRequest) -> HttpResponse:
     promotional_furniture = Furniture.objects.filter(
         is_promotional=True, promotional_price__isnull=False

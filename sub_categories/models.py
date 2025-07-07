@@ -11,7 +11,10 @@ class SubCategory(models.Model):
         Category, on_delete=models.CASCADE, related_name="sub_categories"
     )
     allowed_params = models.ManyToManyField(
-        Parameter, blank=True, related_name="sub_categories", verbose_name="Дозволені параметри"
+        Parameter,
+        blank=True,
+        related_name="sub_categories",
+        verbose_name="Дозволені параметри",
     )
     image = models.ImageField(
         upload_to="categories/", null=True, blank=True, verbose_name="Зображення"

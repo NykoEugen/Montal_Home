@@ -2,33 +2,36 @@ import re
 
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from furniture.models import Furniture
+
 from .forms import CheckoutForm
 from .models import Order, OrderItem
+
 
 def checkout(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = CheckoutForm(request.POST)
         if form.is_valid():
-            cart = request.session.get('cart', {})
+            cart = request.session.get("cart", {})
             if not cart:
                 messages.error(request, "Кошик порожній!")
                 return redirect("shop:view_cart")
 
-
             order = Order.objects.create(
-                customer_name=form.cleaned_data['customer_name'],
-                customer_last_name=form.cleaned_data['customer_last_name'],
-                customer_phone_number=form.cleaned_data['customer_phone_number'],
-                customer_email=form.cleaned_data['customer_email'],
-                delivery_city=form.cleaned_data['delivery_city_label'],
-                delivery_branch=form.cleaned_data['delivery_branch_name'],
+                customer_name=form.cleaned_data["customer_name"],
+                customer_last_name=form.cleaned_data["customer_last_name"],
+                customer_phone_number=form.cleaned_data["customer_phone_number"],
+                customer_email=form.cleaned_data["customer_email"],
+                delivery_city=form.cleaned_data["delivery_city_label"],
+                delivery_branch=form.cleaned_data["delivery_branch_name"],
             )
 
             for furniture_id, quantity in cart.items():
-                furniture: Furniture = get_object_or_404(Furniture, id=int(furniture_id))
+                furniture: Furniture = get_object_or_404(
+                    Furniture, id=int(furniture_id)
+                )
                 price = (
                     furniture.promotional_price
                     if furniture.is_promotional and furniture.promotional_price
@@ -54,8 +57,10 @@ def order_history(request: HttpRequest) -> HttpResponse:
     phone_number = request.GET.get("phone_number", "").strip()
     orders_data = []
     if phone_number:
-        if not re.match(r'^0[0-9]{9}$', phone_number):
-            messages.error(request, "Неправильно введений номер телефону! Формат: 0XXXXXXXXX")
+        if not re.match(r"^0[0-9]{9}$", phone_number):
+            messages.error(
+                request, "Неправильно введений номер телефону! Формат: 0XXXXXXXXX"
+            )
         else:
             orders = (
                 Order.objects.filter(customer_phone_number=phone_number)
@@ -63,7 +68,9 @@ def order_history(request: HttpRequest) -> HttpResponse:
                 .prefetch_related("orderitem_set__furniture")
             )
             if not orders.exists():
-                messages.info(request, "Замовлення не знайдено для цього номера телефону.")
+                messages.info(
+                    request, "Замовлення не знайдено для цього номера телефону."
+                )
             else:
                 for order in orders:
                     total_price = sum(

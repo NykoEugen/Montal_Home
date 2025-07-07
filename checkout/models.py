@@ -13,7 +13,9 @@ class Order(models.Model):
     )
     customer_email = models.EmailField(blank=True)
     delivery_city = models.CharField(max_length=100, verbose_name="Місто доставки")
-    delivery_branch = models.CharField(max_length=200, verbose_name="Відділення Нової Пошти")
+    delivery_branch = models.CharField(
+        max_length=200, verbose_name="Відділення Нової Пошти"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     items = models.ManyToManyField(Furniture, through="OrderItem")
 

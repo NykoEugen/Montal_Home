@@ -168,7 +168,6 @@ FURNITURE_PARAM_LABELS = {
     "armrest": "Підлокітники",
     "hardness_level": "Рівень жорсткості",
     "mattress_height": "Висота матрацу (см)",
-
 }
 NOVA_POSHTA_API_KEY = os.getenv("NOVA_POSHTA_API_KEY")
 CARGO_WAREHOUSE_REF = "9a68df70-0267-42a8-bb5c-37f427e36ee4"
