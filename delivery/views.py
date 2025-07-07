@@ -1,10 +1,12 @@
+import pprint
+
 import requests
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
-from store.settings import NOVA_POSHTA_API_KEY
+from store.settings import NOVA_POSHTA_API_KEY, CARGO_WAREHOUSE_REF
 
 
 def search_city(city_name: str) -> JsonResponse:
@@ -34,7 +36,7 @@ def get_warehouses(request):
         "modelName": "Address",
         "calledMethod": "getWarehouses",
         "methodProperties": {
-            "CityRef": city_ref
+            "CityRef": city_ref,
         }
     }
 
@@ -50,6 +52,7 @@ def get_warehouses(request):
             "ref": wh["Ref"]
         }
         for wh in data["data"]
+        if wh.get("TypeOfWarehouse") == CARGO_WAREHOUSE_REF
     ]
 
     return JsonResponse(result, safe=False)
