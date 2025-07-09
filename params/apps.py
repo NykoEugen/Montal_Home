@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
 
 
 class ParamConfig(AppConfig):
@@ -6,9 +7,5 @@ class ParamConfig(AppConfig):
     name = "params"
 
     def ready(self):
-        from params.models import Parameter
-        from store.settings import FURNITURE_PARAM_LABELS
-
-        params = FURNITURE_PARAM_LABELS
-        for key, label in params.items():
-            Parameter.objects.get_or_create(key=key, defaults={"label": label})
+        # Import signals to register them
+        from . import signals
