@@ -38,8 +38,14 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"Successfully loaded fixture: {fixture_file}")
             )
-        except Exception as e:
-            error_msg = f"Error loading fixture '{fixture_file}': {str(e)}"
+        except CommandError as e:
+            error_msg = f"CommandError loading fixture '{fixture_file}': {str(e)}"
+            if force:
+                self.stdout.write(self.style.WARNING(f"Warning: {error_msg}"))
+            else:
+                raise
+        except OSError as e:
+            error_msg = f"File system error loading fixture '{fixture_file}': {str(e)}"
             if force:
                 self.stdout.write(self.style.WARNING(f"Warning: {error_msg}"))
             else:
