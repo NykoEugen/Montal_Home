@@ -1,7 +1,7 @@
 # Montal Home
 
 ## Description
-A Django web application for managing a furniture store with improved architecture, class-based views, and better development workflow.
+A Django web application for managing a furniture store.
 
 ## Quick Start (Locally)
 
@@ -36,17 +36,7 @@ make setupdb
 make run
 ```
 
-## Running with Docker Compose
-
-1. Make sure Docker and docker-compose are installed.
-2. Create a `.env` file in the root (see above).
-3. Run:
-```sh
-docker-compose up --build
-```
-
 - The app will be available at http://localhost:8000
-- PgAdmin — http://localhost:5050 (email: admin@admin.com, password: admin)
 
 ## Development Commands
 
@@ -87,26 +77,6 @@ python manage.py load_fixtures data.json
 python manage.py loaddata data.json
 ```
 
-## Project Structure Improvements
-
-### 🔧 **Refactoring Highlights**
-
-1. **Class-Based Views**: Converted function-based views to class-based views for better organization and reusability
-2. **Improved Models**: Added validation, properties, and better field definitions
-3. **Enhanced Settings**: Added security settings, logging, caching, and better environment configuration
-4. **Better Development Workflow**: Improved Makefile with comprehensive commands
-5. **Database Access Fix**: Moved parameter creation from app initialization to post_migrate signals
-6. **Code Quality**: Organized requirements.txt and added comprehensive linting tools
-
-### **Key Features**
-- ✅ Class-based views for better maintainability
-- ✅ Enhanced security settings for production
-- ✅ Improved error handling and validation
-- ✅ Better development workflow with Makefile
-- ✅ Comprehensive code quality tools
-- ✅ Custom management commands
-- ✅ Ukrainian localization support
-- ✅ PostgreSQL support for production
 
 ## Tests
 ```sh
@@ -117,7 +87,3 @@ make test
 ```sh
 make production  # Clean, collect static, and migrate
 ```
-
----
-
-If you have any questions, check the settings in `store/settings.py` and `docker-compose.yml`.

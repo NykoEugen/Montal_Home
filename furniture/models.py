@@ -49,7 +49,7 @@ class Furniture(models.Model):
     )
     created_at = models.DateTimeField(
         verbose_name="Дата створення",
-        default=timezone.now
+        auto_now_add=True, 
     )
     updated_at = models.DateTimeField(
         auto_now=True, 
