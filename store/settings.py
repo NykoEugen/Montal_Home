@@ -132,7 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "uk"  # Changed to Ukrainian for better localization
 
-TIME_ZONE = "Europe/Kiev"  # Changed to Ukrainian timezone
+TIME_ZONE = "Europe/Kyiv"  # Updated to modern IANA timezone identifier
 
 USE_I18N = True
 
