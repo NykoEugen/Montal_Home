@@ -44,15 +44,63 @@ class CheckoutForm(forms.Form):
         widget=forms.EmailInput(
             attrs={
                 "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-                "placeholder": "Введіть email (необов’язково)",
+                "placeholder": "Введіть email (необов'язково)",
             }
         ),
         label="Email",
     )
-    # Added for future Nova Poshta integration
+    
+    # Delivery type selection
+    delivery_type = forms.ChoiceField(
+        choices=[
+            ('local', 'Локальна доставка'),
+            ('nova_poshta', 'Нова Пошта'),
+        ],
+        required=True,
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "id": "delivery-type",
+            }
+        ),
+        label="Тип доставки",
+    )
+    
+    # Payment type selection
+    payment_type = forms.ChoiceField(
+        choices=[
+            ('iban', 'IBAN'),
+            ('liqupay', 'LiquPay'),
+        ],
+        required=True,
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "id": "payment-type",
+            }
+        ),
+        label="Тип оплати",
+    )
+    
+    # Address field for local delivery
+    delivery_address = forms.CharField(
+        max_length=500,
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "placeholder": "Введіть повну адресу доставки",
+                "rows": "3",
+                "id": "delivery-address",
+            }
+        ),
+        label="Адреса доставки",
+    )
+    
+    # Nova Poshta fields (existing)
     delivery_city = forms.CharField(
         max_length=200,
-        required=True,
+        required=False,
         label="Місто доставки",
         widget=forms.HiddenInput(),
     )
@@ -71,7 +119,7 @@ class CheckoutForm(forms.Form):
     )
     delivery_branch = forms.CharField(
         max_length=200,
-        required=True,
+        required=False,
         label="Відділення Нової Пошти",
         widget=forms.HiddenInput(),
     )
@@ -93,3 +141,26 @@ class CheckoutForm(forms.Form):
                 "Введіть коректний номер телефону у форматі 0XXXXXXXXX"
             )
         return phone
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        delivery_type = cleaned_data.get('delivery_type')
+        
+        if delivery_type == 'local':
+            # For local delivery, address is required
+            if not cleaned_data.get('delivery_address'):
+                raise forms.ValidationError(
+                    "Для локальної доставки необхідно вказати адресу"
+                )
+        elif delivery_type == 'nova_poshta':
+            # For Nova Poshta, city and branch are required
+            if not cleaned_data.get('delivery_city_label'):
+                raise forms.ValidationError(
+                    "Для доставки Новою Поштою необхідно вказати місто"
+                )
+            if not cleaned_data.get('delivery_branch_name'):
+                raise forms.ValidationError(
+                    "Для доставки Новою Поштою необхідно вибрати відділення"
+                )
+        
+        return cleaned_data
