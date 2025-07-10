@@ -7,6 +7,7 @@ class ShopConfig(AppConfig):
 
     def ready(self):
         from .init_furniture import init_furniture_taxonomy
+
         try:
             init_furniture_taxonomy()
         except Exception as e:

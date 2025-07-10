@@ -90,33 +90,49 @@ class OrderItemInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = [
-        "id", 
-        "customer_name", 
-        "customer_last_name", 
-        "customer_phone_number", 
-        "delivery_type", 
-        "payment_type", 
-        "created_at"
+        "id",
+        "customer_name",
+        "customer_last_name",
+        "customer_phone_number",
+        "delivery_type",
+        "payment_type",
+        "created_at",
     ]
     list_filter = ["delivery_type", "payment_type", "created_at"]
-    search_fields = ["customer_name", "customer_last_name", "customer_phone_number", "customer_email"]
+    search_fields = [
+        "customer_name",
+        "customer_last_name",
+        "customer_phone_number",
+        "customer_email",
+    ]
     readonly_fields = ["created_at"]
     inlines = [OrderItemInline]
-    
+
     fieldsets = (
-        ("Контактна інформація", {
-            "fields": ("customer_name", "customer_last_name", "customer_phone_number", "customer_email")
-        }),
-        ("Доставка", {
-            "fields": ("delivery_type", "delivery_city", "delivery_branch", "delivery_address")
-        }),
-        ("Оплата", {
-            "fields": ("payment_type",)
-        }),
-        ("Системна інформація", {
-            "fields": ("created_at",),
-            "classes": ("collapse",)
-        }),
+        (
+            "Контактна інформація",
+            {
+                "fields": (
+                    "customer_name",
+                    "customer_last_name",
+                    "customer_phone_number",
+                    "customer_email",
+                )
+            },
+        ),
+        (
+            "Доставка",
+            {
+                "fields": (
+                    "delivery_type",
+                    "delivery_city",
+                    "delivery_branch",
+                    "delivery_address",
+                )
+            },
+        ),
+        ("Оплата", {"fields": ("payment_type",)}),
+        ("Системна інформація", {"fields": ("created_at",), "classes": ("collapse",)}),
     )
 
 
@@ -126,7 +142,8 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_filter = ["order__created_at"]
     search_fields = ["order__customer_name", "furniture__name"]
     readonly_fields = ["price"]
-    
+
     def total_price(self, obj):
         return obj.price * obj.quantity
+
     total_price.short_description = "Загальна вартість"

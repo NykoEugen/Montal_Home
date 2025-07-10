@@ -49,12 +49,12 @@ class CheckoutForm(forms.Form):
         ),
         label="Email",
     )
-    
+
     # Delivery type selection
     delivery_type = forms.ChoiceField(
         choices=[
-            ('local', 'Локальна доставка'),
-            ('nova_poshta', 'Нова Пошта'),
+            ("local", "Локальна доставка"),
+            ("nova_poshta", "Нова Пошта"),
         ],
         required=True,
         widget=forms.Select(
@@ -65,12 +65,12 @@ class CheckoutForm(forms.Form):
         ),
         label="Тип доставки",
     )
-    
+
     # Payment type selection
     payment_type = forms.ChoiceField(
         choices=[
-            ('iban', 'IBAN'),
-            ('liqupay', 'LiquPay'),
+            ("iban", "IBAN"),
+            ("liqupay", "LiquPay"),
         ],
         required=True,
         widget=forms.Select(
@@ -81,7 +81,7 @@ class CheckoutForm(forms.Form):
         ),
         label="Тип оплати",
     )
-    
+
     # Address field for local delivery
     delivery_address = forms.CharField(
         max_length=500,
@@ -96,7 +96,7 @@ class CheckoutForm(forms.Form):
         ),
         label="Адреса доставки",
     )
-    
+
     # Nova Poshta fields (existing)
     delivery_city = forms.CharField(
         max_length=200,
@@ -141,26 +141,26 @@ class CheckoutForm(forms.Form):
                 "Введіть коректний номер телефону у форматі 0XXXXXXXXX"
             )
         return phone
-    
+
     def clean(self):
         cleaned_data = super().clean()
-        delivery_type = cleaned_data.get('delivery_type')
-        
-        if delivery_type == 'local':
+        delivery_type = cleaned_data.get("delivery_type")
+
+        if delivery_type == "local":
             # For local delivery, address is required
-            if not cleaned_data.get('delivery_address'):
+            if not cleaned_data.get("delivery_address"):
                 raise forms.ValidationError(
                     "Для локальної доставки необхідно вказати адресу"
                 )
-        elif delivery_type == 'nova_poshta':
+        elif delivery_type == "nova_poshta":
             # For Nova Poshta, city and branch are required
-            if not cleaned_data.get('delivery_city_label'):
+            if not cleaned_data.get("delivery_city_label"):
                 raise forms.ValidationError(
                     "Для доставки Новою Поштою необхідно вказати місто"
                 )
-            if not cleaned_data.get('delivery_branch_name'):
+            if not cleaned_data.get("delivery_branch_name"):
                 raise forms.ValidationError(
                     "Для доставки Новою Поштою необхідно вибрати відділення"
                 )
-        
+
         return cleaned_data

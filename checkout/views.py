@@ -24,7 +24,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
             delivery_city = ""
             delivery_branch = ""
             delivery_address = ""
-            
+
             if delivery_type == "local":
                 delivery_city = "Локальна доставка"
                 delivery_address = form.cleaned_data["delivery_address"]
