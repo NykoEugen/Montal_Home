@@ -1,42 +1,56 @@
-asgiref==3.8.1
-black==25.1.0
-cfgv==3.4.0
-click==8.1.8
-colorama==0.4.6
-distlib==0.3.9
-dj_database_url==2.3.0
+# Core Django dependencies
 Django==5.2
-filelock==3.18.0
-flake8==7.2.0
-gunicorn==23.0.0
-identify==2.6.10
-isort==6.0.1
-mccabe==0.7.0
-mypy==1.15.0
-mypy_extensions==1.1.0
-nodeenv==1.9.1
-packaging==25.0
-pathspec==0.12.1
-pillow==11.2.1
-platformdirs==4.3.7
-pre_commit==4.2.0
-psycopg2-binary==2.9.10
-pycodestyle==2.13.0
-pyflakes==3.3.2
-python-dotenv==1.1.0
-PyYAML==6.0.2
+asgiref==3.8.1
 sqlparse==0.5.3
-typing_extensions==4.13.2
 tzdata==2025.2
-virtualenv==20.30.0
+
+# Database
+dj_database_url==2.3.0
+psycopg2-binary==2.9.10
+
+# Image processing
 Pillow==11.2.1
 
-pip~=24.0
-typing_extensions~=4.13.2
-mypy_extensions~=1.1.0
-requests~=2.32.4
-certifi~=2025.6.15
-urllib3~=2.4.0
-idna~=3.10
-charset-normalizer~=3.4.2
-pre_commit~=4.2.0
+# Environment and configuration
+python-dotenv==1.1.0
+
+# HTTP requests
+requests==2.32.4
+urllib3==2.4.0
+certifi==2025.6.15
+idna==3.10
+charset-normalizer==3.4.2
+
+# Development and testing tools
+black==25.1.0
+isort==6.0.1
+flake8==7.2.0
+mypy==1.15.0
+mypy_extensions==1.1.0
+pre_commit==4.2.0
+
+# Code quality tools
+pycodestyle==2.13.0
+pyflakes==3.3.2
+mccabe==0.7.0
+
+# Virtual environment and packaging
+virtualenv==20.30.0
+pip==24.0
+packaging==25.0
+pathspec==0.12.1
+platformdirs==4.3.7
+filelock==3.18.0
+distlib==0.3.9
+cfgv==3.4.0
+identify==2.6.10
+nodeenv==1.9.1
+
+# Utilities
+click==8.1.8
+colorama==0.4.6
+PyYAML==6.0.2
+typing_extensions==4.13.2
+
+# Production server
+gunicorn==23.0.0
