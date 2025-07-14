@@ -19,13 +19,29 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Кошик порожній!")
                 return redirect("shop:view_cart")
 
+            # Prepare delivery data based on delivery type
+            delivery_type = form.cleaned_data["delivery_type"]
+            delivery_city = ""
+            delivery_branch = ""
+            delivery_address = ""
+
+            if delivery_type == "local":
+                delivery_city = "Локальна доставка"
+                delivery_address = form.cleaned_data["delivery_address"]
+            elif delivery_type == "nova_poshta":
+                delivery_city = form.cleaned_data["delivery_city_label"]
+                delivery_branch = form.cleaned_data["delivery_branch_name"]
+
             order = Order.objects.create(
                 customer_name=form.cleaned_data["customer_name"],
                 customer_last_name=form.cleaned_data["customer_last_name"],
                 customer_phone_number=form.cleaned_data["customer_phone_number"],
                 customer_email=form.cleaned_data["customer_email"],
-                delivery_city=form.cleaned_data["delivery_city_label"],
-                delivery_branch=form.cleaned_data["delivery_branch_name"],
+                delivery_type=delivery_type,
+                delivery_city=delivery_city,
+                delivery_branch=delivery_branch,
+                delivery_address=delivery_address,
+                payment_type=form.cleaned_data["payment_type"],
             )
 
             for furniture_id, quantity in cart.items():

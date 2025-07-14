@@ -6,17 +6,98 @@
             {% csrf_token %}
             {{ form.non_field_errors }}
 
-            {% for field in form %}
-                {% if field.is_hidden %}
-                    {{ field }}
-                {% else %}
-                    <div class="mb-4">
-                        {{ field.label_tag }}
-                        {{ field }}
-                        {% if field.errors %}
-                            <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+            <!-- Customer Information -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold text-brown-700 mb-4">Контактна інформація</h2>
+                {% for field in form %}
+                    {% if field.name in 'customer_name,customer_last_name,customer_phone_number,customer_email' %}
+                        {% if field.is_hidden %}
+                            {{ field }}
+                        {% else %}
+                            <div class="mb-4">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                                {% endif %}
+                            </div>
                         {% endif %}
-                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Delivery Information -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold text-brown-700 mb-4">Доставка</h2>
+                
+                <!-- Delivery Type -->
+                {% for field in form %}
+                    {% if field.name == 'delivery_type' %}
+                        <div class="mb-4">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Local Delivery Address -->
+                <div id="local-delivery-fields" class="hidden">
+                    {% for field in form %}
+                        {% if field.name == 'delivery_address' %}
+                            <div class="mb-4">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Nova Poshta Fields -->
+                <div id="nova-poshta-fields" class="hidden">
+                    {% for field in form %}
+                        {% if field.name in 'delivery_city_label,delivery_branch_label' %}
+                            {% if field.is_hidden %}
+                                {{ field }}
+                            {% else %}
+                                <div class="mb-4">
+                                    {{ field.label_tag }}
+                                    {{ field }}
+                                    {% if field.errors %}
+                                        <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold text-brown-700 mb-4">Оплата</h2>
+                {% for field in form %}
+                    {% if field.name == 'payment_type' %}
+                        <div class="mb-4">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Hidden fields -->
+            {% for field in form %}
+                {% if field.is_hidden and field.name not in 'delivery_city_label,delivery_branch_label' %}
+                    {{ field }}
                 {% endif %}
             {% endfor %}
 
@@ -25,4 +106,33 @@
             <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deliveryTypeSelect = document.getElementById('delivery-type');
+            const localDeliveryFields = document.getElementById('local-delivery-fields');
+            const novaPoshtaFields = document.getElementById('nova-poshta-fields');
+
+            function toggleDeliveryFields() {
+                const selectedValue = deliveryTypeSelect.value;
+                
+                if (selectedValue === 'local') {
+                    localDeliveryFields.classList.remove('hidden');
+                    novaPoshtaFields.classList.add('hidden');
+                } else if (selectedValue === 'nova_poshta') {
+                    localDeliveryFields.classList.add('hidden');
+                    novaPoshtaFields.classList.remove('hidden');
+                } else {
+                    localDeliveryFields.classList.add('hidden');
+                    novaPoshtaFields.classList.add('hidden');
+                }
+            }
+
+            // Initial state
+            toggleDeliveryFields();
+
+            // Listen for changes
+            deliveryTypeSelect.addEventListener('change', toggleDeliveryFields);
+        });
+    </script>
 {% endblock %}

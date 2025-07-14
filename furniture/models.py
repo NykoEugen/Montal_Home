@@ -1,7 +1,7 @@
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.utils.text import slugify
 from django.utils import timezone
+from django.utils.text import slugify
 
 from sub_categories.models import SubCategory
 
@@ -49,12 +49,9 @@ class Furniture(models.Model):
     )
     created_at = models.DateTimeField(
         verbose_name="Дата створення",
-        auto_now_add=True, 
+        auto_now_add=True,
     )
-    updated_at = models.DateTimeField(
-        auto_now=True, 
-        verbose_name="Дата оновлення"
-    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
 
     class Meta:
         db_table = "furniture"

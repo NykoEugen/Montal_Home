@@ -4,18 +4,48 @@ from furniture.models import Furniture
 
 
 class Order(models.Model):
+    DELIVERY_CHOICES = [
+        ("local", "Локальна доставка"),
+        ("nova_poshta", "Нова Пошта"),
+    ]
+
+    PAYMENT_CHOICES = [
+        ("iban", "IBAN"),
+        ("liqupay", "LiquPay"),
+    ]
+
     customer_name = models.CharField(max_length=200)
     customer_last_name = models.CharField(max_length=200)
-
     customer_phone_number = models.CharField(
         max_length=10,
         verbose_name="Номер телефону",
     )
     customer_email = models.EmailField(blank=True)
+
+    # Delivery fields
+    delivery_type = models.CharField(
+        max_length=20,
+        choices=DELIVERY_CHOICES,
+        verbose_name="Тип доставки",
+    )
     delivery_city = models.CharField(max_length=100, verbose_name="Місто доставки")
     delivery_branch = models.CharField(
-        max_length=200, verbose_name="Відділення Нової Пошти"
+        max_length=200,
+        verbose_name="Відділення Нової Пошти",
+        blank=True,
     )
+    delivery_address = models.TextField(
+        verbose_name="Адреса доставки",
+        blank=True,
+    )
+
+    # Payment fields
+    payment_type = models.CharField(
+        max_length=20,
+        choices=PAYMENT_CHOICES,
+        verbose_name="Тип оплати",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     items = models.ManyToManyField(Furniture, through="OrderItem")
 

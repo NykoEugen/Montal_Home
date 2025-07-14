@@ -28,7 +28,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 try:
     SECRET_KEY = os.environ["SECRET_KEY"]
 except KeyError:
-    raise RuntimeError("The SECRET_KEY environment variable is not set. Please set it to a secure value.")
+    raise RuntimeError(
+        "The SECRET_KEY environment variable is not set. Please set it to a secure value."
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
