@@ -1,46 +1,52 @@
 {% extends 'shop/base.html' %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="flex flex-col md:flex-row">
-        <div class="md:w-1/2">
-            {% if furniture.image %}
-                <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-auto object-cover rounded">
-            {% else %}
-                <div class="w-full h-64 bg-beige-200 flex items-center justify-center rounded">
-                    <span class="text-brown-500">Зображення відсутнє</span>
-                </div>
-            {% endif %}
-        </div>
-        <div class="md:w-1/2 md:pl-8">
-            <h1 class="text-3xl font-bold text-brown-800">{{ furniture.name }}</h1>
-            <p class="text-brown-600 mt-2">{{ furniture.category.name }}</p>
-            <div class="mt-4">
-                {% if furniture.is_promotional and furniture.promotional_price %}
-                    <p class="text-2xl text-red-600 font-semibold">{{ furniture.promotional_price }} грн</p>
-                    <p class="text-lg text-brown-500 line-through">{{ furniture.price }} грн</p>
+    <div class="flex flex-col md:flex-row gap-8 items-start">
+        <div class="md:w-1/2 w-full">
+            <div class="bg-white rounded-lg shadow-lg p-4 flex items-center justify-center">
+                {% if furniture.image %}
+                    <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
                 {% else %}
-                    <p class="text-2xl text-brown-800 font-semibold">{{ furniture.price }} грн</p>
+                    <div class="w-full h-80 bg-beige-200 flex items-center justify-center rounded-lg">
+                        <span class="text-brown-500">Зображення відсутнє</span>
+                    </div>
                 {% endif %}
             </div>
-            <p class="mt-4 text-brown-600">{{ furniture.description }}</p>
-            {% if parameters %}
-                <div class="mt-6">
-                    <h2 class="text-xl font-semibold text-brown-800">Характеристики</h2>
-                    <ul class="mt-2 space-y-2">
-                        {% for param in parameters %}
-                            <li class="flex justify-between border-b border-beige-200 py-2">
-                                <span class="text-brown-600">{{ param.parameter.label }}</span>
-                                <span class="text-brown-800 font-medium">{{ param.value }}</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
+        </div>
+        <div class="md:w-1/2 w-full md:pl-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h1 class="text-3xl font-bold text-brown-800 mb-2">{{ furniture.name }}</h1>
+                <p class="text-brown-600 mb-4">{{ furniture.category.name }}</p>
+                <div class="mb-4">
+                    {% if furniture.is_promotional and furniture.promotional_price %}
+                        <p class="text-2xl text-red-600 font-semibold">{{ furniture.promotional_price }} грн</p>
+                        <p class="text-lg text-brown-500 line-through">{{ furniture.price }} грн</p>
+                    {% else %}
+                        <p class="text-2xl text-brown-800 font-semibold">{{ furniture.price }} грн</p>
+                    {% endif %}
                 </div>
-            {% endif %}
-            <div class="mt-6">
-                <button class="add-to-cart btn-grad"
-                        data-id="{{ furniture.id }}" data-url="{% url 'shop:add_to_cart' %}">
-                    Додати до кошика
-                </button>
+                <p class="mb-6 text-brown-600">{{ furniture.description }}</p>
+                {% if parameters %}
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-brown-800 mb-2">Характеристики</h2>
+                        <table class="w-full text-left border-separate border-spacing-y-2">
+                            <tbody>
+                                {% for param in parameters %}
+                                    <tr class="bg-beige-50 rounded">
+                                        <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.parameter.label }}</td>
+                                        <td class="py-2 px-3 text-brown-800 font-medium w-1/2">{{ param.value }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+                <div class="mt-6">
+                    <button class="add-to-cart btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition"
+                            data-id="{{ furniture.id }}" data-url="{% url 'shop:add_to_cart' %}">
+                        <i class="fa fa-cart-plus mr-2"></i> Додати до кошика
+                    </button>
+                </div>
             </div>
         </div>
     </div>
