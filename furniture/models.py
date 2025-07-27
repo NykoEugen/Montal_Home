@@ -59,7 +59,15 @@ class Furniture(models.Model):
         blank=True,
         null=True,
         related_name="furnitures",
-        verbose_name="Обраний бренд тканини",
+        verbose_name="Обраний бренд тканини"
+    )
+    fabric_value = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=1.0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Коефіцієнт тканини",
+        help_text="Множник для розрахунку вартості тканини"
     )
 
     class Meta:

@@ -69,6 +69,7 @@ class FurnitureAdmin(admin.ModelAdmin):
         "promotional_price",
         "slug",
         "selected_fabric_brand",
+        "fabric_value",
     ]
     list_filter = ["sub_category", "is_promotional", "selected_fabric_brand"]
     search_fields = ["name", "description"]
