@@ -58,6 +58,7 @@ class SubCategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ("allowed_params",)
 
+
 @admin.register(Furniture)
 class FurnitureAdmin(admin.ModelAdmin):
     list_display = [
