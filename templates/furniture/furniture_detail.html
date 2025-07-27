@@ -19,17 +19,17 @@
                 <p class="text-brown-600 mb-4">{{ furniture.category.name }}</p>
                 <div class="mb-4">
                     {% if furniture.is_promotional and furniture.promotional_price %}
-                        <p class="text-2xl text-red-600 font-semibold">{{ furniture.promotional_price }} грн</p>
-                        <p class="text-lg text-brown-500 line-through">{{ furniture.price }} грн</p>
+                        <p class="text-2xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price }} грн</p>
+                        <p class="text-lg text-brown-500 line-through" id="original-price">{{ furniture.price }} грн</p>
                     {% else %}
-                        <p class="text-2xl text-brown-800 font-semibold">{{ furniture.price }} грн</p>
+                        <p class="text-2xl text-brown-800 font-semibold" id="main-price">{{ furniture.price }} грн</p>
                     {% endif %}
                 </div>
                 
                 {% if fabric_categories %}
                     <div class="mb-6">
                         <!-- <h3 class="text-lg font-semibold text-brown-800 mb-3">Вибір тканини</h3> -->
-                        <div class="bg-beige-50 rounded-lg p-4">
+                        <div class="bg-beige-50 rounded-lg p-4" data-fabric-value="{{ furniture.fabric_value|default:1.0 }}">
                             <label for="fabric-category" class="block text-brown-700 font-medium mb-2">
                                 Оберіть категорію тканини:
                             </label>
@@ -80,16 +80,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const fabricSelect = document.getElementById('fabric-category');
     const fabricPriceInfo = document.getElementById('fabric-price-info');
     const fabricPriceSpan = document.getElementById('fabric-price');
+    const mainPriceElement = document.getElementById('main-price');
+    const originalPriceElement = document.getElementById('original-price');
+    
+    // Get the base furniture price
+    let basePrice = 0;
+    let originalPrice = 0;
+    if (mainPriceElement) {
+        basePrice = parseFloat(mainPriceElement.textContent.replace(' грн', '').trim());
+        originalPrice = basePrice;
+    }
+    
+    // Get fabric_value from the data attribute
+    const fabricValueElement = document.querySelector('[data-fabric-value]');
+    const fabricValue = fabricValueElement ? parseFloat(fabricValueElement.getAttribute('data-fabric-value')) : 1.0;
     
     if (fabricSelect) {
         fabricSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
-            const fabricPrice = selectedOption.getAttribute('data-price');
+            const fabricPrice = parseFloat(selectedOption.getAttribute('data-price') || 0);
             
-            if (fabricPrice && fabricPrice !== '') {
-                fabricPriceSpan.textContent = fabricPrice;
+            if (fabricPrice > 0) {
+                const fabricCost = fabricPrice * fabricValue;
+                const finalCost = basePrice + fabricCost;
+                
+                fabricPriceSpan.textContent = fabricCost.toFixed(2);
+                mainPriceElement.textContent = finalCost.toFixed(2) + ' грн';
                 fabricPriceInfo.classList.remove('hidden');
             } else {
+                // Restore original price
+                mainPriceElement.textContent = originalPrice.toFixed(2) + ' грн';
                 fabricPriceInfo.classList.add('hidden');
             }
         });
