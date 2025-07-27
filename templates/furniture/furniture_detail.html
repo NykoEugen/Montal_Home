@@ -25,6 +25,29 @@
                         <p class="text-2xl text-brown-800 font-semibold">{{ furniture.price }} грн</p>
                     {% endif %}
                 </div>
+                
+                {% if fabric_categories %}
+                    <div class="mb-6">
+                        <!-- <h3 class="text-lg font-semibold text-brown-800 mb-3">Вибір тканини</h3> -->
+                        <div class="bg-beige-50 rounded-lg p-4">
+                            <label for="fabric-category" class="block text-brown-700 font-medium mb-2">
+                                Оберіть категорію тканини:
+                            </label>
+                            <select id="fabric-category" class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
+                                <option value="">Категорія тканини</option>
+                                {% for category in fabric_categories %}
+                                    <option value="{{ category.id }}" data-price="{{ category.price }}">
+                                        {{ category.name }} - {{ category.price }} грн
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div id="fabric-price-info" class="mt-3 text-brown-600 hidden">
+                                <p class="text-sm">Додаткова вартість тканини: <span id="fabric-price" class="font-semibold"></span> грн</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
                 <p class="mb-6 text-brown-600">{{ furniture.description }}</p>
                 {% if parameters %}
                     <div class="mb-6">
@@ -51,4 +74,26 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fabricSelect = document.getElementById('fabric-category');
+    const fabricPriceInfo = document.getElementById('fabric-price-info');
+    const fabricPriceSpan = document.getElementById('fabric-price');
+    
+    if (fabricSelect) {
+        fabricSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const fabricPrice = selectedOption.getAttribute('data-price');
+            
+            if (fabricPrice && fabricPrice !== '') {
+                fabricPriceSpan.textContent = fabricPrice;
+                fabricPriceInfo.classList.remove('hidden');
+            } else {
+                fabricPriceInfo.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

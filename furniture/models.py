@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
+from fabric_category.models import FabricBrand, FabricCategory
 from sub_categories.models import SubCategory
 
 
@@ -52,6 +53,14 @@ class Furniture(models.Model):
         auto_now_add=True,
     )
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
+    selected_fabric_brand = models.ForeignKey(
+        FabricBrand,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="furnitures",
+        verbose_name="Обраний бренд тканини",
+    )
 
     class Meta:
         db_table = "furniture"
@@ -78,8 +87,14 @@ class Furniture(models.Model):
     @property
     def discount_percentage(self) -> int:
         """Calculate discount percentage if promotional."""
-        if self.is_promotional and self.promotional_price and self.price > 0:
-            return int(((self.price - self.promotional_price) / self.price) * 100)
+        if self.is_promotional and self.promotional_price and float(self.price) > 0:
+            return int(
+                (
+                    (float(self.price) - float(self.promotional_price))
+                    / float(self.price)
+                )
+                * 100
+            )
         return 0
 
     def get_parameters(self):

@@ -68,8 +68,9 @@ class FurnitureAdmin(admin.ModelAdmin):
         "is_promotional",
         "promotional_price",
         "slug",
+        "selected_fabric_brand",
     ]
-    list_filter = ["sub_category", "is_promotional"]
+    list_filter = ["sub_category", "is_promotional", "selected_fabric_brand"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [FurnitureParameterInline]
