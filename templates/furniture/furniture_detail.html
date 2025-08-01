@@ -1,4 +1,5 @@
 {% extends 'shop/base.html' %}
+{% csrf_token %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start">
@@ -17,6 +18,24 @@
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h1 class="text-3xl font-bold text-brown-800 mb-2">{{ furniture.name }}</h1>
                 <p class="text-brown-600 mb-4">{{ furniture.category.name }}</p>
+                {% if size_variants %}
+                    <div class="mb-6">
+                        <label for="size-variant" class="block text-brown-700 font-medium mb-2">
+                            Оберіть розмір:
+                        </label>
+                        <select id="size-variant" class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
+                            <option value="">Оберіть розмір</option>
+                            {% for variant in size_variants %}
+                                <option value="{{ variant.id }}" 
+                                        data-price="{{ variant.price }}"
+                                        data-dimensions="{{ variant.dimensions }}">
+                                    {{ variant.dimensions }} - {{ variant.price }} грн
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+                
                 <div class="mb-4">
                     {% if furniture.is_promotional and furniture.promotional_price %}
                         <p class="text-2xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price }} грн</p>
@@ -77,41 +96,136 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const sizeSelect = document.getElementById('size-variant');
     const fabricSelect = document.getElementById('fabric-category');
     const fabricPriceInfo = document.getElementById('fabric-price-info');
     const fabricPriceSpan = document.getElementById('fabric-price');
     const mainPriceElement = document.getElementById('main-price');
     const originalPriceElement = document.getElementById('original-price');
+    const addToCartButton = document.querySelector('.add-to-cart');
     
     // Get the base furniture price
     let basePrice = 0;
     let originalPrice = 0;
+    let selectedSizePrice = 0;
+    
     if (mainPriceElement) {
         basePrice = parseFloat(mainPriceElement.textContent.replace(' грн', '').trim());
         originalPrice = basePrice;
+        selectedSizePrice = basePrice;
     }
     
     // Get fabric_value from the data attribute
     const fabricValueElement = document.querySelector('[data-fabric-value]');
     const fabricValue = fabricValueElement ? parseFloat(fabricValueElement.getAttribute('data-fabric-value')) : 1.0;
     
-    if (fabricSelect) {
-        fabricSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const fabricPrice = parseFloat(selectedOption.getAttribute('data-price') || 0);
-            
+    // Function to update total price
+    function updateTotalPrice() {
+        let totalPrice = selectedSizePrice;
+        
+        // Add fabric cost if fabric is selected
+        if (fabricSelect && fabricSelect.value) {
+            const selectedFabricOption = fabricSelect.options[fabricSelect.selectedIndex];
+            const fabricPrice = parseFloat(selectedFabricOption.getAttribute('data-price') || 0);
             if (fabricPrice > 0) {
                 const fabricCost = fabricPrice * fabricValue;
-                const finalCost = basePrice + fabricCost;
-                
+                totalPrice += fabricCost;
                 fabricPriceSpan.textContent = fabricCost.toFixed(2);
-                mainPriceElement.textContent = finalCost.toFixed(2) + ' грн';
                 fabricPriceInfo.classList.remove('hidden');
             } else {
-                // Restore original price
-                mainPriceElement.textContent = originalPrice.toFixed(2) + ' грн';
                 fabricPriceInfo.classList.add('hidden');
             }
+        } else {
+            fabricPriceInfo.classList.add('hidden');
+        }
+        
+        // Update the displayed price
+        if (mainPriceElement) {
+            mainPriceElement.textContent = totalPrice.toFixed(2) + ' грн';
+        }
+    }
+    
+    // Handle size variant selection
+    if (sizeSelect) {
+        sizeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const sizePrice = parseFloat(selectedOption.getAttribute('data-price') || 0);
+            
+            if (sizePrice > 0) {
+                selectedSizePrice = sizePrice;
+            } else {
+                selectedSizePrice = originalPrice;
+            }
+            
+            updateTotalPrice();
+        });
+    }
+    
+    // Handle fabric selection
+    if (fabricSelect) {
+        fabricSelect.addEventListener('change', function() {
+            updateTotalPrice();
+        });
+    }
+    
+    // Handle add to cart with size variants and fabric
+    if (addToCartButton) {
+        addToCartButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const furnitureId = this.getAttribute('data-id');
+            const url = this.getAttribute('data-url');
+            
+            // Get selected size variant
+            let sizeVariantId = '';
+            if (sizeSelect && sizeSelect.value) {
+                sizeVariantId = sizeSelect.value;
+            }
+            
+            // Get selected fabric category
+            let fabricCategoryId = '';
+            if (fabricSelect && fabricSelect.value) {
+                fabricCategoryId = fabricSelect.value;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('furniture_id', furnitureId);
+            formData.append('action', 'add');
+            
+            if (sizeVariantId) {
+                formData.append('size_variant_id', sizeVariantId);
+            }
+            
+            if (fabricCategoryId) {
+                formData.append('fabric_category_id', fabricCategoryId);
+            }
+            
+            // Send request
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Update cart count if available
+                    const cartCountElement = document.querySelector('.cart-count');
+                    if (cartCountElement && data.cart_count !== undefined) {
+                        cartCountElement.textContent = data.cart_count;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Помилка при додаванні до кошика');
+            });
         });
     }
 });

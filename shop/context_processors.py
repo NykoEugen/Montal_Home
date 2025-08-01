@@ -8,7 +8,15 @@ from sub_categories.models import SubCategory
 
 def cart_count(request: HttpRequest) -> dict:
     cart = request.session.get("cart", {})
-    return {"cart_count": sum(cart.values())}
+    # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
+    cart_count = 0
+    for item_data in cart.values():
+        if isinstance(item_data, dict):
+            cart_count += item_data.get('quantity', 1)
+        else:
+            # Legacy format - just quantity
+            cart_count += item_data
+    return {"cart_count": cart_count}
 
 
 def breadcrumbs(request):

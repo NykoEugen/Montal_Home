@@ -108,3 +108,76 @@ class Furniture(models.Model):
     def get_parameters(self):
         """Get all parameters for this furniture item."""
         return self.parameters.select_related("parameter").all()
+
+    def get_size_variants(self):
+        """Get all size variants for this furniture item."""
+        return self.size_variants.all()
+
+    def get_available_sizes(self):
+        """Get formatted list of available sizes."""
+        variants = self.get_size_variants()
+        if not variants:
+            return "Розміри не вказані"
+        return ", ".join([variant.dimensions for variant in variants])
+
+    def get_price_range(self):
+        """Get price range from size variants."""
+        variants = self.get_size_variants()
+        if not variants:
+            return self.current_price, self.current_price
+        
+        prices = [float(variant.price) for variant in variants]
+        return min(prices), max(prices)
+
+
+class FurnitureSizeVariant(models.Model):
+    """Size variant model for furniture items."""
+    
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name="size_variants",
+        verbose_name="Меблі"
+    )
+    height = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Висота (см)",
+        help_text="Висота меблів у сантиметрах"
+    )
+    width = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Ширина (см)",
+        help_text="Ширина меблів у сантиметрах"
+    )
+    length = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Довжина (см)",
+        help_text="Довжина меблів у сантиметрах"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Ціна",
+        help_text="Ціна для цього розміру"
+    )
+
+    class Meta:
+        db_table = "furniture_size_variants"
+        verbose_name = "Розмірний варіант меблів"
+        verbose_name_plural = "Розмірні варіанти меблів"
+        ordering = ["height", "width", "length"]
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name} - {self.height}×{self.width}×{self.length}см"
+
+    @property
+    def dimensions(self) -> str:
+        """Get formatted dimensions string."""
+        return f"{self.height}×{self.width}×{self.length}см"
