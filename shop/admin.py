@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from categories.models import Category
 from checkout.models import Order, OrderItem
-from furniture.models import Furniture
+from furniture.models import Furniture, FurnitureSizeVariant
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
@@ -39,6 +39,13 @@ class FurnitureParameterInline(admin.TabularInline):
         return super().get_formset(request, obj, **kwargs)
 
 
+class FurnitureSizeVariantInline(admin.TabularInline):
+    """Inline admin for furniture size variants."""
+    model = FurnitureSizeVariant
+    extra = 1
+    fields = ['height', 'width', 'length', 'price']
+
+
 @admin.register(Parameter)
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ("key", "label")
@@ -67,6 +74,7 @@ class FurnitureAdmin(admin.ModelAdmin):
         "price",
         "is_promotional",
         "promotional_price",
+        "available_sizes",
         "slug",
         "selected_fabric_brand",
         "fabric_value",
@@ -74,7 +82,11 @@ class FurnitureAdmin(admin.ModelAdmin):
     list_filter = ["sub_category", "is_promotional", "selected_fabric_brand"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [FurnitureParameterInline]
+    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline]
+    
+    def available_sizes(self, obj):
+        return obj.get_available_sizes()
+    available_sizes.short_description = "Доступні розміри"
 
 
 class OrderItemInline(admin.TabularInline):
@@ -149,3 +161,14 @@ class OrderItemAdmin(admin.ModelAdmin):
         return obj.price * obj.quantity
 
     total_price.short_description = "Загальна вартість"
+
+
+@admin.register(FurnitureSizeVariant)
+class FurnitureSizeVariantAdmin(admin.ModelAdmin):
+    """Admin configuration for FurnitureSizeVariant model."""
+    list_display = [
+        'furniture', 'height', 'width', 'length', 'price', 'dimensions'
+    ]
+    list_filter = ['furniture__sub_category']
+    search_fields = ['furniture__name']
+    ordering = ['furniture__name', 'height', 'width', 'length']

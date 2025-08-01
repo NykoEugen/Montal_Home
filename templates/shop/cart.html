@@ -1,4 +1,5 @@
 {% extends 'shop/base.html' %}
+{% load cart_filters %}
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Кошик</h1>
     {% if cart_items %}
@@ -16,17 +17,32 @@
                 <tbody>
                     {% for item in cart_items %}
                         <tr class="border-b border-beige-700">
-                            <td class="py-3 text-brown-600">{{ item.furniture.name }}</td>
-                            <td class="py-3 text-brown-600">{{ item.quantity }}</td>
-                            <td class="py-3">
-                                {% if item.furniture.is_promotional and item.furniture.promotional_price %}
-                                    <span class="text-red-600">{{ item.item_price|floatformat:2 }} грн</span>
-                                    <span class="text-brown-500 line-through">{{ item.furniture.price|floatformat:2 }} грн</span>
-                                {% else %}
-                                    <span class="text-brown-600">{{ item.item_price|floatformat:2 }} грн</span>
+                            <td class="py-3 text-brown-600">
+                                {{ item.furniture.name }}
+                                {% if item.size_variant_id %}
+                                    <br><small class="text-brown-500">
+                                        {% for variant in item.furniture.size_variants.all %}
+                                            {% if variant.id == item.size_variant_id %}
+                                                {{ variant.dimensions }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </small>
+                                {% endif %}
+                                {% if item.fabric_category_id %}
+                                    <br><small class="text-brown-500">
+                                        {% for fabric in fabric_categories %}
+                                            {% if fabric.id == item.fabric_category_id %}
+                                                Тканина: {{ fabric.name }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </small>
                                 {% endif %}
                             </td>
-                            <td class="py-3 text-brown-600">{{ item.total_price|floatformat:2 }} грн</td>
+                            <td class="py-3 text-brown-600">{{ item.quantity }}</td>
+                            <td class="py-3">
+                                <span class="text-brown-600">{{ item.item_price|floatformat:2 }} грн</span>
+                            </td>
+                            <td class="py-3 text-brown-600">{{ item.item_price|multiply:item.quantity|floatformat:2 }} грн</td>
                             <td class="py-3">
                                 <button data-id="{{ item.furniture.id }}"
                                         data-url="{% url 'shop:remove_from_cart' %}"

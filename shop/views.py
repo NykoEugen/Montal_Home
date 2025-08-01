@@ -11,7 +11,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 
 from categories.models import Category
 from delivery.views import search_city
-from furniture.models import Furniture
+from furniture.models import Furniture, FurnitureSizeVariant
 from store.settings import ITEMS_PER_PAGE
 
 
@@ -71,22 +71,60 @@ class CartView(TemplateView):
         cart_items = []
         total_price = 0.0
 
-        for furniture_id, quantity in cart.items():
+        for furniture_id, item_data in cart.items():
             furniture = get_object_or_404(Furniture, id=int(furniture_id))
-            item_price = furniture.current_price
+            
+            # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
+            if isinstance(item_data, dict):
+                quantity = item_data.get('quantity', 1)
+                size_variant_id = item_data.get('size_variant_id')
+                fabric_category_id = item_data.get('fabric_category_id')
+            else:
+                # Legacy format - just quantity
+                quantity = item_data
+                size_variant_id = None
+                fabric_category_id = None
+            
+            # Calculate item price
+            if size_variant_id:
+                try:
+                    size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
+                    item_price = float(size_variant.price)
+                except FurnitureSizeVariant.DoesNotExist:
+                    item_price = furniture.current_price
+            else:
+                item_price = furniture.current_price
+            
+            # Add fabric cost if fabric is selected
+            if fabric_category_id:
+                from fabric_category.models import FabricCategory
+                try:
+                    fabric_category = FabricCategory.objects.get(id=fabric_category_id)
+                    fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
+                    item_price += fabric_cost
+                except FabricCategory.DoesNotExist:
+                    pass
+            
             total_price += item_price * quantity
             cart_items.append(
                 {
                     "furniture": furniture,
                     "quantity": quantity,
                     "item_price": item_price,
+                    "size_variant_id": size_variant_id,
+                    "fabric_category_id": fabric_category_id,
                 }
             )
 
+        # Get all fabric categories for display in cart
+        from fabric_category.models import FabricCategory
+        fabric_categories = FabricCategory.objects.all()
+        
         context.update(
             {
                 "cart_items": cart_items,
                 "total_price": total_price,
+                "fabric_categories": fabric_categories,
             }
         )
         return context
@@ -127,6 +165,8 @@ class CartActionView(View):
         """Handle POST requests for cart actions."""
         action = request.POST.get("action")
         furniture_id = request.POST.get("furniture_id")
+        size_variant_id = request.POST.get("size_variant_id")
+        fabric_category_id = request.POST.get("fabric_category_id")
 
         if not furniture_id:
             return JsonResponse({"message": "Furniture ID is required"}, status=400)
@@ -136,7 +176,20 @@ class CartActionView(View):
             cart = request.session.get("cart", {})
 
             if action == "add":
-                cart[furniture_id] = cart.get(furniture_id, 0) + 1
+                # Create cart item data
+                cart_item_data = {
+                    'quantity': cart.get(furniture_id, {}).get('quantity', 0) + 1
+                }
+                
+                # Add size variant if provided
+                if size_variant_id:
+                    cart_item_data['size_variant_id'] = size_variant_id
+                
+                # Add fabric category if provided
+                if fabric_category_id:
+                    cart_item_data['fabric_category_id'] = fabric_category_id
+                
+                cart[furniture_id] = cart_item_data
                 message = f"{furniture.name} додано до кошика!"
             elif action == "remove":
                 if furniture_id in cart:
@@ -152,10 +205,16 @@ class CartActionView(View):
             request.session["cart"] = cart
             request.session.modified = True
 
+            # Calculate cart count
+            cart_count = sum(
+                item.get('quantity', 1) if isinstance(item, dict) else item 
+                for item in cart.values()
+            )
+
             return JsonResponse(
                 {
                     "message": message,
-                    "cart_count": sum(cart.values()),
+                    "cart_count": cart_count,
                 }
             )
 
