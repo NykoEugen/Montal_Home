@@ -9,9 +9,27 @@ from sub_categories.models import SubCategory
 
 class Furniture(models.Model):
     """Furniture model representing items in the store."""
+    
+    STOCK_STATUS_CHOICES = [
+        ('in_stock', 'На складі'),
+        ('on_order', 'Під замовлення'),
+    ]
 
     name = models.CharField(
         max_length=200, verbose_name="Назва", help_text="Назва меблів"
+    )
+    article_code = models.CharField(
+        max_length=50, 
+        unique=True, 
+        verbose_name="Код товару", 
+        help_text="Унікальний код товару"
+    )
+    stock_status = models.CharField(
+        max_length=20,
+        choices=STOCK_STATUS_CHOICES,
+        default='in_stock',
+        verbose_name="Статус наявності",
+        help_text="Чи є товар на складі або під замовлення"
     )
     slug = models.SlugField(
         max_length=200,
@@ -75,6 +93,10 @@ class Furniture(models.Model):
         verbose_name = "Меблі"
         verbose_name_plural = "Меблі"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=['article_code']),
+            models.Index(fields=['stock_status']),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -141,21 +163,21 @@ class FurnitureSizeVariant(models.Model):
     )
     height = models.DecimalField(
         max_digits=6,
-        decimal_places=2,
+        decimal_places=0,
         validators=[MinValueValidator(0)],
         verbose_name="Висота (см)",
         help_text="Висота меблів у сантиметрах"
     )
     width = models.DecimalField(
         max_digits=6,
-        decimal_places=2,
+        decimal_places=0,
         validators=[MinValueValidator(0)],
         verbose_name="Ширина (см)",
         help_text="Ширина меблів у сантиметрах"
     )
     length = models.DecimalField(
         max_digits=6,
-        decimal_places=2,
+        decimal_places=0,
         validators=[MinValueValidator(0)],
         verbose_name="Довжина (см)",
         help_text="Довжина меблів у сантиметрах"
@@ -175,9 +197,41 @@ class FurnitureSizeVariant(models.Model):
         ordering = ["height", "width", "length"]
 
     def __str__(self) -> str:
-        return f"{self.furniture.name} - {self.height}×{self.width}×{self.length}см"
+        return f"{self.furniture.name} - {int(self.height)}x{int(self.width)}x{int(self.length)} см"
 
     @property
     def dimensions(self) -> str:
         """Get formatted dimensions string."""
-        return f"{self.height}×{self.width}×{self.length}см"
+        return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
+
+
+class FurnitureImage(models.Model):
+    """Additional images for a furniture item."""
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name="Меблі",
+    )
+    image = models.ImageField(
+        upload_to="furniture/",
+        verbose_name="Зображення",
+    )
+    alt_text = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Альтернативний текст",
+    )
+    position = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Порядок відображення",
+    )
+
+    class Meta:
+        db_table = "furniture_images"
+        verbose_name = "Зображення меблів"
+        verbose_name_plural = "Зображення меблів"
+        ordering = ["position", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name} — image #{self.id}"

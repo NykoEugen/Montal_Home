@@ -14,13 +14,22 @@
                             </div>
                         {% endif %}
                         <div class="p-4">
-                            <h2 class="text-xl font-semibold text-brown-800">{{ item.name }}</h2>
+                            <div class="flex justify-between items-start mb-2">
+                                <h2 class="text-xl font-semibold text-brown-800">{{ item.name }}</h2>
+                                <span class="px-2 py-1 text-xs rounded-full {% if item.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                                    {% if item.stock_status == 'in_stock' %}
+                                        На складі
+                                    {% else %}
+                                        Під замовлення
+                                    {% endif %}
+                                </span>
+                            </div>
                             <p class="text-brown-600 mt-2">{{ item.description|truncatewords:20 }}</p>
                             {% if item.is_promotional and item.promotional_price %}
-                                <p class="text-lg font-bold text-red-600">{{ item.promotional_price }} грн</p>
-                                <p class="text-brown-500 line-through">{{ item.price }} грн</p>
+                                <p class="text-lg font-bold text-red-600">{{ item.promotional_price|floatformat:0 }} грн</p>
+                                <p class="text-brown-500 line-through">{{ item.price|floatformat:0 }} грн</p>
                             {% else %}
-                                <p class="text-lg font-bold text-brown-800">{{ item.price }} грн</p>
+                                <p class="text-lg font-bold text-brown-800">{{ item.price|floatformat:0 }} грн</p>
                             {% endif %}
                             <div class="mt-4">
                                 <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-brown-800 text-white px-4 py-2 rounded-md hover:bg-brown-700">

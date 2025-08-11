@@ -40,9 +40,9 @@
                             </td>
                             <td class="py-3 text-brown-600">{{ item.quantity }}</td>
                             <td class="py-3">
-                                <span class="text-brown-600">{{ item.item_price|floatformat:2 }} грн</span>
+                                <span class="text-brown-600">{{ item.item_price|floatformat:0 }} грн</span>
                             </td>
-                            <td class="py-3 text-brown-600">{{ item.item_price|multiply:item.quantity|floatformat:2 }} грн</td>
+                            <td class="py-3 text-brown-600">{{ item.item_price|multiply:item.quantity|floatformat:0 }} грн</td>
                             <td class="py-3">
                                 <form method="post" action="{% url 'shop:remove_from_cart' %}" style="display: inline;">
                                     {% csrf_token %}
@@ -56,7 +56,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <h4 class="text-xl font-bold text-brown-800 mt-6">Загальна сума: {{ total_price }} грн</h4><br>
+            <h4 class="text-xl font-bold text-brown-800 mt-6">Загальна сума: {{ total_price|floatformat:0 }} грн</h4><br>
             <a href="{% url 'checkout:checkout' %}" class="btn-grad">
                 Оформити замовлення
             </a>

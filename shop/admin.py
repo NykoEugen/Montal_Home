@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from categories.models import Category
 from checkout.models import Order, OrderItem
-from furniture.models import Furniture, FurnitureSizeVariant
+from furniture.models import Furniture, FurnitureSizeVariant, FurnitureImage
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
@@ -46,6 +46,12 @@ class FurnitureSizeVariantInline(admin.TabularInline):
     fields = ['height', 'width', 'length', 'price']
 
 
+class FurnitureImageInline(admin.TabularInline):
+    model = FurnitureImage
+    extra = 1
+    fields = ["image", "alt_text", "position"]
+
+
 @admin.register(Parameter)
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ("key", "label")
@@ -84,7 +90,7 @@ class FurnitureAdmin(admin.ModelAdmin):
     list_filter = ["sub_category", "is_promotional", "selected_fabric_brand", "stock_status"]
     search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline]
+    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureImageInline]
     
     def available_sizes(self, obj):
         return obj.get_available_sizes()
@@ -121,7 +127,7 @@ class OrderItemInline(admin.TabularInline):
                 return f"Розмір ID {obj.size_variant_id} (видалено)"
         return "Стандартний розмір"
     
-    size_variant_info.short_description = "Розмір"
+    size_variant_info.short_description = "Розмір (ВхШхД)"
 
     def fabric_info(self, obj):
         if obj.fabric_category_id:

@@ -20,9 +20,18 @@
                                     </div>
                                 {% endif %}
                                 <div class="p-4">
-                                    <h3 class="text-lg font-semibold text-brown-800">{{ item.name }}</h3>
-                                    <p class="text-red-600 font-semibold">{{ item.promotional_price }} грн</p>
-                                    <p class="text-brown-500 line-through">{{ item.price }} грн</p>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="text-lg font-semibold text-brown-800">{{ item.name }}</h3>
+                                        <span class="px-2 py-1 text-xs rounded-full {% if item.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                                            {% if item.stock_status == 'in_stock' %}
+                                                На складі
+                                            {% else %}
+                                                Під замовлення
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <p class="text-red-600 font-semibold">{{ item.promotional_price|floatformat:0 }} грн</p>
+                                    <p class="text-brown-500 line-through">{{ item.price|floatformat:0 }} грн</p>
                                 </div>
                             </div>
                         </a>
