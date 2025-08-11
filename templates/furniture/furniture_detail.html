@@ -4,20 +4,34 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start">
         <div class="md:w-1/2 w-full">
-            <div class="bg-white rounded-lg shadow-lg p-4 flex items-center justify-center">
-                {% if furniture.image %}
-                    <img src="{{ furniture.image.url }}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
-                {% else %}
-                    <div class="w-full h-80 bg-beige-200 flex items-center justify-center rounded-lg">
-                        <span class="text-brown-500">Зображення відсутнє</span>
-                    </div>
+            <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 items-center justify-center">
+                <img id="main-image" src="{% if furniture.image %}{{ furniture.image.url }}{% elif gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
+                {% if gallery_images %}
+                <div class="flex gap-2 overflow-x-auto w-full">
+                    {% for img in gallery_images %}
+                        <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:furniture.name }}" class="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80" data-full="{{ img.image.url }}">
+                    {% endfor %}
+                </div>
                 {% endif %}
             </div>
         </div>
         <div class="md:w-1/2 w-full md:pl-8">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h1 class="text-3xl font-bold text-brown-800 mb-2">{{ furniture.name }}</h1>
-                <p class="text-brown-600 mb-4">{{ furniture.category.name }}</p>
+                <p class="text-brown-600 mb-2">{{ furniture.category.name }}</p>
+                <div class="mb-4 flex flex-wrap gap-4 text-sm">
+                    <span class="bg-beige-100 px-3 py-1 rounded-full text-brown-700">
+                        <strong>Код товару:</strong> {{ furniture.article_code }}
+                    </span>
+                    <span class="px-3 py-1 rounded-full {% if furniture.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                        <strong>Наявність:</strong> 
+                        {% if furniture.stock_status == 'in_stock' %}
+                            На складі
+                        {% else %}
+                            Під замовлення
+                        {% endif %}
+                    </span>
+                </div>
                 {% if size_variants %}
                     <div class="mb-6">
                         <label for="size-variant" class="block text-brown-700 font-medium mb-2">
@@ -29,7 +43,7 @@
                                 <option value="{{ variant.id }}" 
                                         data-price="{{ variant.price }}"
                                         data-dimensions="{{ variant.dimensions }}">
-                                    {{ variant.dimensions }} - {{ variant.price }} грн
+                                    {{ variant.dimensions }} - {{ variant.price|floatformat:0 }} грн
                                 </option>
                             {% endfor %}
                         </select>
@@ -38,10 +52,10 @@
                 
                 <div class="mb-4">
                     {% if furniture.is_promotional and furniture.promotional_price %}
-                        <p class="text-2xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price }} грн</p>
-                        <p class="text-lg text-brown-500 line-through" id="original-price">{{ furniture.price }} грн</p>
+                        <p class="text-2xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price|floatformat:0 }} грн</p>
+                        <p class="text-lg text-brown-500 line-through" id="original-price">{{ furniture.price|floatformat:0 }} грн</p>
                     {% else %}
-                        <p class="text-2xl text-brown-800 font-semibold" id="main-price">{{ furniture.price }} грн</p>
+                        <p class="text-2xl text-brown-800 font-semibold" id="main-price">{{ furniture.price|floatformat:0 }} грн</p>
                     {% endif %}
                 </div>
                 
@@ -56,7 +70,7 @@
                                 <option value="">Категорія тканини</option>
                                 {% for category in fabric_categories %}
                                     <option value="{{ category.id }}" data-price="{{ category.price }}">
-                                        {{ category.name }} - {{ category.price }} грн
+                                        {{ category.name }} - {{ category.price|floatformat:0 }} грн
                                     </option>
                                 {% endfor %}
                             </select>
@@ -67,16 +81,20 @@
                     </div>
                 {% endif %}
                 
-                <p class="mb-6 text-brown-600">{{ furniture.description }}</p>
+                <div class="mb-6">
+                    <p class="text-brown-600 mb-3">{{ furniture.description }}</p>
+                </div>
                 {% if parameters %}
                     <div class="mb-6">
                         <h2 class="text-xl font-semibold text-brown-800 mb-2">Характеристики</h2>
                         <table class="w-full text-left border-separate border-spacing-y-2">
                             <tbody>
                                 {% for param in parameters %}
-                                    <tr class="bg-beige-50 rounded">
-                                        <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.parameter.label }}</td>
-                                        <td class="py-2 px-3 text-brown-800 font-medium w-1/2">{{ param.value }}</td>
+                                    <tr class="bg-beige-50 rounded" {% if param.key == 'dimensions' %}id="dimensions-row"{% endif %}>
+                                        <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.label }}</td>
+                                        <td class="py-2 px-3 text-brown-800 font-medium w-1/2" {% if param.key == 'dimensions' %}id="dimensions-value" data-base="{{ param.base_value|default:param.value }}"{% endif %}>
+                                            {{ param.value }}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -137,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fabricPrice > 0) {
                 const fabricCost = fabricPrice * fabricValue;
                 totalPrice += fabricCost;
-                fabricPriceSpan.textContent = fabricCost.toFixed(2);
+                fabricPriceSpan.textContent = Math.round(fabricCost);
                 fabricPriceInfo.classList.remove('hidden');
             } else {
                 fabricPriceInfo.classList.add('hidden');
@@ -148,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update the displayed price
         if (mainPriceElement) {
-            mainPriceElement.textContent = totalPrice.toFixed(2) + ' грн';
+            mainPriceElement.textContent = Math.round(totalPrice) + ' грн';
         }
     }
     
@@ -157,11 +175,33 @@ document.addEventListener('DOMContentLoaded', function() {
         sizeSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const sizePrice = parseFloat(selectedOption.getAttribute('data-price') || 0);
+            const sizeDimensions = selectedOption.getAttribute('data-dimensions');
             
             if (sizePrice > 0) {
                 selectedSizePrice = sizePrice;
             } else {
                 selectedSizePrice = originalPrice;
+            }
+            
+            // Update dimensions in characteristics table
+            const dimensionsValue = document.getElementById('dimensions-value');
+            
+            if (dimensionsValue) {
+                if (sizeDimensions) {
+                    // Parse the dimensions string (e.g., "120x60x80 см") and format as "висота*ширина*довжина"
+                    const dimensionsMatch = sizeDimensions.match(/(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
+                    if (dimensionsMatch) {
+                        const height = dimensionsMatch[1];
+                        const width = dimensionsMatch[2];
+                        const length = dimensionsMatch[3];
+                        dimensionsValue.textContent = `${height}x${width}x${length} см`;
+                    } else {
+                        dimensionsValue.textContent = sizeDimensions; // keep as-is
+                    }
+                } else {
+                    // If no size selected, revert to base size (from server-rendered value)
+                    dimensionsValue.textContent = dimensionsValue.getAttribute('data-base');
+                }
             }
             
             updateTotalPrice();
@@ -197,6 +237,17 @@ document.addEventListener('DOMContentLoaded', function() {
             this.submit();
         });
     }
+
+    // Thumbnail click to swap main image
+    const mainImg = document.getElementById('main-image');
+    document.querySelectorAll('[data-full]').forEach(function(thumb){
+        thumb.addEventListener('click', function(){
+            const url = this.getAttribute('data-full');
+            if (mainImg && url) {
+                mainImg.src = url;
+            }
+        });
+    });
 });
 </script>
 {% endblock %}
