@@ -18,25 +18,45 @@
                     {% for item in cart_items %}
                         <tr class="border-b border-beige-700">
                             <td class="py-3 text-brown-600">
-                                {{ item.furniture.name }}
-                                {% if item.size_variant_id %}
-                                    <br><small class="text-brown-500">
-                                        {% for variant in item.furniture.size_variants.all %}
-                                            {% if variant.id == item.size_variant_id %}
-                                                {{ variant.dimensions }}
+                                <div class="flex items-start gap-3">
+                                    {% if item.variant_image_id %}
+                                        {% for variant in item.furniture.variant_images.all %}
+                                            {% if variant.id|stringformat:"s" == item.variant_image_id|stringformat:"s" %}
+                                                <img src="{{ variant.image.url }}" alt="{{ variant.name }}" class="w-16 h-16 object-cover rounded">
                                             {% endif %}
                                         {% endfor %}
-                                    </small>
-                                {% endif %}
-                                {% if item.fabric_category_id %}
-                                    <br><small class="text-brown-500">
-                                        {% for fabric in fabric_categories %}
-                                            {% if fabric.id == item.fabric_category_id %}
-                                                Тканина: {{ fabric.name }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </small>
-                                {% endif %}
+                                    {% elif item.furniture.image %}
+                                        <img src="{{ item.furniture.image.url }}" alt="{{ item.furniture.name }}" class="w-16 h-16 object-cover rounded">
+                                    {% endif %}
+                                    <div>
+                                        <div class="font-medium">{{ item.furniture.name }}</div>
+                                        {% if item.variant_image_id %}
+                                            {% for variant in item.furniture.variant_images.all %}
+                                                {% if variant.id|stringformat:"s" == item.variant_image_id|stringformat:"s" %}
+                                                    <div class="text-sm text-brown-500">Колір: {{ variant.name }}</div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        {% if item.size_variant_id %}
+                                            <div class="text-sm text-brown-500">
+                                                {% for variant in item.furniture.size_variants.all %}
+                                                    {% if variant.id|stringformat:"s" == item.size_variant_id|stringformat:"s" %}
+                                                        Розмір: {{ variant.dimensions }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        {% if item.fabric_category_id %}
+                                            <div class="text-sm text-brown-500">
+                                                {% for fabric in fabric_categories %}
+                                                    {% if fabric.id|stringformat:"s" == item.fabric_category_id|stringformat:"s" %}
+                                                        Тканина: {{ fabric.name }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </td>
                             <td class="py-3 text-brown-600">{{ item.quantity }}</td>
                             <td class="py-3">

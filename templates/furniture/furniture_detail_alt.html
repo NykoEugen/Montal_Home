@@ -43,6 +43,24 @@
           {% endif %}
         </div>
 
+        {% if variant_images %}
+        <div class="mt-4">
+          <label class="block text-brown-700 font-medium mb-2">Варіанти</label>
+          <div class="flex flex-wrap gap-2">
+            {% for variant in variant_images %}
+            <button type="button" class="variant-chip flex items-center gap-2 px-3 py-2 border rounded text-sm hover:bg-beige-100{% if variant.is_default %} bg-beige-100 ring-2 ring-brown-800{% endif %}" 
+                    data-id="{{ variant.id }}" 
+                    data-image="{{ variant.image.url }}" 
+                    data-name="{{ variant.name }}"
+                    {% if variant.link %}data-link="{{ variant.link }}"{% endif %}>
+              <img src="{{ variant.image.url }}" alt="{{ variant.name }}" class="w-6 h-6 object-cover rounded">
+              <span>{{ variant.name }}</span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         {% if size_variants %}
         <div class="mt-4">
           <label for="alt-size" class="block text-brown-700 font-medium mb-2">Розмір (ВхШхД)</label>
@@ -81,6 +99,7 @@
           <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
           <input type="hidden" name="size_variant_id" id="alt-size-input">
           <input type="hidden" name="fabric_category_id" id="alt-fabric-input">
+          <input type="hidden" name="variant_image_id" id="alt-variant-input">
           <input type="hidden" name="quantity" id="alt-qty-input" value="1">
           <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded">Додати в кошик</button>
           <!-- <a href="?v=1" class="w-full py-3 text-lg font-semibold rounded border text-center border-brown-300 text-brown-800 hover:bg-beige-100">Основна версія</a> -->
@@ -134,7 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const priceEl = document.getElementById('alt-main-price');
   const origEl = document.getElementById('alt-original-price');
   const sizeChips = document.querySelectorAll('.size-chip');
+  const variantChips = document.querySelectorAll('.variant-chip');
   const sizeInput = document.getElementById('alt-size-input');
+  const variantInput = document.getElementById('alt-variant-input');
   const fabricSelect = document.getElementById('alt-fabric');
   const fabricInput = document.getElementById('alt-fabric-input');
   const fabricExtra = document.getElementById('alt-fabric-extra');
@@ -152,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function recompute() {
     let total = selectedPrice;
-    if (fabricSelect && fabricSelect.value) {
+    if (fabricSelect && fabricSelect.value && fabricExtra && fabricExtraPrice) {
       const fp = parseFloat(fabricSelect.options[fabricSelect.selectedIndex].getAttribute('data-price') || '0');
       if (fp > 0) {
         const add = fp * fabricValue;
@@ -162,13 +183,38 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         fabricExtra.classList.add('hidden');
       }
-    } else {
+    } else if (fabricExtra) {
       fabricExtra.classList.add('hidden');
     }
     const q = Math.max(1, parseInt(qty.value || '1', 10));
     if (qtyInput) qtyInput.value = String(q);
-    priceEl.textContent = Math.round(total * q) + ' грн';
+    if (priceEl) {
+      priceEl.textContent = Math.round(total * q) + ' грн';
+    }
   }
+
+  // Variant chip functionality
+  variantChips.forEach(b => b.addEventListener('click', () => {
+    variantChips.forEach(x => x.classList.remove('bg-beige-100','ring-2','ring-brown-800'));
+    b.classList.add('bg-beige-100','ring-2','ring-brown-800');
+    const imageUrl = b.getAttribute('data-image');
+    const linkUrl = b.getAttribute('data-link');
+    const variantId = b.getAttribute('data-id');
+    
+    if (imageUrl && mainImg) {
+      mainImg.src = imageUrl;
+    }
+    
+    if (variantInput) {
+      variantInput.value = variantId || '';
+    }
+    
+    // If there's a link, you can handle it here
+    if (linkUrl) {
+      // You can either open in new tab or handle differently
+      // window.open(linkUrl, '_blank');
+    }
+  }));
 
   sizeChips.forEach(b => b.addEventListener('click', () => {
     sizeChips.forEach(x => x.classList.remove('bg-beige-100','ring-2','ring-brown-800'));
@@ -188,7 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (qty) qty.addEventListener('input', recompute);
+  if (qty) {
+    qty.addEventListener('input', recompute);
+  }
 
   // Auto-select base size if provided
   const buyCard = document.getElementById('buy-card');
@@ -202,6 +250,17 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if (sizeChips.length) {
     // fallback: select first
     sizeChips[0].click();
+  }
+
+  // Auto-select default variant if available
+  if (variantChips.length) {
+    const defaultVariant = Array.from(variantChips).find(b => b.classList.contains('bg-beige-100'));
+    if (defaultVariant) {
+      const variantId = defaultVariant.getAttribute('data-id');
+      if (variantInput && variantId) {
+        variantInput.value = variantId;
+      }
+    }
   }
 
   // Tabs

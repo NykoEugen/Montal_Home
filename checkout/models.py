@@ -74,6 +74,11 @@ class OrderItem(models.Model):
         blank=True, 
         verbose_name="ID категорії тканини"
     )
+    variant_image_id = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="ID варіанту зображення"
+    )
 
     class Meta:
         verbose_name = "Елемент замовлення"

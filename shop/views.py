@@ -79,11 +79,13 @@ class CartView(TemplateView):
                 quantity = item_data.get('quantity', 1)
                 size_variant_id = item_data.get('size_variant_id')
                 fabric_category_id = item_data.get('fabric_category_id')
+                variant_image_id = item_data.get('variant_image_id')
             else:
                 # Legacy format - just quantity
                 quantity = item_data
                 size_variant_id = None
                 fabric_category_id = None
+                variant_image_id = None
             
             # Calculate item price
             if size_variant_id:
@@ -113,9 +115,11 @@ class CartView(TemplateView):
                     "item_price": item_price,
                     "size_variant_id": size_variant_id,
                     "fabric_category_id": fabric_category_id,
+                    "variant_image_id": variant_image_id,
                     "total_price": item_price * quantity,
                 }
             )
+
 
         # Get all fabric categories for display in cart
         from fabric_category.models import FabricCategory
@@ -236,7 +240,10 @@ def add_to_cart_from_detail(request: HttpRequest):
     furniture_id = request.POST.get("furniture_id")
     size_variant_id = request.POST.get("size_variant_id")
     fabric_category_id = request.POST.get("fabric_category_id")
+    variant_image_id = request.POST.get("variant_image_id")
     quantity = int(request.POST.get("quantity", 1))
+    
+
 
     if not furniture_id:
         messages.error(request, "Furniture ID is required")
@@ -258,6 +265,10 @@ def add_to_cart_from_detail(request: HttpRequest):
         # Add fabric category if provided
         if fabric_category_id:
             cart_item_data['fabric_category_id'] = fabric_category_id
+        
+        # Add variant image if provided
+        if variant_image_id:
+            cart_item_data['variant_image_id'] = variant_image_id
         
         cart[furniture_id] = cart_item_data
         request.session["cart"] = cart

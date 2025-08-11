@@ -205,6 +205,60 @@ class FurnitureSizeVariant(models.Model):
         return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
 
 
+class FurnitureVariantImage(models.Model):
+    """Variant images for furniture items with optional links."""
+    
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name="variant_images",
+        verbose_name="Меблі"
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Назва варіанту",
+        help_text="Назва варіанту (наприклад: 'Білий', 'Дуб світлий')"
+    )
+    image = models.ImageField(
+        upload_to="furniture/variants/",
+        verbose_name="Зображення варіанту",
+        help_text="Зображення меблів у цьому варіанті"
+    )
+    link = models.URLField(
+        blank=True,
+        verbose_name="Посилання",
+        help_text="Посилання на варіант (опціонально)"
+    )
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name="Варіант за замовчуванням",
+        help_text="Цей варіант буде показаний першим"
+    )
+    position = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Порядок відображення"
+    )
+
+    class Meta:
+        db_table = "furniture_variant_images"
+        verbose_name = "Варіант зображення меблів"
+        verbose_name_plural = "Варіанти зображень меблів"
+        ordering = ["position", "name"]
+        unique_together = ["furniture", "name"]
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        """Ensure only one default variant per furniture."""
+        if self.is_default:
+            # Set all other variants for this furniture to non-default
+            FurnitureVariantImage.objects.filter(
+                furniture=self.furniture
+            ).exclude(id=self.id).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
 class FurnitureImage(models.Model):
     """Additional images for a furniture item."""
     furniture = models.ForeignKey(

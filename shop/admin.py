@@ -2,10 +2,11 @@ import json
 
 from django.contrib import admin
 from django.utils import timezone
+from django.utils.html import format_html
 
 from categories.models import Category
 from checkout.models import Order, OrderItem
-from furniture.models import Furniture, FurnitureSizeVariant, FurnitureImage
+from furniture.models import Furniture, FurnitureSizeVariant, FurnitureImage, FurnitureVariantImage
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
@@ -52,6 +53,22 @@ class FurnitureImageInline(admin.TabularInline):
     fields = ["image", "alt_text", "position"]
 
 
+class FurnitureVariantImageInline(admin.TabularInline):
+    model = FurnitureVariantImage
+    extra = 1
+    fields = ('name', 'image', 'link', 'is_default', 'position')
+    readonly_fields = ('image_preview',)
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px; object-fit: cover;" />',
+                obj.image.url
+            )
+        return '-'
+    image_preview.short_description = 'Превью'
+
+
 @admin.register(Parameter)
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ("key", "label")
@@ -90,7 +107,7 @@ class FurnitureAdmin(admin.ModelAdmin):
     list_filter = ["sub_category", "is_promotional", "selected_fabric_brand", "stock_status"]
     search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureImageInline]
+    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureVariantImageInline, FurnitureImageInline]
     
     def available_sizes(self, obj):
         return obj.get_available_sizes()
@@ -114,8 +131,20 @@ class FurnitureAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    fields = ["furniture", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
-    readonly_fields = ["furniture", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
+    fields = ["furniture", "variant_info", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
+    readonly_fields = ["furniture", "variant_info", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
+
+    def variant_info(self, obj):
+        if obj.variant_image_id:
+            try:
+                from furniture.models import FurnitureVariantImage
+                variant = FurnitureVariantImage.objects.get(id=obj.variant_image_id)
+                return f"{variant.name}"
+            except FurnitureVariantImage.DoesNotExist:
+                return f"Варіант ID {obj.variant_image_id} (видалено)"
+        return "Стандартний варіант"
+    
+    variant_info.short_description = "Колір"
 
     def size_variant_info(self, obj):
         if obj.size_variant_id:
@@ -200,7 +229,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ["order", "furniture", "quantity", "price", "size_variant_info", "fabric_info", "total_price"]
+    list_display = ["order", "furniture", "quantity", "price", "variant_info", "size_variant_info", "fabric_info", "total_price"]
     list_filter = ["order__created_at"]
     search_fields = ["order__customer_name", "furniture__name"]
     readonly_fields = ["price"]
@@ -211,6 +240,18 @@ class OrderItemAdmin(admin.ModelAdmin):
         return 0
 
     total_price.short_description = "Загальна вартість"
+    
+    def variant_info(self, obj):
+        if obj.variant_image_id:
+            try:
+                from furniture.models import FurnitureVariantImage
+                variant = FurnitureVariantImage.objects.get(id=obj.variant_image_id)
+                return f"{variant.name}"
+            except FurnitureVariantImage.DoesNotExist:
+                return f"Варіант ID {obj.variant_image_id} (видалено)"
+        return "Стандартний варіант"
+    
+    variant_info.short_description = "Колір"
     
     def size_variant_info(self, obj):
         if obj.size_variant_id:

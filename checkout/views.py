@@ -54,11 +54,13 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     quantity = item_data.get('quantity', 1)
                     size_variant_id = item_data.get('size_variant_id')
                     fabric_category_id = item_data.get('fabric_category_id')
+                    variant_image_id = item_data.get('variant_image_id')
                 else:
                     # Legacy format - just quantity
                     quantity = item_data
                     size_variant_id = None
                     fabric_category_id = None
+                    variant_image_id = None
                 
                 # Calculate price based on size variant and fabric
                 if size_variant_id:
@@ -96,6 +98,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     price=price,
                     size_variant_id=size_variant_id,
                     fabric_category_id=fabric_category_id,
+                    variant_image_id=variant_image_id,
                 )
 
             request.session["cart"] = {}

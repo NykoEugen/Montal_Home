@@ -45,9 +45,9 @@
                         {% for item in page_obj %}
                             <div class="furniture-card">
                                 {% if item.image %}
-                                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover rounded-t-lg">
                                 {% else %}
-                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center rounded-t-lg">
                                         <span class="text-brown-500">Немає зображення</span>
                                     </div>
                                 {% endif %}
