@@ -113,6 +113,7 @@ class CartView(TemplateView):
                     "item_price": item_price,
                     "size_variant_id": size_variant_id,
                     "fabric_category_id": fabric_category_id,
+                    "total_price": item_price * quantity,
                 }
             )
 
@@ -128,6 +129,13 @@ class CartView(TemplateView):
             }
         )
         return context
+
+    def get(self, request, *args, **kwargs):
+        """Redirect to home if cart is empty."""
+        cart = request.session.get("cart", {})
+        if not cart:
+            return redirect('shop:home')
+        return super().get(request, *args, **kwargs)
 
 
 class PromotionsView(ListView):
@@ -222,6 +230,47 @@ class CartActionView(View):
             return JsonResponse({"message": str(e)}, status=400)
 
 
+@require_POST
+def add_to_cart_from_detail(request: HttpRequest):
+    """Add item to cart from furniture detail page with size variants and fabric."""
+    furniture_id = request.POST.get("furniture_id")
+    size_variant_id = request.POST.get("size_variant_id")
+    fabric_category_id = request.POST.get("fabric_category_id")
+    quantity = int(request.POST.get("quantity", 1))
+
+    if not furniture_id:
+        messages.error(request, "Furniture ID is required")
+        return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
+
+    try:
+        furniture = get_object_or_404(Furniture, id=furniture_id)
+        cart = request.session.get("cart", {})
+
+        # Create cart item data
+        cart_item_data = {
+            'quantity': quantity
+        }
+        
+        # Add size variant if provided
+        if size_variant_id:
+            cart_item_data['size_variant_id'] = size_variant_id
+        
+        # Add fabric category if provided
+        if fabric_category_id:
+            cart_item_data['fabric_category_id'] = fabric_category_id
+        
+        cart[furniture_id] = cart_item_data
+        request.session["cart"] = cart
+        request.session.modified = True
+
+        messages.success(request, f"{furniture.name} додано до кошика!")
+        return redirect('furniture:furniture_detail', furniture_slug=furniture.slug)
+
+    except Exception as e:
+        messages.error(request, str(e))
+        return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
+
+
 # Legacy function-based views for backward compatibility
 @require_POST
 def add_to_cart(request: HttpRequest) -> JsonResponse:
@@ -232,11 +281,35 @@ def add_to_cart(request: HttpRequest) -> JsonResponse:
 
 
 @require_POST
-def remove_from_cart(request: HttpRequest) -> JsonResponse:
-    """Remove item from cart (legacy function-based view)."""
-    request.POST = request.POST.copy()
-    request.POST["action"] = "remove"
-    return CartActionView.as_view()(request)
+def remove_from_cart(request: HttpRequest):
+    """Remove item from cart and redirect appropriately."""
+    furniture_id = request.POST.get("furniture_id")
+    
+    if not furniture_id:
+        messages.error(request, "Furniture ID is required")
+        return redirect('shop:view_cart')
+    
+    try:
+        furniture = get_object_or_404(Furniture, id=furniture_id)
+        cart = request.session.get("cart", {})
+        
+        if furniture_id in cart:
+            del cart[furniture_id]
+            request.session["cart"] = cart
+            request.session.modified = True
+            messages.success(request, "Товар видалено з кошика!")
+        else:
+            messages.error(request, "Товар не знайдено в кошику!")
+        
+        # If cart is empty, redirect to home
+        if not cart:
+            return redirect('shop:home')
+        
+        return redirect('shop:view_cart')
+        
+    except Exception as e:
+        messages.error(request, str(e))
+        return redirect('shop:view_cart')
 
 
 def home(request: HttpRequest) -> HttpResponse:

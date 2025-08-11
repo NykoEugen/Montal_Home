@@ -22,14 +22,10 @@
                             {% else %}
                                 <p class="text-lg font-bold text-brown-800">{{ item.price }} грн</p>
                             {% endif %}
-                            <div class="mt-4 flex space-x-2">
+                            <div class="mt-4">
                                 <a href="{% url 'furniture:furniture_detail' item.slug %}" class="inline-block bg-brown-800 text-white px-4 py-2 rounded-md hover:bg-brown-700">
                                     Деталі
                                 </a>
-                                <button class="add-to-cart bg-brown-600 text-white px-6 py-2 rounded hover:bg-brown-700"
-                                    data-id="{{ item.id }}" data-url="{% url 'shop:add_to_cart' %}">
-                                    Додати до кошика
-                                </button>
                             </div>
                         </div>
                     </div>

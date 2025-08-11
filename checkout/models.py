@@ -62,6 +62,18 @@ class OrderItem(models.Model):
     furniture = models.ForeignKey(Furniture, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
+    
+    # Size variant and fabric information
+    size_variant_id = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="ID розмірного варіанту"
+    )
+    fabric_category_id = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="ID категорії тканини"
+    )
 
     class Meta:
         verbose_name = "Елемент замовлення"
