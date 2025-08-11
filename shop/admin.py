@@ -70,6 +70,8 @@ class SubCategoryAdmin(admin.ModelAdmin):
 class FurnitureAdmin(admin.ModelAdmin):
     list_display = [
         "name",
+        "article_code",
+        "stock_status",
         "sub_category",
         "price",
         "is_promotional",
@@ -79,26 +81,66 @@ class FurnitureAdmin(admin.ModelAdmin):
         "selected_fabric_brand",
         "fabric_value",
     ]
-    list_filter = ["sub_category", "is_promotional", "selected_fabric_brand"]
-    search_fields = ["name", "description"]
+    list_filter = ["sub_category", "is_promotional", "selected_fabric_brand", "stock_status"]
+    search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [FurnitureParameterInline, FurnitureSizeVariantInline]
     
     def available_sizes(self, obj):
         return obj.get_available_sizes()
     available_sizes.short_description = "Доступні розміри"
+    
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('name', 'article_code', 'stock_status', 'slug', 'sub_category', 'description', 'image')
+        }),
+        ('Ціни', {
+            'fields': ('price', 'is_promotional', 'promotional_price')
+        }),
+        ('Тканина', {
+            'fields': ('selected_fabric_brand', 'fabric_value'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    fields = ["furniture", "price", "quantity", "get_parameters"]
-    readonly_fields = ["furniture", "price", "quantity", "get_parameters"]
+    fields = ["furniture", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
+    readonly_fields = ["furniture", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
 
-    def get_parameters(self, obj) -> str:
-        return json.dumps(obj.parameters, ensure_ascii=False, indent=2)
+    def size_variant_info(self, obj):
+        if obj.size_variant_id:
+            try:
+                from furniture.models import FurnitureSizeVariant
+                variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
+                return f"{variant.dimensions} - {variant.price} грн"
+            except FurnitureSizeVariant.DoesNotExist:
+                return f"Розмір ID {obj.size_variant_id} (видалено)"
+        return "Стандартний розмір"
+    
+    size_variant_info.short_description = "Розмір"
 
-    get_parameters.short_description = "Параметри"
+    def fabric_info(self, obj):
+        if obj.fabric_category_id:
+            try:
+                from fabric_category.models import FabricCategory
+                fabric = FabricCategory.objects.get(id=obj.fabric_category_id)
+                return f"{fabric.name} - {fabric.price} грн"
+            except FabricCategory.DoesNotExist:
+                return f"Тканина ID {obj.fabric_category_id} (видалено)"
+        return "Стандартна тканина"
+    
+    fabric_info.short_description = "Тканина"
+
+    def get_total_price(self, obj):
+        if obj.price is not None:
+            return f"{obj.price * obj.quantity:.2f} грн"
+        return "Ціна не вказана"
+    
+    get_total_price.short_description = "Загальна вартість"
 
 
 @admin.register(Order)
@@ -158,7 +200,9 @@ class OrderItemAdmin(admin.ModelAdmin):
     readonly_fields = ["price"]
 
     def total_price(self, obj):
-        return obj.price * obj.quantity
+        if obj.price is not None:
+            return obj.price * obj.quantity
+        return 0
 
     total_price.short_description = "Загальна вартість"
     
@@ -167,24 +211,24 @@ class OrderItemAdmin(admin.ModelAdmin):
             try:
                 from furniture.models import FurnitureSizeVariant
                 variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
-                return variant.dimensions
+                return f"{variant.dimensions} - {variant.price} грн"
             except FurnitureSizeVariant.DoesNotExist:
-                return f"ID: {obj.size_variant_id} (не знайдено)"
-        return "Не вказано"
+                return f"Розмір ID {obj.size_variant_id} (видалено)"
+        return "Стандартний розмір"
     
-    size_variant_info.short_description = "Розмір"
+    size_variant_info.short_description = "Розмір та ціна"
     
     def fabric_info(self, obj):
         if obj.fabric_category_id:
             try:
                 from fabric_category.models import FabricCategory
                 fabric = FabricCategory.objects.get(id=obj.fabric_category_id)
-                return fabric.name
+                return f"{fabric.name} - {fabric.price} грн"
             except FabricCategory.DoesNotExist:
-                return f"ID: {obj.fabric_category_id} (не знайдено)"
-        return "Не вказано"
+                return f"Тканина ID {obj.fabric_category_id} (видалено)"
+        return "Стандартна тканина"
     
-    fabric_info.short_description = "Тканина"
+    fabric_info.short_description = "Тканина та ціна"
 
 
 @admin.register(FurnitureSizeVariant)
