@@ -39,11 +39,20 @@
                                            class="text-brown-600 hover:text-brown-700">
                                             {{ item.furniture.name }}
                                         </a>
+                                        {% if item.variant_image_id %}
+                                            <br><small class="text-brown-500">
+                                                {% for variant in item.furniture.variant_images.all %}
+                                                    {% if variant.id|stringformat:"s" == item.variant_image_id|stringformat:"s" %}
+                                                        Колір: {{ variant.name }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </small>
+                                        {% endif %}
                                         {% if item.size_variant_id %}
                                             <br><small class="text-brown-500">
                                                 {% for variant in item.furniture.size_variants.all %}
-                                                    {% if variant.id == item.size_variant_id %}
-                                                        {{ variant.dimensions }}
+                                                    {% if variant.id|stringformat:"s" == item.size_variant_id|stringformat:"s" %}
+                                                        Розмір: {{ variant.dimensions }}
                                                     {% endif %}
                                                 {% endfor %}
                                             </small>
@@ -51,7 +60,7 @@
                                         {% if item.fabric_category_id %}
                                             <br><small class="text-brown-500">
                                                 {% for fabric in fabric_categories %}
-                                                    {% if fabric.id == item.fabric_category_id %}
+                                                    {% if fabric.id|stringformat:"s" == item.fabric_category_id|stringformat:"s" %}
                                                         Тканина: {{ fabric.name }}
                                                     {% endif %}
                                                 {% endfor %}

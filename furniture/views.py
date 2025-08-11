@@ -9,6 +9,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
     furniture = get_object_or_404(Furniture, slug=furniture_slug)
     raw_parameters = furniture.parameters.select_related("parameter").all()
     size_variants = furniture.get_size_variants()
+    variant_images = furniture.variant_images.all()
     gallery_images = list(getattr(furniture, 'images').all()) if hasattr(furniture, 'images') else []
 
     # Virtual parameter structure for consistent template access
@@ -77,6 +78,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             "furniture": furniture,
             "parameters": parameters,
             "size_variants": size_variants,
+            "variant_images": variant_images,
             "gallery_images": gallery_images,
             "fabric_categories": fabric_categories,
             "base_dimensions": combined_dimensions,
