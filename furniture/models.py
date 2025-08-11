@@ -180,7 +180,21 @@ class FurnitureSizeVariant(models.Model):
         decimal_places=0,
         validators=[MinValueValidator(0)],
         verbose_name="Довжина (см)",
-        help_text="Довжина меблів у сантиметрах"
+        help_text="Довжина меблів у сантиметрах (складена)"
+    )
+    is_foldable = models.BooleanField(
+        default=False,
+        verbose_name="Складні меблі",
+        help_text="Чи можуть меблі складатися"
+    )
+    unfolded_length = models.DecimalField(
+        max_digits=6,
+        decimal_places=0,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        verbose_name="Довжина розгорнута (см)",
+        help_text="Довжина меблів у розгорнутому стані"
     )
     price = models.DecimalField(
         max_digits=10,
@@ -199,10 +213,25 @@ class FurnitureSizeVariant(models.Model):
     def __str__(self) -> str:
         return f"{self.furniture.name} - {int(self.height)}x{int(self.width)}x{int(self.length)} см"
 
+    def clean(self):
+        """Validate foldable furniture requirements."""
+        from django.core.exceptions import ValidationError
+        if self.is_foldable and not self.unfolded_length:
+            raise ValidationError({
+                'unfolded_length': 'Для складних меблів потрібно вказати розгорнуту довжину.'
+            })
+        if self.is_foldable and self.unfolded_length and self.unfolded_length <= self.length:
+            raise ValidationError({
+                'unfolded_length': 'Розгорнута довжина повинна бути більшою за згорнуту довжину.'
+            })
+
     @property
     def dimensions(self) -> str:
         """Get formatted dimensions string."""
-        return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
+        if self.is_foldable and self.unfolded_length:
+            return f"{int(self.height)}x{int(self.width)}x{int(self.length)}-{int(self.unfolded_length)} см"
+        else:
+            return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
 
 
 class FurnitureVariantImage(models.Model):

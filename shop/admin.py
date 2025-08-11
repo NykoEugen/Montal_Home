@@ -44,7 +44,7 @@ class FurnitureSizeVariantInline(admin.TabularInline):
     """Inline admin for furniture size variants."""
     model = FurnitureSizeVariant
     extra = 1
-    fields = ['height', 'width', 'length', 'price']
+    fields = ['height', 'width', 'length', 'is_foldable', 'unfolded_length', 'price']
 
 
 class FurnitureImageInline(admin.TabularInline):
@@ -282,8 +282,8 @@ class OrderItemAdmin(admin.ModelAdmin):
 class FurnitureSizeVariantAdmin(admin.ModelAdmin):
     """Admin configuration for FurnitureSizeVariant model."""
     list_display = [
-        'furniture', 'height', 'width', 'length', 'price', 'dimensions'
+        'furniture', 'height', 'width', 'length', 'is_foldable', 'unfolded_length', 'price', 'dimensions'
     ]
-    list_filter = ['furniture__sub_category']
+    list_filter = ['furniture__sub_category', 'is_foldable']
     search_fields = ['furniture__name']
     ordering = ['furniture__name', 'height', 'width', 'length']
