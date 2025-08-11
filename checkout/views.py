@@ -44,20 +44,58 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 payment_type=form.cleaned_data["payment_type"],
             )
 
-            for furniture_id, quantity in cart.items():
+            for furniture_id, item_data in cart.items():
                 furniture: Furniture = get_object_or_404(
                     Furniture, id=int(furniture_id)
                 )
-                price = (
-                    furniture.promotional_price
-                    if furniture.is_promotional and furniture.promotional_price
-                    else furniture.price
-                )
+                
+                # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
+                if isinstance(item_data, dict):
+                    quantity = item_data.get('quantity', 1)
+                    size_variant_id = item_data.get('size_variant_id')
+                    fabric_category_id = item_data.get('fabric_category_id')
+                else:
+                    # Legacy format - just quantity
+                    quantity = item_data
+                    size_variant_id = None
+                    fabric_category_id = None
+                
+                # Calculate price based on size variant and fabric
+                if size_variant_id:
+                    try:
+                        from furniture.models import FurnitureSizeVariant
+                        size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
+                        price = float(size_variant.price)
+                    except FurnitureSizeVariant.DoesNotExist:
+                        price = float(
+                            furniture.promotional_price
+                            if furniture.is_promotional and furniture.promotional_price
+                            else furniture.price
+                        )
+                else:
+                    price = float(
+                        furniture.promotional_price
+                        if furniture.is_promotional and furniture.promotional_price
+                        else furniture.price
+                    )
+                
+                # Add fabric cost if fabric is selected
+                if fabric_category_id:
+                    try:
+                        from fabric_category.models import FabricCategory
+                        fabric_category = FabricCategory.objects.get(id=fabric_category_id)
+                        fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
+                        price += fabric_cost
+                    except FabricCategory.DoesNotExist:
+                        pass
+                
                 OrderItem.objects.create(
                     order=order,
                     furniture=furniture,
                     quantity=quantity,
                     price=price,
+                    size_variant_id=size_variant_id,
+                    fabric_category_id=fabric_category_id,
                 )
 
             request.session["cart"] = {}
@@ -99,8 +137,12 @@ def order_history(request: HttpRequest) -> HttpResponse:
                             "total_price": float(total_price),
                         }
                     )
+    # Get all fabric categories for display in order history
+    from fabric_category.models import FabricCategory
+    fabric_categories = FabricCategory.objects.all()
+    
     return render(
         request,
         "shop/order_history.html",
-        {"orders_data": orders_data, "phone_number": phone_number},
+        {"orders_data": orders_data, "phone_number": phone_number, "fabric_categories": fabric_categories},
     )

@@ -83,16 +83,25 @@
                         </table>
                     </div>
                 {% endif %}
+
+                            </div>
+                
                 <div class="mt-6">
-                    <button class="add-to-cart btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition"
-                            data-id="{{ furniture.id }}" data-url="{% url 'shop:add_to_cart' %}">
-                        <i class="fa fa-cart-plus mr-2"></i> Додати до кошика
-                    </button>
+                    <form id="add-to-cart-form" method="post" action="{% url 'shop:add_to_cart_from_detail' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="furniture_id" value="{{ furniture.id }}">
+                        <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
+                        <input type="hidden" name="size_variant_id" id="selected-size-variant">
+                        <input type="hidden" name="fabric_category_id" id="selected-fabric-category">
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition">
+                            <i class="fa fa-cart-plus mr-2"></i> Додати до кошика
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -102,8 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const fabricPriceSpan = document.getElementById('fabric-price');
     const mainPriceElement = document.getElementById('main-price');
     const originalPriceElement = document.getElementById('original-price');
-    const addToCartButton = document.querySelector('.add-to-cart');
-    
     // Get the base furniture price
     let basePrice = 0;
     let originalPrice = 0;
@@ -168,64 +175,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle add to cart with size variants and fabric
-    if (addToCartButton) {
-        addToCartButton.addEventListener('click', function(e) {
+    // Handle form submission
+    const addToCartForm = document.getElementById('add-to-cart-form');
+    const selectedSizeVariantInput = document.getElementById('selected-size-variant');
+    const selectedFabricCategoryInput = document.getElementById('selected-fabric-category');
+    
+    if (addToCartForm) {
+        addToCartForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const furnitureId = this.getAttribute('data-id');
-            const url = this.getAttribute('data-url');
-            
-            // Get selected size variant
-            let sizeVariantId = '';
+            // Update hidden fields with current selections
             if (sizeSelect && sizeSelect.value) {
-                sizeVariantId = sizeSelect.value;
+                selectedSizeVariantInput.value = sizeSelect.value;
             }
             
-            // Get selected fabric category
-            let fabricCategoryId = '';
             if (fabricSelect && fabricSelect.value) {
-                fabricCategoryId = fabricSelect.value;
+                selectedFabricCategoryInput.value = fabricSelect.value;
             }
             
-            // Create form data
-            const formData = new FormData();
-            formData.append('furniture_id', furnitureId);
-            formData.append('action', 'add');
-            
-            if (sizeVariantId) {
-                formData.append('size_variant_id', sizeVariantId);
-            }
-            
-            if (fabricCategoryId) {
-                formData.append('fabric_category_id', fabricCategoryId);
-            }
-            
-            // Send request
-            fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message) {
-                    // Show success message
-                    alert(data.message);
-                    
-                    // Update cart count if available
-                    const cartCountElement = document.querySelector('.cart-count');
-                    if (cartCountElement && data.cart_count !== undefined) {
-                        cartCountElement.textContent = data.cart_count;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Помилка при додаванні до кошика');
-            });
+            // Submit the form
+            this.submit();
         });
     }
 });
