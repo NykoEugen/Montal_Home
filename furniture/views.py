@@ -46,20 +46,40 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
         combined_dimensions = f"{height_i}x{width_i}x{length_i} см"
         # Insert dimensions at the beginning with requested label
         parameters.insert(0, VirtualParameter('dimensions', 'Розмір (ВхШхД)', combined_dimensions, combined_dimensions))
+    else:
+        combined_dimensions = ""
 
     fabric_categories = []
     if furniture.selected_fabric_brand:
         fabric_categories = FabricCategory.objects.filter(
             brand=furniture.selected_fabric_brand
         )
+    # Default to the new (v2) template; allow forcing old via ?v=1
+    template_name = "furniture/furniture_detail_alt.html"
+    if request.GET.get("v") == "1":
+        template_name = "furniture/furniture_detail.html"
+
+    # Determine base size variant if any matches combined dimensions
+    base_size_variant_id: int | None = None
+    if combined_dimensions and size_variants:
+        for variant in size_variants:
+            try:
+                if variant.dimensions == combined_dimensions:
+                    base_size_variant_id = variant.id
+                    break
+            except Exception:
+                continue
+
     return render(
         request,
-        "furniture/furniture_detail.html",
+        template_name,
         {
             "furniture": furniture,
             "parameters": parameters,
             "size_variants": size_variants,
             "gallery_images": gallery_images,
             "fabric_categories": fabric_categories,
+            "base_dimensions": combined_dimensions,
+            "base_size_variant_id": base_size_variant_id,
         },
     )

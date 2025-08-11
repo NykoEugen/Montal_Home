@@ -3,123 +3,149 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start">
+        <!-- Gallery -->
         <div class="md:w-1/2 w-full">
-            <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg p-4">
                 <img id="main-image" src="{% if furniture.image %}{{ furniture.image.url }}{% elif gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
                 {% if gallery_images %}
-                <div class="flex gap-2 overflow-x-auto w-full">
+                <div class="mt-3 grid grid-cols-5 gap-2 max-md:flex max-md:overflow-x-auto">
                     {% for img in gallery_images %}
-                        <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:furniture.name }}" class="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80" data-full="{{ img.image.url }}">
+                        <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:furniture.name }}" class="w-full h-20 object-cover rounded border cursor-pointer hover:opacity-80" data-full="{{ img.image.url }}">
                     {% endfor %}
                 </div>
                 {% endif %}
+                <p class="text-xs text-brown-600 mt-3">* Колір виробу на фото може відрізнятися від реального через налаштування екрана.</p>
             </div>
         </div>
+
+        <!-- Product Info -->
         <div class="md:w-1/2 w-full md:pl-8">
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h1 class="text-3xl font-bold text-brown-800 mb-2">{{ furniture.name }}</h1>
-                <p class="text-brown-600 mb-2">{{ furniture.category.name }}</p>
-                <div class="mb-4 flex flex-wrap gap-4 text-sm">
-                    <span class="bg-beige-100 px-3 py-1 rounded-full text-brown-700">
-                        <strong>Код товару:</strong> {{ furniture.article_code }}
-                    </span>
+                <h1 class="text-3xl font-bold text-brown-800 mb-1">{{ furniture.name }}</h1>
+                <p class="text-brown-600 mb-3">{{ furniture.sub_category.name }}</p>
+                <div class="mb-4 flex flex-wrap gap-2 text-sm items-center">
+                    <span class="bg-beige-100 px-3 py-1 rounded-full text-brown-700"><strong>Код товару:</strong> {{ furniture.article_code }}</span>
                     <span class="px-3 py-1 rounded-full {% if furniture.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
-                        <strong>Наявність:</strong> 
-                        {% if furniture.stock_status == 'in_stock' %}
-                            На складі
-                        {% else %}
-                            Під замовлення
-                        {% endif %}
+                        {% if furniture.stock_status == 'in_stock' %}Є в наявності{% else %}Під замовлення{% endif %}
                     </span>
                 </div>
+
+                <div class="mb-4 flex items-end gap-3">
+                    {% if furniture.is_promotional and furniture.promotional_price %}
+                        <p class="text-3xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price|floatformat:0 }} грн</p>
+                        <p class="text-lg text-brown-500 line-through" id="original-price">{{ furniture.price|floatformat:0 }} грн</p>
+                    {% else %}
+                        <p class="text-3xl text-brown-800 font-semibold" id="main-price">{{ furniture.price|floatformat:0 }} грн</p>
+                    {% endif %}
+                </div>
+
                 {% if size_variants %}
-                    <div class="mb-6">
-                        <label for="size-variant" class="block text-brown-700 font-medium mb-2">
-                            Оберіть розмір:
-                        </label>
-                        <select id="size-variant" class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
-                            <option value="">Оберіть розмір</option>
+                    <div class="mb-4">
+                        <label for="size-variant" class="block text-brown-700 font-medium mb-2">Оберіть розмір:</label>
+                        <select id="size-variant" required class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
+                            <option value="" disabled selected>Оберіть розмір</option>
                             {% for variant in size_variants %}
-                                <option value="{{ variant.id }}" 
-                                        data-price="{{ variant.price }}"
-                                        data-dimensions="{{ variant.dimensions }}">
-                                    {{ variant.dimensions }} - {{ variant.price|floatformat:0 }} грн
-                                </option>
+                                <option value="{{ variant.id }}" data-price="{{ variant.price }}" data-dimensions="{{ variant.dimensions }}">{{ variant.dimensions }} — {{ variant.price|floatformat:0 }} грн</option>
                             {% endfor %}
                         </select>
                     </div>
                 {% endif %}
-                
-                <div class="mb-4">
-                    {% if furniture.is_promotional and furniture.promotional_price %}
-                        <p class="text-2xl text-red-600 font-semibold" id="main-price">{{ furniture.promotional_price|floatformat:0 }} грн</p>
-                        <p class="text-lg text-brown-500 line-through" id="original-price">{{ furniture.price|floatformat:0 }} грн</p>
-                    {% else %}
-                        <p class="text-2xl text-brown-800 font-semibold" id="main-price">{{ furniture.price|floatformat:0 }} грн</p>
-                    {% endif %}
-                </div>
-                
+
                 {% if fabric_categories %}
-                    <div class="mb-6">
-                        <!-- <h3 class="text-lg font-semibold text-brown-800 mb-3">Вибір тканини</h3> -->
-                        <div class="bg-beige-50 rounded-lg p-4" data-fabric-value="{{ furniture.fabric_value|default:1.0 }}">
-                            <label for="fabric-category" class="block text-brown-700 font-medium mb-2">
-                                Оберіть категорію тканини:
-                            </label>
-                            <select id="fabric-category" class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
-                                <option value="">Категорія тканини</option>
-                                {% for category in fabric_categories %}
-                                    <option value="{{ category.id }}" data-price="{{ category.price }}">
-                                        {{ category.name }} - {{ category.price|floatformat:0 }} грн
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <div id="fabric-price-info" class="mt-3 text-brown-600 hidden">
-                                <p class="text-sm">Додаткова вартість тканини: <span id="fabric-price" class="font-semibold"></span> грн</p>
-                            </div>
-                        </div>
+                    <div class="mb-4 bg-beige-50 rounded-lg p-4" data-fabric-value="{{ furniture.fabric_value|default:1.0 }}">
+                        <label for="fabric-category" class="block text-brown-700 font-medium mb-2">Оберіть категорію тканини:</label>
+                        <select id="fabric-category" class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
+                            <option value="">Категорія тканини</option>
+                            {% for category in fabric_categories %}
+                                <option value="{{ category.id }}" data-price="{{ category.price }}">{{ category.name }} — {{ category.price|floatformat:0 }} грн</option>
+                            {% endfor %}
+                        </select>
+                        <div id="fabric-price-info" class="mt-3 text-brown-600 hidden"><p class="text-sm">Додаткова вартість тканини: <span id="fabric-price" class="font-semibold"></span> грн</p></div>
                     </div>
                 {% endif %}
-                
-                <div class="mb-6">
-                    <p class="text-brown-600 mb-3">{{ furniture.description }}</p>
+
+                <div class="flex items-center gap-4 mb-4">
+                    <label for="quantity" class="text-brown-700">Кількість:</label>
+                    <input id="quantity" name="quantity" type="number" min="1" value="1" class="w-24 p-2 border border-brown-300 rounded-lg" form="add-to-cart-form">
                 </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <form id="add-to-cart-form" method="post" action="{% url 'shop:add_to_cart_from_detail' %}" class="col-span-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="furniture_id" value="{{ furniture.id }}">
+                        <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
+                        <input type="hidden" name="size_variant_id" id="selected-size-variant">
+                        <input type="hidden" name="fabric_category_id" id="selected-fabric-category">
+                        <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition"><i class="fa fa-cart-plus mr-2"></i> Купити</button>
+                    </form>
+                    <button type="button" id="quick-buy-btn" class="w-full py-3 text-lg font-semibold rounded-lg border border-brown-300 text-brown-800 hover:bg-beige-100">Швидка покупка</button>
+                </div>
+
+                <div class="mt-6">
+                    <details class="bg-beige-50 rounded-lg p-4 mb-3">
+                        <summary class="cursor-pointer font-semibold text-brown-800">Розстрочка та кредит</summary>
+                        <div class="mt-2 text-sm text-brown-700">
+                            <p>Розстрочка на меблі до 5 платежів без переплат. Оформлення у шоурумі або дистанційно.</p>
+                        </div>
+                    </details>
+                    <details class="bg-beige-50 rounded-lg p-4 mb-3">
+                        <summary class="cursor-pointer font-semibold text-brown-800">Доставка</summary>
+                        <div class="mt-2 text-sm text-brown-700 space-y-1">
+                            <p>Доставка по Україні перевізником. Можливість самовивозу.</p>
+                            <p>Занесення та збирання — за додаткову плату.</p>
+                        </div>
+                    </details>
+                    <details class="bg-beige-50 rounded-lg p-4">
+                        <summary class="cursor-pointer font-semibold text-brown-800">Оплата</summary>
+                        <div class="mt-2 text-sm text-brown-700 space-y-1">
+                            <p>Оплата при отриманні (якщо товар у наявності).</p>
+                            <p>50% передплата на виготовлення, решта при отриманні.</p>
+                            <p>100% передплата для тканин та матеріалів, що ріжуться після замовлення.</p>
+                        </div>
+                    </details>
+                </div>
+
                 {% if parameters %}
-                    <div class="mb-6">
+                    <div class="mt-6">
                         <h2 class="text-xl font-semibold text-brown-800 mb-2">Характеристики</h2>
                         <table class="w-full text-left border-separate border-spacing-y-2">
                             <tbody>
                                 {% for param in parameters %}
                                     <tr class="bg-beige-50 rounded" {% if param.key == 'dimensions' %}id="dimensions-row"{% endif %}>
                                         <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.label }}</td>
-                                        <td class="py-2 px-3 text-brown-800 font-medium w-1/2" {% if param.key == 'dimensions' %}id="dimensions-value" data-base="{{ param.base_value|default:param.value }}"{% endif %}>
-                                            {{ param.value }}
-                                        </td>
+                                        <td class="py-2 px-3 text-brown-800 font-medium w-1/2" {% if param.key == 'dimensions' %}id="dimensions-value" data-base="{{ param.base_value|default:param.value }}"{% endif %}>{{ param.value }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 {% endif %}
-
-                            </div>
-                
-                <div class="mt-6">
-                    <form id="add-to-cart-form" method="post" action="{% url 'shop:add_to_cart_from_detail' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="furniture_id" value="{{ furniture.id }}">
-                        <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
-                        <input type="hidden" name="size_variant_id" id="selected-size-variant">
-                        <input type="hidden" name="fabric_category_id" id="selected-fabric-category">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition">
-                            <i class="fa fa-cart-plus mr-2"></i> Додати до кошика
-                        </button>
-                    </form>
-                </div>
             </div>
         </div>
     </div>
+
+    <!-- Quick Buy Modal -->
+    <div id="quick-buy-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-brown-800">Швидка покупка</h3>
+                <button id="quick-buy-close" class="text-brown-700 hover:text-brown-900"><i class="fa fa-times"></i></button>
+            </div>
+            <form method="post" action="{% url 'shop:add_to_cart_from_detail' %}">
+                {% csrf_token %}
+                <input type="hidden" name="furniture_id" value="{{ furniture.id }}">
+                <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
+                <input type="hidden" name="size_variant_id" id="qb-size-variant">
+                <input type="hidden" name="fabric_category_id" id="qb-fabric-category">
+                <div class="mb-4">
+                    <label class="block text-brown-700 mb-2" for="qb-quantity">Кількість</label>
+                    <input id="qb-quantity" name="quantity" type="number" min="1" value="1" class="w-28 p-2 border border-brown-300 rounded-lg">
+                </div>
+                <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg">Оформити</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -129,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const fabricPriceSpan = document.getElementById('fabric-price');
     const mainPriceElement = document.getElementById('main-price');
     const originalPriceElement = document.getElementById('original-price');
+    const qtyInput = document.getElementById('quantity');
     // Get the base furniture price
     let basePrice = 0;
     let originalPrice = 0;
@@ -163,7 +190,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             fabricPriceInfo.classList.add('hidden');
         }
-        
+        // Multiply by quantity for display only
+        const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value || '1', 10)) : 1;
+        totalPrice = totalPrice * qty;
+
         // Update the displayed price
         if (mainPriceElement) {
             mainPriceElement.textContent = Math.round(totalPrice) + ' грн';
@@ -214,6 +244,12 @@ document.addEventListener('DOMContentLoaded', function() {
             updateTotalPrice();
         });
     }
+
+    if (qtyInput) {
+        qtyInput.addEventListener('input', function() {
+            updateTotalPrice();
+        });
+    }
     
     // Handle form submission
     const addToCartForm = document.getElementById('add-to-cart-form');
@@ -222,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (addToCartForm) {
         addToCartForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+            // Let browser validation handle required fields
             
             // Update hidden fields with current selections
             if (sizeSelect && sizeSelect.value) {
@@ -233,8 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectedFabricCategoryInput.value = fabricSelect.value;
             }
             
-            // Submit the form
-            this.submit();
+            // no manual submit needed; default form submit proceeds
         });
     }
 
@@ -248,6 +283,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Quick buy modal logic
+    const qbBtn = document.getElementById('quick-buy-btn');
+    const qbModal = document.getElementById('quick-buy-modal');
+    const qbClose = document.getElementById('quick-buy-close');
+    const qbQty = document.getElementById('qb-quantity');
+    const qbSize = document.getElementById('qb-size-variant');
+    const qbFabric = document.getElementById('qb-fabric-category');
+
+    function syncSelectionsToQuickBuy() {
+        if (qbQty && qtyInput) qbQty.value = qtyInput.value || '1';
+        if (qbSize && sizeSelect && sizeSelect.value) qbSize.value = sizeSelect.value;
+        if (qbFabric && fabricSelect && fabricSelect.value) qbFabric.value = fabricSelect.value;
+    }
+
+    if (qbBtn && qbModal && qbClose) {
+        qbBtn.addEventListener('click', () => {
+            syncSelectionsToQuickBuy();
+            qbModal.classList.remove('hidden');
+            qbModal.classList.add('flex');
+        });
+        qbClose.addEventListener('click', () => {
+            qbModal.classList.add('hidden');
+            qbModal.classList.remove('flex');
+        });
+        qbModal.addEventListener('click', (e) => {
+            if (e.target === qbModal) {
+                qbModal.classList.add('hidden');
+                qbModal.classList.remove('flex');
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
