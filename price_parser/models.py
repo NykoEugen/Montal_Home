@@ -13,12 +13,31 @@ class GoogleSheetConfig(models.Model):
     )
     sheet_url = models.URLField(
         verbose_name="URL Google таблиці",
-        help_text="Посилання на Google таблицю"
+        help_text="Посилання на Google таблицю (залиште порожнім для XLSX файлів)",
+        blank=True,
+        null=True
     )
     sheet_id = models.CharField(
         max_length=100,
         verbose_name="ID таблиці",
-        help_text="ID Google таблиці (автоматично витягується з URL)"
+        help_text="ID Google таблиці (автоматично витягується з URL) або назва XLSX файлу",
+        blank=True,
+        null=True
+    )
+    xlsx_file = models.FileField(
+        upload_to='price_sheets/',
+        verbose_name="XLSX файл",
+        help_text="Завантажте XLSX файл з цінами (альтернатива Google таблиці)",
+        blank=True,
+        null=True
+    )
+    
+    price_multiplier = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=1.0,
+        verbose_name="Множник ціни",
+        help_text="Множник для конвертації цін (наприклад: 1.0 для UAH, 38.5 для USD->UAH)"
     )
     
     sheet_name = models.CharField(
@@ -60,12 +79,17 @@ class GoogleSheetConfig(models.Model):
         return self.name
     
     def save(self, *args, **kwargs):
-        """Extract sheet ID from URL if not provided."""
-        if not self.sheet_id and self.sheet_url:
-            import re
-            match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', self.sheet_url)
-            if match:
-                self.sheet_id = match.group(1)
+        """Extract sheet ID from URL if not provided, or set filename for XLSX."""
+        if not self.sheet_id:
+            if self.sheet_url:
+                # Extract sheet ID from Google Sheets URL
+                import re
+                match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', self.sheet_url)
+                if match:
+                    self.sheet_id = match.group(1)
+            elif self.xlsx_file:
+                # Set sheet_id to filename for XLSX files
+                self.sheet_id = self.xlsx_file.name
         super().save(*args, **kwargs)
 
 

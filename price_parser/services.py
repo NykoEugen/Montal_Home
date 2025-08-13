@@ -5,6 +5,9 @@ from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Tuple, Optional
 from django.utils import timezone
 from django.db import transaction
+from io import BytesIO, StringIO
+import csv
+import requests
 
 from .models import GoogleSheetConfig, PriceUpdateLog, FurniturePriceCellMapping
 from furniture.models import Furniture, FurnitureSizeVariant
@@ -82,10 +85,21 @@ class GoogleSheetsPriceUpdater:
             return {'success': False, 'error': str(e)}
     
     def _fetch_sheet_data(self) -> Optional[List[List]]:
+        """Fetch data from Google Sheets or XLSX file."""
+        try:
+            if self.config.xlsx_file:
+                # Handle XLSX file
+                return self._fetch_xlsx_data()
+            else:
+                # Handle Google Sheets
+                return self._fetch_google_sheets_data()
+        except Exception as e:
+            logger.error(f"Error fetching data: {str(e)}")
+            return None
+    
+    def _fetch_google_sheets_data(self) -> Optional[List[List]]:
         """Fetch data from Google Sheets using the sheet ID and sheet name."""
         try:
-            import requests
-            
             # Use CSV export with specific sheet name
             csv_url = f"https://docs.google.com/spreadsheets/d/{self.config.sheet_id}/export?format=csv&gid={self._get_sheet_gid()}"
             
@@ -93,15 +107,49 @@ class GoogleSheetsPriceUpdater:
             response.raise_for_status()
             
             # Parse CSV data
-            import csv
-            from io import StringIO
-            
             csv_data = StringIO(response.text)
             reader = csv.reader(csv_data)
             return list(reader)
             
         except Exception as e:
             logger.error(f"Error fetching sheet data: {str(e)}")
+            return None
+    
+    def _fetch_xlsx_data(self) -> Optional[List[List]]:
+        """Fetch data from XLSX file."""
+        try:
+            # Try to import openpyxl
+            try:
+                from openpyxl import load_workbook
+            except ImportError:
+                logger.error("openpyxl is not installed. Please install it with: pip install openpyxl")
+                return None
+            
+            # Load the workbook
+            workbook = load_workbook(self.config.xlsx_file.path, data_only=True)
+            
+            # Get the sheet by name or use the first sheet
+            if self.config.sheet_name and self.config.sheet_name in workbook.sheetnames:
+                worksheet = workbook[self.config.sheet_name]
+            else:
+                worksheet = workbook.active
+            
+            # Convert worksheet to list of lists
+            data = []
+            for row in worksheet.iter_rows(values_only=True):
+                # Convert all values to strings and handle None values
+                row_data = []
+                for cell_value in row:
+                    if cell_value is None:
+                        row_data.append('')
+                    else:
+                        row_data.append(str(cell_value))
+                data.append(row_data)
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Error fetching XLSX data: {str(e)}")
             return None
     
     def _get_sheet_gid(self) -> str:
@@ -145,7 +193,7 @@ class GoogleSheetsPriceUpdater:
 
     
     def _parse_price(self, price_str: str) -> Optional[Decimal]:
-        """Parse price string into Decimal."""
+        """Parse price string into Decimal and apply multiplier."""
         try:
             # Remove common non-numeric characters
             cleaned = re.sub(r'[^\d.,]', '', price_str)
@@ -156,7 +204,14 @@ class GoogleSheetsPriceUpdater:
                 # Handle comma as decimal separator
                 cleaned = cleaned.replace(',', '.')
             
-            return Decimal(cleaned)
+            price = Decimal(cleaned)
+            
+            # Apply multiplier if it's not 1.0
+            if self.config.price_multiplier != Decimal('1.0'):
+                price = price * self.config.price_multiplier
+                logger.info(f"Applied multiplier {self.config.price_multiplier} to price {cleaned} -> {price}")
+            
+            return price
         except (ValueError, InvalidOperation):
             return None
     

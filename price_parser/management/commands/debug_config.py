@@ -23,6 +23,7 @@ class Command(BaseCommand):
             self.stdout.write(f"ID: {config.id}")
             self.stdout.write(f"Sheet ID: {config.sheet_id}")
             self.stdout.write(f"Sheet name: {config.sheet_name} (type: {type(config.sheet_name)})")
+            self.stdout.write(f"Price multiplier: {config.price_multiplier}")
             self.stdout.write(f"Is active: {config.is_active}")
             
             # Test sheet access
