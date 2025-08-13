@@ -1,0 +1,161 @@
+{% extends "shop/base.html" %}
+
+{% block title %}{{ config.name }} - Деталі конфігурації{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'price_parser:config_list' %}">Конфігурації</a>
+                    </li>
+                    <li class="breadcrumb-item active">{{ config.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>{{ config.name }}</h1>
+                <div class="btn-group">
+                    <a href="{% url 'admin:price_parser_googlesheetconfig_change' config.id %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-edit"></i> Редагувати
+                    </a>
+                    <a href="{{ config.sheet_url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-external-link-alt"></i> Відкрити таблицю
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Configuration Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Деталі конфігурації</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">ID таблиці:</dt>
+                                <dd class="col-sm-8">
+                                    <code>{{ config.sheet_id }}</code>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Статус:</dt>
+                                <dd class="col-sm-8">
+                                    {% if config.is_active %}
+                                        <span class="badge bg-success">Активна</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Неактивна</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Створено:</dt>
+                                <dd class="col-sm-8">{{ config.created_at|date:"d.m.Y H:i" }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Колонка назв:</dt>
+                                <dd class="col-sm-8">{{ config.furniture_name_column }}</dd>
+                                
+                                <dt class="col-sm-4">Колонки розмірів:</dt>
+                                <dd class="col-sm-8">{{ config.size_columns|join:", " }}</dd>
+                                
+                                <dt class="col-sm-4">Колонки цін:</dt>
+                                <dd class="col-sm-8">{{ config.price_columns|join:", " }}</dd>
+                                
+                                <dt class="col-sm-4">Початковий рядок:</dt>
+                                <dd class="col-sm-8">{{ config.start_row }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Дії</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form method="post" action="{% url 'price_parser:test_parse' config.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning w-100 mb-2">
+                                    <i class="fas fa-vial"></i> Тестувати парсинг
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <form method="post" action="{% url 'price_parser:update_prices' config.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success w-100 mb-2" 
+                                        onclick="return confirm('Ви впевнені, що хочете оновити ціни?')">
+                                    <i class="fas fa-sync-alt"></i> Оновити ціни
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Recent Logs -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Останні логи</h5>
+                    <a href="{% url 'price_parser:log_list' %}" class="btn btn-sm btn-outline-primary">
+                        Всі логи
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_logs %}
+                        <div class="list-group list-group-flush">
+                            {% for log in recent_logs %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <small class="text-muted">{{ log.started_at|date:"d.m.Y H:i" }}</small>
+                                        <div class="mt-1">
+                                            {% if log.status == 'success' %}
+                                                <span class="badge bg-success">Успішно</span>
+                                            {% elif log.status == 'error' %}
+                                                <span class="badge bg-danger">Помилка</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Частково</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">
+                                            {{ log.items_updated }}/{{ log.items_processed }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">Логи відсутні</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

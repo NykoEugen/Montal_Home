@@ -1,0 +1,111 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Конфігурації Google таблиць{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>Конфігурації Google таблиць</h1>
+            <p class="text-muted">Управління конфігураціями для парсингу цін з Google таблиць</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Список конфігурацій</h5>
+                    <a href="{% url 'admin:price_parser_googlesheetconfig_add' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Додати конфігурацію
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if configs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Назва</th>
+                                        <th>ID таблиці</th>
+                                        <th>Статус</th>
+                                        <th>Останнє оновлення</th>
+                                        <th>Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configs %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'price_parser:config_detail' config.id %}">
+                                                {{ config.name }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <code>{{ config.sheet_id|truncatechars:20 }}</code>
+                                        </td>
+                                        <td>
+                                            {% if config.is_active %}
+                                                <span class="badge bg-success">Активна</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Неактивна</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ config.updated_at|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'price_parser:config_detail' config.id %}" 
+                                                   class="btn btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'admin:price_parser_googlesheetconfig_change' config.id %}" 
+                                                   class="btn btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-table fa-3x text-muted mb-3"></i>
+                            <h5>Конфігурації не знайдено</h5>
+                            <p class="text-muted">Створіть першу конфігурацію для початку роботи</p>
+                            <a href="{% url 'admin:price_parser_googlesheetconfig_add' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Додати конфігурацію
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Швидкі дії</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{% url 'price_parser:log_list' %}" class="btn btn-outline-info w-100 mb-2">
+                                <i class="fas fa-history"></i> Переглянути логи оновлень
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'admin:price_parser_furniturepricemapping_changelist' %}" class="btn btn-outline-warning w-100 mb-2">
+                                <i class="fas fa-link"></i> Управління зв'язками меблів
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
