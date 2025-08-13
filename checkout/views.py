@@ -44,7 +44,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 payment_type=form.cleaned_data["payment_type"],
             )
 
-            for furniture_id, item_data in cart.items():
+            for cart_key, item_data in cart.items():
+                # Extract furniture_id from the cart key
+                furniture_id = cart_key.split('_')[0]
                 furniture: Furniture = get_object_or_404(
                     Furniture, id=int(furniture_id)
                 )

@@ -76,6 +76,7 @@
                         <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
                         <input type="hidden" name="size_variant_id" id="selected-size-variant">
                         <input type="hidden" name="fabric_category_id" id="selected-fabric-category">
+                        <input type="hidden" name="variant_image_id" id="selected-variant-image">
                         <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition"><i class="fa fa-cart-plus mr-2"></i> Купити</button>
                     </form>
                     <button type="button" id="quick-buy-btn" class="w-full py-3 text-lg font-semibold rounded-lg border border-brown-300 text-brown-800 hover:bg-beige-100">Швидка покупка</button>
@@ -137,6 +138,7 @@
                 <input type="hidden" name="furniture_slug" value="{{ furniture.slug }}">
                 <input type="hidden" name="size_variant_id" id="qb-size-variant">
                 <input type="hidden" name="fabric_category_id" id="qb-fabric-category">
+                <input type="hidden" name="variant_image_id" id="qb-variant-image">
                 <div class="mb-4">
                     <label class="block text-brown-700 mb-2" for="qb-quantity">Кількість</label>
                     <input id="qb-quantity" name="quantity" type="number" min="1" value="1" class="w-28 p-2 border border-brown-300 rounded-lg">
@@ -255,6 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addToCartForm = document.getElementById('add-to-cart-form');
     const selectedSizeVariantInput = document.getElementById('selected-size-variant');
     const selectedFabricCategoryInput = document.getElementById('selected-fabric-category');
+    const selectedVariantImageInput = document.getElementById('selected-variant-image');
     
     if (addToCartForm) {
         addToCartForm.addEventListener('submit', function(e) {
@@ -291,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const qbQty = document.getElementById('qb-quantity');
     const qbSize = document.getElementById('qb-size-variant');
     const qbFabric = document.getElementById('qb-fabric-category');
+    const qbVariantImage = document.getElementById('qb-variant-image');
 
     function syncSelectionsToQuickBuy() {
         if (qbQty && qtyInput) qbQty.value = qtyInput.value || '1';
