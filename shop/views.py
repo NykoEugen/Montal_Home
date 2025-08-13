@@ -71,7 +71,9 @@ class CartView(TemplateView):
         cart_items = []
         total_price = 0.0
 
-        for furniture_id, item_data in cart.items():
+        for cart_key, item_data in cart.items():
+            # Extract furniture_id from the cart key
+            furniture_id = cart_key.split('_')[0]
             furniture = get_object_or_404(Furniture, id=int(furniture_id))
             
             # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
@@ -117,6 +119,7 @@ class CartView(TemplateView):
                     "fabric_category_id": fabric_category_id,
                     "variant_image_id": variant_image_id,
                     "total_price": item_price * quantity,
+                    "cart_key": cart_key,  # Add cart key for removal functionality
                 }
             )
 
@@ -179,6 +182,7 @@ class CartActionView(View):
         furniture_id = request.POST.get("furniture_id")
         size_variant_id = request.POST.get("size_variant_id")
         fabric_category_id = request.POST.get("fabric_category_id")
+        variant_image_id = request.POST.get("variant_image_id")
 
         if not furniture_id:
             return JsonResponse({"message": "Furniture ID is required"}, status=400)
@@ -188,9 +192,20 @@ class CartActionView(View):
             cart = request.session.get("cart", {})
 
             if action == "add":
+                # Create a unique key for this cart item that includes variant information
+                cart_key_parts = [furniture_id]
+                if size_variant_id:
+                    cart_key_parts.append(f"size_{size_variant_id}")
+                if fabric_category_id:
+                    cart_key_parts.append(f"fabric_{fabric_category_id}")
+                if variant_image_id:
+                    cart_key_parts.append(f"variant_{variant_image_id}")
+                
+                cart_key = "_".join(cart_key_parts)
+                
                 # Create cart item data
                 cart_item_data = {
-                    'quantity': cart.get(furniture_id, {}).get('quantity', 0) + 1
+                    'quantity': cart.get(cart_key, {}).get('quantity', 0) + 1
                 }
                 
                 # Add size variant if provided
@@ -201,12 +216,28 @@ class CartActionView(View):
                 if fabric_category_id:
                     cart_item_data['fabric_category_id'] = fabric_category_id
                 
-                cart[furniture_id] = cart_item_data
+                # Add variant image if provided
+                if variant_image_id:
+                    cart_item_data['variant_image_id'] = variant_image_id
+                
+                cart[cart_key] = cart_item_data
                 message = f"{furniture.name} додано до кошика!"
             elif action == "remove":
-                if furniture_id in cart:
-                    del cart[furniture_id]
+                cart_key = request.POST.get("cart_key")
+                if cart_key and cart_key in cart:
+                    del cart[cart_key]
                     message = "Товар видалено з кошика!"
+                elif furniture_id:
+                    # Fallback to furniture_id for backward compatibility
+                    keys_to_remove = [key for key in cart.keys() if key.startswith(f"{furniture_id}_") or key == furniture_id]
+                    if keys_to_remove:
+                        for key in keys_to_remove:
+                            del cart[key]
+                        message = "Товар видалено з кошика!"
+                    else:
+                        return JsonResponse(
+                            {"message": "Товар не знайдено в кошику!"}, status=400
+                        )
                 else:
                     return JsonResponse(
                         {"message": "Товар не знайдено в кошику!"}, status=400
@@ -244,7 +275,6 @@ def add_to_cart_from_detail(request: HttpRequest):
     quantity = int(request.POST.get("quantity", 1))
     
 
-
     if not furniture_id:
         messages.error(request, "Furniture ID is required")
         return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
@@ -252,6 +282,17 @@ def add_to_cart_from_detail(request: HttpRequest):
     try:
         furniture = get_object_or_404(Furniture, id=furniture_id)
         cart = request.session.get("cart", {})
+
+        # Create a unique key for this cart item that includes variant information
+        cart_key_parts = [furniture_id]
+        if size_variant_id:
+            cart_key_parts.append(f"size_{size_variant_id}")
+        if fabric_category_id:
+            cart_key_parts.append(f"fabric_{fabric_category_id}")
+        if variant_image_id:
+            cart_key_parts.append(f"variant_{variant_image_id}")
+        
+        cart_key = "_".join(cart_key_parts)
 
         # Create cart item data
         cart_item_data = {
@@ -270,7 +311,7 @@ def add_to_cart_from_detail(request: HttpRequest):
         if variant_image_id:
             cart_item_data['variant_image_id'] = variant_image_id
         
-        cart[furniture_id] = cart_item_data
+        cart[cart_key] = cart_item_data
         request.session["cart"] = cart
         request.session.modified = True
 
@@ -294,21 +335,34 @@ def add_to_cart(request: HttpRequest) -> JsonResponse:
 @require_POST
 def remove_from_cart(request: HttpRequest):
     """Remove item from cart and redirect appropriately."""
-    furniture_id = request.POST.get("furniture_id")
+    cart_key = request.POST.get("cart_key")
+    furniture_id = request.POST.get("furniture_id")  # Keep for backward compatibility
     
-    if not furniture_id:
-        messages.error(request, "Furniture ID is required")
+    if not cart_key and not furniture_id:
+        messages.error(request, "Cart key or Furniture ID is required")
         return redirect('shop:view_cart')
     
     try:
-        furniture = get_object_or_404(Furniture, id=furniture_id)
         cart = request.session.get("cart", {})
         
-        if furniture_id in cart:
-            del cart[furniture_id]
+        # If cart_key is provided, use it directly
+        if cart_key and cart_key in cart:
+            del cart[cart_key]
             request.session["cart"] = cart
             request.session.modified = True
             messages.success(request, "Товар видалено з кошика!")
+        # Fallback to furniture_id for backward compatibility
+        elif furniture_id:
+            # Find and remove items with this furniture_id
+            keys_to_remove = [key for key in cart.keys() if key.startswith(f"{furniture_id}_") or key == furniture_id]
+            if keys_to_remove:
+                for key in keys_to_remove:
+                    del cart[key]
+                request.session["cart"] = cart
+                request.session.modified = True
+                messages.success(request, "Товар видалено з кошика!")
+            else:
+                messages.error(request, "Товар не знайдено в кошику!")
         else:
             messages.error(request, "Товар не знайдено в кошику!")
         
