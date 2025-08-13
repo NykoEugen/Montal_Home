@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "checkout.apps.CheckoutConfig",
     "delivery.apps.DeliveryConfig",
     "fabric_category.apps.FabricCategoryConfig",
+    "price_parser.apps.PriceParserConfig",
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,188 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Логи оновлення цін{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'price_parser:config_list' %}">Конфігурації</a>
+                    </li>
+                    <li class="breadcrumb-item active">Логи оновлення</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1>Логи оновлення цін</h1>
+            <p class="text-muted">Історія оновлень цін з Google таблиць</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Список логів</h5>
+                </div>
+                <div class="card-body">
+                    {% if logs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Конфігурація</th>
+                                        <th>Статус</th>
+                                        <th>Час початку</th>
+                                        <th>Тривалість</th>
+                                        <th>Оброблено</th>
+                                        <th>Оновлено</th>
+                                        <th>Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'price_parser:config_detail' log.config.id %}">
+                                                {{ log.config.name }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% if log.status == 'success' %}
+                                                <span class="badge bg-success">Успішно</span>
+                                            {% elif log.status == 'error' %}
+                                                <span class="badge bg-danger">Помилка</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Частково</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.started_at|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            {% if log.completed_at %}
+                                                {% widthratio log.completed_at|date:"U" log.started_at|date:"U" 1 as duration %}
+                                                {{ duration }} сек
+                                            {% else %}
+                                                <span class="text-muted">В процесі</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.items_processed }}</td>
+                                        <td>{{ log.items_updated }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#logModal{{ log.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5>Логи відсутні</h5>
+                            <p class="text-muted">Поки що не було виконано жодного оновлення цін</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Detail Modals -->
+{% for log in logs %}
+<div class="modal fade" id="logModal{{ log.id }}" tabindex="-1" aria-labelledby="logModalLabel{{ log.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModalLabel{{ log.id }}">
+                    Лог оновлення: {{ log.config.name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Конфігурація:</dt>
+                            <dd class="col-sm-8">{{ log.config.name }}</dd>
+                            
+                            <dt class="col-sm-4">Статус:</dt>
+                            <dd class="col-sm-8">
+                                {% if log.status == 'success' %}
+                                    <span class="badge bg-success">Успішно</span>
+                                {% elif log.status == 'error' %}
+                                    <span class="badge bg-danger">Помилка</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Частково</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Початок:</dt>
+                            <dd class="col-sm-8">{{ log.started_at|date:"d.m.Y H:i:s" }}</dd>
+                            
+                            {% if log.completed_at %}
+                            <dt class="col-sm-4">Завершення:</dt>
+                            <dd class="col-sm-8">{{ log.completed_at|date:"d.m.Y H:i:s" }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Оброблено:</dt>
+                            <dd class="col-sm-8">{{ log.items_processed }}</dd>
+                            
+                            <dt class="col-sm-4">Оновлено:</dt>
+                            <dd class="col-sm-8">{{ log.items_updated }}</dd>
+                            
+                            {% if log.errors %}
+                            <dt class="col-sm-4">Помилки:</dt>
+                            <dd class="col-sm-8">{{ log.errors|length }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+                
+                {% if log.log_details %}
+                <div class="mt-3">
+                    <h6>Деталі:</h6>
+                    <pre class="bg-light p-3 rounded">{{ log.log_details }}</pre>
+                </div>
+                {% endif %}
+                
+                {% if log.errors %}
+                <div class="mt-3">
+                    <h6>Помилки:</h6>
+                    <div class="list-group">
+                        {% for error in log.errors %}
+                        <div class="list-group-item">
+                            {% if error.row %}
+                                <strong>Рядок {{ error.row }}:</strong>
+                            {% endif %}
+                            {% if error.furniture_name %}
+                                <strong>{{ error.furniture_name }}:</strong>
+                            {% endif %}
+                            {{ error.error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %} 
