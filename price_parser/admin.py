@@ -18,7 +18,19 @@ class GoogleSheetConfigAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Основна інформація', {
-            'fields': ('name', 'sheet_url', 'sheet_id', 'sheet_name', 'sheet_gid', 'is_active')
+            'fields': ('name', 'is_active')
+        }),
+        ('Google Таблиці', {
+            'fields': ('sheet_url', 'sheet_id', 'sheet_name', 'sheet_gid'),
+            'description': 'Налаштування для Google таблиць'
+        }),
+        ('XLSX Файли', {
+            'fields': ('xlsx_file',),
+            'description': 'Альтернатива Google таблицям - завантажте XLSX файл'
+        }),
+        ('Налаштування цін', {
+            'fields': ('price_multiplier',),
+            'description': 'Налаштування конвертації валют'
         }),
         ('Системна інформація', {
             'fields': ('created_at', 'updated_at'),

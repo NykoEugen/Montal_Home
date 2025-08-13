@@ -21,6 +21,9 @@ certifi==2025.6.15
 idna==3.10
 charset-normalizer==3.4.2
 
+# Excel file processing
+openpyxl==3.1.5
+
 # Development and testing tools
 black==25.1.0
 isort==6.0.1
