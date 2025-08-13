@@ -103,9 +103,16 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     variant_image_id=variant_image_id,
                 )
 
+            # Clear cart
             request.session["cart"] = {}
-            messages.success(request, "Замовлення успішно оформлено!")
-            return redirect("shop:home")
+            
+            # Redirect based on payment type
+            if form.cleaned_data["payment_type"] == "liqupay":
+                messages.success(request, "Замовлення успішно оформлено! Тепер ви будете перенаправлені для оплати.")
+                return redirect("payments:payment_form", order_id=order.id)
+            else:
+                messages.success(request, "Замовлення успішно оформлено!")
+                return redirect("shop:home")
     else:
         form = CheckoutForm()
 

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "delivery.apps.DeliveryConfig",
     "fabric_category.apps.FabricCategoryConfig",
     "price_parser.apps.PriceParserConfig",
+    "payments.apps.PaymentsConfig",
 ]
 
 MIDDLEWARE = [
@@ -240,6 +241,11 @@ FURNITURE_PARAM_LABELS = {
 # API Keys and external services
 NOVA_POSHTA_API_KEY = os.getenv("NOVA_POSHTA_API_KEY")
 CARGO_WAREHOUSE_REF = "9a68df70-0267-42a8-bb5c-37f427e36ee4"
+
+# Liqpay settings
+LIQPAY_PUBLIC_KEY = os.getenv("LIQPAY_PUBLIC_KEY", "sandbox_i1234567890")  # Test mode by default
+LIQPAY_PRIVATE_KEY = os.getenv("LIQPAY_PRIVATE_KEY", "sandbox_private_key")  # Test mode by default
+LIQPAY_SANDBOX = os.getenv("LIQPAY_SANDBOX", "True").lower() == "true"  # Test mode by default
 
 # Pagination settings
 ITEMS_PER_PAGE = 9

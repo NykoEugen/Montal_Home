@@ -29,4 +29,5 @@ urlpatterns = [
     path("checkout/", include("checkout.urls")),
     path("delivery/", include("delivery.urls")),
     path("price-parser/", include("price_parser.urls", namespace="price_parser")),
+    path("payments/", include("payments.urls", namespace="payments")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

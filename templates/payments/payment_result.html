@@ -1,0 +1,206 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if success %}
+        Оплата успішна
+    {% else %}
+        Помилка оплати
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {% if success %}
+                <!-- Success Payment -->
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-check-circle"></i>
+                            Оплата успішна!
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        
+                        <div class="alert alert-success">
+                            <h5>Дякуємо за замовлення!</h5>
+                            <p class="mb-0">Ваше замовлення #{{ order.id }} успішно оплачено на суму <strong>{{ payment.amount|floatformat:2 }} грн</strong>.</p>
+                        </div>
+
+                        <!-- Order Details -->
+                        <div class="order-details mb-4">
+                            <h5>Деталі замовлення:</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Номер замовлення:</strong> #{{ order.id }}</p>
+                                    <p><strong>Клієнт:</strong> {{ order.customer_name }} {{ order.customer_last_name }}</p>
+                                    <p><strong>Телефон:</strong> {{ order.customer_phone_number }}</p>
+                                    {% if order.customer_email %}
+                                        <p><strong>Email:</strong> {{ order.customer_email }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Дата замовлення:</strong> {{ order.created_at|date:"d.m.Y H:i" }}</p>
+                                    <p><strong>Тип доставки:</strong> {{ order.get_delivery_type_display }}</p>
+                                    <p><strong>Місто:</strong> {{ order.delivery_city }}</p>
+                                    {% if order.delivery_branch %}
+                                        <p><strong>Відділення:</strong> {{ order.delivery_branch }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Details -->
+                        <div class="payment-details mb-4">
+                            <h5>Деталі платежу:</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>ID платежу:</strong> {{ payment.liqpay_payment_id|default:"Не вказано" }}</p>
+                                    <p><strong>Сума:</strong> {{ payment.amount|floatformat:2 }} грн</p>
+                                    <p><strong>Статус:</strong> {{ payment.get_status_display }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Дата оплати:</strong> {{ payment.paid_at|date:"d.m.Y H:i"|default:"Не вказано" }}</p>
+                                    <p><strong>Валюта:</strong> {{ payment.currency }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Items -->
+                        <div class="order-items mb-4">
+                            <h5>Товари:</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Товар</th>
+                                            <th>Кількість</th>
+                                            <th>Ціна</th>
+                                            <th>Сума</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.orderitem_set.all %}
+                                        <tr>
+                                            <td>{{ item.furniture.name }}</td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>{{ item.price }} грн</td>
+                                            <td>{{ item.price|floatformat:2 }} грн</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'shop:home' %}" class="btn btn-primary">
+                                <i class="fas fa-home"></i>
+                                Повернутися на головну
+                            </a>
+                            
+                            <a href="{% url 'shop:order_history' %}?phone_number={{ order.customer_phone_number }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-history"></i>
+                                Переглянути історію замовлень
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- Failed Payment -->
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Помилка оплати
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>
+                        </div>
+                        
+                        <div class="alert alert-danger">
+                            <h5>Вибачте, сталася помилка при оплаті</h5>
+                            <p class="mb-0">
+                                {% if liqpay_status %}
+                                    Статус платежу: <strong>{{ liqpay_status }}</strong>
+                                {% else %}
+                                    Не вдалося отримати статус платежу
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        {% if payment %}
+                            <div class="payment-details mb-4">
+                                <h5>Деталі платежу:</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Номер замовлення:</strong> #{{ order.id }}</p>
+                                        <p><strong>Сума:</strong> {{ payment.amount|floatformat:2 }} грн</p>
+                                        <p><strong>Статус:</strong> {{ payment.get_status_display }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Дата створення:</strong> {{ payment.created_at|date:"d.m.Y H:i" }}</p>
+                                        <p><strong>Валюта:</strong> {{ payment.currency }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+                            {% if payment and payment.status == 'pending' %}
+                                <form method="POST" action="{% url 'payments:cancel_payment' payment.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-times"></i>
+                                        Скасувати платіж
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            <a href="{% url 'shop:view_cart' %}" class="btn btn-primary">
+                                <i class="fas fa-shopping-cart"></i>
+                                Повернутися до кошика
+                            </a>
+                            
+                            <a href="{% url 'shop:home' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-home"></i>
+                                Повернутися на головну
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Status Check Script -->
+{% if payment and payment.status == 'pending' %}
+<script>
+function checkPaymentStatus() {
+    fetch('{% url "payments:payment_status" payment.id %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'pending') {
+                // Reload page to show updated status
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+}
+
+// Check status every 5 seconds
+setInterval(checkPaymentStatus, 5000);
+</script>
+{% endif %}
+{% endblock %} 
