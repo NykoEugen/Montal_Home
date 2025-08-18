@@ -1,4 +1,5 @@
 {% extends 'shop/base.html' %}
+{% load cart_filters %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -81,7 +82,7 @@
           <select id="alt-fabric" class="w-full p-3 border border-brown-300 rounded-lg">
             <option value="">Cтандарт</option>
             {% for category in fabric_categories %}
-            <option value="{{ category.id }}" data-price="{{ category.price }}">{{ category.name }} — {{ category.price|floatformat:0 }} грн</option>
+            <option value="{{ category.id }}" data-price="{{ category.price }}" data-calculated-price="{{ category.price|multiply:furniture.fabric_value|default:1.0|floatformat:0 }}">{{ category.name }} — {{ category.price|multiply:furniture.fabric_value|default:1.0|floatformat:0 }} грн</option>
             {% endfor %}
           </select>
           <p id="alt-fabric-extra" class="mt-2 text-sm text-brown-700 hidden">Додаткова вартість: <span id="alt-fabric-price" class="font-semibold"></span> грн</p>
@@ -174,12 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function recompute() {
     let total = selectedPrice;
     if (fabricSelect && fabricSelect.value && fabricExtra && fabricExtraPrice) {
-      const fp = parseFloat(fabricSelect.options[fabricSelect.selectedIndex].getAttribute('data-price') || '0');
-      if (fp > 0) {
-        const add = fp * fabricValue;
+      const calculatedPrice = parseFloat(fabricSelect.options[fabricSelect.selectedIndex].getAttribute('data-calculated-price') || '0');
+      if (calculatedPrice > 0) {
         fabricExtra.classList.remove('hidden');
-        fabricExtraPrice.textContent = Math.round(add);
-        total += add;
+        fabricExtraPrice.textContent = Math.round(calculatedPrice);
+        total += calculatedPrice;
       } else {
         fabricExtra.classList.add('hidden');
       }
