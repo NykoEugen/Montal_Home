@@ -8,4 +8,9 @@ def multiply(value, arg):
     try:
         return float(value) * float(arg)
     except (ValueError, TypeError):
-        return 0 
+        return value
+
+@register.filter
+def cart_item_count(cart):
+    """Return the total number of items in the cart."""
+    return sum(item['quantity'] for item in cart.values()) 

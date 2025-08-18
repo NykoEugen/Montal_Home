@@ -38,6 +38,15 @@ DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 INTERNAL_IPS = ["127.0.0.1"]
 
+print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'https://9a6c86d18d83.ngrok-free.app',
+]
+
+print("CSRF_TRUSTED_ORIGINS:", CSRF_TRUSTED_ORIGINS)
 
 # Application definition
 
@@ -167,6 +176,10 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# ngrok settings
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
