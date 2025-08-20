@@ -2,20 +2,171 @@
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-brown-800 mb-8">Де купити</h1>
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-semibold text-brown-800 mb-4">Наш магазин</h2>
-            <p class="text-brown-600 mb-4">
-                Відвідайте наш фізичний магазин або замовляйте онлайн через наш сайт!
-            </p>
-            <h3 class="text-xl font-semibold text-brown-800 mb-2">Адреса</h3>
-            <p class="text-brown-600 mb-4">
-                м. Київ, вул. Меблева, 123<br>
-                Працюємо: Пн-Сб, 10:00-19:00
-            </p>
-            <h3 class="text-xl font-semibold text-brown-800 mb-2">Онлайн-магазин</h3>
-            <p class="text-brown-600 mb-4">
-                Оформлюйте замовлення цілодобово на нашому сайті. Доставка по всій Україні!
-            </p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Store Information -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-brown-800 mb-6">Наш магазин</h2>
+                
+                <div class="space-y-6">
+                    <!-- Store Details -->
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-brown-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-brown-800">Montal Home - Меблевий магазин</h3>
+                                <p class="text-brown-600">м. Дніпро, проспект Богдана Хмельницького, 31Д</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-brown-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-brown-800">Години роботи</h3>
+                                <p class="text-brown-600">Пн-Сб, 10:00-19:00 <br>
+                                    Неділя - 10:00-17:00</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-brown-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-brown-800">Телефон</h3>
+                                <a href="tel:+380441234567" class="text-brown-600 hover:text-brown-800 transition-colors">
+                                    +380 44 123 45 67
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-6 h-6 bg-brown-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-brown-800">Email</h3>
+                                <a href="mailto:info@montalhome.com" class="text-brown-600 hover:text-brown-800 transition-colors">
+                                    info@montalhome.com
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Online Store Info -->
+                    <div class="border-t border-beige-200 pt-6">
+                        <h3 class="text-xl font-semibold text-brown-800 mb-3">Онлайн-магазин</h3>
+                        <p class="text-brown-600 mb-4">
+                            Оформлюйте замовлення цілодобово на нашому сайті. Доставка по всій Україні!
+                        </p>
+                        <div class="flex space-x-3">
+                            <a href="{% url 'shop:home' %}" class="btn-grad">
+                                Перейти до магазину
+                            </a>
+                            <a href="{% url 'shop:contacts' %}" class="px-4 py-2 border border-brown-300 text-brown-700 rounded-lg hover:bg-beige-100 transition-colors">
+                                Зв'язатися з нами
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- OpenStreetMap -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="p-6 border-b border-beige-200">
+                    <h2 class="text-2xl font-semibold text-brown-800 mb-2">Розташування на карті</h2>
+                    <p class="text-brown-600">Наш фізичний магазин меблів у центрі Києва</p>
+                </div>
+                <div id="map" class="w-full h-96"></div>
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_body %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Store coordinates (Dnipro, Ukraine)
+    const storeLat = 48.428674138280584; 
+    const storeLng = 35.014744300000004;
+    
+    // Initialize map
+    const map = L.map('map').setView([storeLat, storeLng], 15);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // Create custom icon
+    const customIcon = L.divIcon({
+        html: `
+            <div style="
+                width: 40px; 
+                height: 40px; 
+                background: #8B4513; 
+                border: 3px solid white; 
+                border-radius: 50%; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            ">
+                <div style="
+                    width: 16px; 
+                    height: 16px; 
+                    background: white; 
+                    border-radius: 50%;
+                "></div>
+            </div>
+        `,
+        className: 'custom-marker',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
+    });
+    
+    // Add marker
+    const marker = L.marker([storeLat, storeLng], { icon: customIcon }).addTo(map);
+    
+    // Add popup
+    marker.bindPopup(`
+        <div style="padding: 10px; max-width: 250px;">
+            <h3 style="margin: 0 0 8px 0; color: #8B4513; font-weight: bold; font-size: 16px;">
+                Montal Home - Меблевий магазин
+            </h3>
+            <p style="margin: 0 0 5px 0; color: #666; font-size: 14px;">
+                м. Дніпро, проспект Богдана Хмельницького, 31Д
+            </p>
+            <p style="margin: 0 0 5px 0; color: #666; font-size: 14px;">
+                Пн-Сб, 10:00-19:00
+            </p>
+            <p style="margin: 0; color: #666; font-size: 14px;">
+                +380 44 123 45 67
+            </p>
+        </div>
+    `);
+    
+    // Open popup by default
+    marker.openPopup();
+});
+</script>
 {% endblock %}

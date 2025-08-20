@@ -43,7 +43,7 @@ print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
-    'https://9a6c86d18d83.ngrok-free.app',
+    'https://839e5552db58.ngrok-free.app',
 ]
 
 print("CSRF_TRUSTED_ORIGINS:", CSRF_TRUSTED_ORIGINS)
