@@ -37,7 +37,7 @@
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}
-                                        {% if item.size_variant_id %}
+                                        {% if item.size_variant_id and item.size_variant_id != 'base' %}
                                             <div class="text-sm text-brown-500">
                                                 {% for variant in item.furniture.size_variants.all %}
                                                     {% if variant.id|stringformat:"s" == item.size_variant_id|stringformat:"s" %}

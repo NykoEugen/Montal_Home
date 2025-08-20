@@ -147,13 +147,13 @@ class OrderItemInline(admin.TabularInline):
     variant_info.short_description = "Колір"
 
     def size_variant_info(self, obj):
-        if obj.size_variant_id:
+        if obj.size_variant_id and obj.size_variant_id != 'base':
             try:
                 from furniture.models import FurnitureSizeVariant
                 variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
                 return f"{variant.dimensions} - {variant.price} грн"
-            except FurnitureSizeVariant.DoesNotExist:
-                return f"Розмір ID {obj.size_variant_id} (видалено)"
+            except (FurnitureSizeVariant.DoesNotExist, ValueError):
+                return f"Розмір ID {obj.size_variant_id} (видалено або недійсний)"
         return "Стандартний розмір"
     
     size_variant_info.short_description = "Розмір (ВхШхД)"
@@ -254,13 +254,13 @@ class OrderItemAdmin(admin.ModelAdmin):
     variant_info.short_description = "Колір"
     
     def size_variant_info(self, obj):
-        if obj.size_variant_id:
+        if obj.size_variant_id and obj.size_variant_id != 'base':
             try:
                 from furniture.models import FurnitureSizeVariant
                 variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
                 return f"{variant.dimensions} - {variant.price} грн"
-            except FurnitureSizeVariant.DoesNotExist:
-                return f"Розмір ID {obj.size_variant_id} (видалено)"
+            except (FurnitureSizeVariant.DoesNotExist, ValueError):
+                return f"Розмір ID {obj.size_variant_id} (видалено або недійсний)"
         return "Стандартний розмір"
     
     size_variant_info.short_description = "Розмір та ціна"

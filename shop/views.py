@@ -90,11 +90,11 @@ class CartView(TemplateView):
                 variant_image_id = None
             
             # Calculate item price
-            if size_variant_id:
+            if size_variant_id and size_variant_id != 'base':
                 try:
                     size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
                     item_price = float(size_variant.price)
-                except FurnitureSizeVariant.DoesNotExist:
+                except (FurnitureSizeVariant.DoesNotExist, ValueError):
                     item_price = furniture.current_price
             else:
                 item_price = furniture.current_price
