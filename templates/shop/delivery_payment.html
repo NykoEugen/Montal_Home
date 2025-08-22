@@ -1,0 +1,145 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-brown-800 mb-8">Доставка і оплата</h1>
+        
+        <!-- Delivery Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-brown-800 mb-6">Доставка</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-4">Способи доставки</h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-brown-600 pl-4">
+                            <h4 class="font-semibold text-brown-800">Кур'єрська доставка</h4>
+                            <p class="text-brown-600 text-sm">Доставка до дверей вашого будинку або офісу</p>
+                            <p class="text-brown-800 font-medium">Вартість: від 200 грн</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-brown-600 pl-4">
+                            <h4 class="font-semibold text-brown-800">Самовивіз</h4>
+                            <p class="text-brown-600 text-sm">Забір товару з нашого складу</p>
+                            <p class="text-brown-800 font-medium">Вартість: безкоштовно</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-brown-600 pl-4">
+                            <h4 class="font-semibold text-brown-800">Нова Пошта</h4>
+                            <p class="text-brown-600 text-sm">Доставка до відділення по всій Україні</p>
+                            <p class="text-brown-800 font-medium">Вартість: від 150 грн</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-4">Терміни доставки</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-brown-600">Дніпро та область:</span>
+                            <span class="font-medium text-brown-800">1-2 дні</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-brown-600">Інші міста України:</span>
+                            <span class="font-medium text-brown-800">2-5 днів</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-brown-600">Віддалені регіони:</span>
+                            <span class="font-medium text-brown-800">5-7 днів</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-brown-800 mb-4">Умови доставки</h3>
+            <div class="bg-beige-50 p-4 rounded-lg mb-6">
+                <ul class="text-brown-600 space-y-2">
+                    <li>• Доставка здійснюється після підтвердження замовлення</li>
+                    <li>• Кур'єр зв'яжеться з вами для узгодження часу доставки</li>
+                    <li>• При отриманні перевірте цілісність упаковки</li>
+                    <li>• Можливе підняття на поверх (за додаткову плату)</li>
+                    <li>• Збірка меблів не включена в вартість доставки</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Payment Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold text-brown-800 mb-6">Оплата</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-4">Способи оплати</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-credit-card text-brown-600 text-xl"></i>
+                            <div>
+                                <h4 class="font-semibold text-brown-800">Банківська карта</h4>
+                                <p class="text-brown-600 text-sm">Visa, MasterCard, Монобанк</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-money-bill-wave text-brown-600 text-xl"></i>
+                            <div>
+                                <h4 class="font-semibold text-brown-800">Накладений платіж</h4>
+                                <p class="text-brown-600 text-sm">Оплата при отриманні товару</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-university text-brown-600 text-xl"></i>
+                            <div>
+                                <h4 class="font-semibold text-brown-800">Банківський переказ</h4>
+                                <p class="text-brown-600 text-sm">На наші банківські реквізити</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-mobile-alt text-brown-600 text-xl"></i>
+                            <div>
+                                <h4 class="font-semibold text-brown-800">Мобільні платежі</h4>
+                                <p class="text-brown-600 text-sm">Apple Pay, Google Pay</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-4">Безпека платежів</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-shield-alt text-green-600"></i>
+                            <span class="text-brown-600">SSL-шифрування даних</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-lock text-green-600"></i>
+                            <span class="text-brown-600">Захищені платежі</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-certificate text-green-600"></i>
+                            <span class="text-brown-600">Сертифікована система</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-brown-800 mb-4">Умови оплати</h3>
+            <div class="bg-green-50 p-4 rounded-lg mb-6">
+                <ul class="text-brown-600 space-y-2">
+                    <li>• Передоплата необхідна для підтвердження замовлення</li>
+                    <li>• При накладному платежі - оплата при отриманні</li>
+                    <li>• Повернення коштів протягом 14 днів</li>
+                    <li>• Чек видається при оплаті</li>
+                    <li>• Можливість розстрочки через банк-партнер</li>
+                </ul>
+            </div>
+            
+            <div class="text-center mt-8">
+                <p class="text-brown-600 mb-4">Маєте питання щодо доставки або оплати?</p>
+                <a href="{% url 'shop:contacts' %}" class="bg-brown-600 text-white px-6 py-3 rounded-lg hover:bg-brown-700 transition">
+                    Зв'язатися з нами
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

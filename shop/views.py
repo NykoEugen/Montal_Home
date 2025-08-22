@@ -173,6 +173,24 @@ class ContactsView(TemplateView):
     template_name = "shop/contacts.html"
 
 
+class WarrantyView(TemplateView):
+    """Warranty page."""
+
+    template_name = "shop/warranty.html"
+
+
+class DeliveryPaymentView(TemplateView):
+    """Delivery and payment page."""
+
+    template_name = "shop/delivery_payment.html"
+
+
+class OfferView(TemplateView):
+    """Offer page."""
+
+    template_name = "shop/offer.html"
+
+
 class SearchView(ListView):
     """Search furniture by name."""
     
@@ -435,6 +453,21 @@ def where_to_buy(request: HttpRequest) -> HttpResponse:
 def contacts(request: HttpRequest) -> HttpResponse:
     """Legacy contacts view for backward compatibility."""
     return ContactsView.as_view()(request)
+
+
+def warranty(request: HttpRequest) -> HttpResponse:
+    """Legacy warranty view for backward compatibility."""
+    return WarrantyView.as_view()(request)
+
+
+def delivery_payment(request: HttpRequest) -> HttpResponse:
+    """Legacy delivery and payment view for backward compatibility."""
+    return DeliveryPaymentView.as_view()(request)
+
+
+def offer(request: HttpRequest) -> HttpResponse:
+    """Legacy offer view for backward compatibility."""
+    return OfferView.as_view()(request)
 
 
 @require_http_methods(["GET"])
