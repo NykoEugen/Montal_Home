@@ -148,7 +148,7 @@ class FurnitureAdmin(admin.ModelAdmin):
     search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureVariantImageInline, FurnitureImageInline]
-    actions = ['set_sale_end_date', 'clear_sale_end_date', 'make_promotional', 'remove_promotional']
+    actions = ['set_sale_end_date', 'clear_sale_end_date', 'make_promotional', 'remove_promotional', 'cleanup_expired_promotions']
     
     def available_sizes(self, obj):
         return obj.get_available_sizes()
@@ -229,6 +229,17 @@ class FurnitureAdmin(admin.ModelAdmin):
         updated = queryset.update(is_promotional=False, promotional_price=None, sale_end_date=None)
         self.message_user(request, f"Акційний статус видалено з {updated} товарів.")
     remove_promotional.short_description = "Видалити акційний статус"
+    
+    def cleanup_expired_promotions(self, request, queryset):
+        """Clean up expired promotions for all furniture items."""
+        from django.core.management import call_command
+        
+        try:
+            call_command('cleanup_all_expired_promotions', verbosity=0)
+            self.message_user(request, "Очищення закінчених акцій виконано успішно.")
+        except Exception as e:
+            self.message_user(request, f"Помилка при очищенні акцій: {e}", level='ERROR')
+    cleanup_expired_promotions.short_description = "Очистити закінчені акції"
 
 
 class OrderItemInline(admin.TabularInline):
