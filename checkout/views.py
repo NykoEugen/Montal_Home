@@ -69,19 +69,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     try:
                         from furniture.models import FurnitureSizeVariant
                         size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
-                        price = float(size_variant.price)
+                        price = float(size_variant.current_price)
                     except (FurnitureSizeVariant.DoesNotExist, ValueError):
-                        price = float(
-                            furniture.promotional_price
-                            if furniture.is_promotional and furniture.promotional_price
-                            else furniture.price
-                        )
+                        price = float(furniture.current_price)
                 else:
-                    price = float(
-                        furniture.promotional_price
-                        if furniture.is_promotional and furniture.promotional_price
-                        else furniture.price
-                    )
+                    price = float(furniture.current_price)
                 
                 # Add fabric cost if fabric is selected
                 if fabric_category_id:

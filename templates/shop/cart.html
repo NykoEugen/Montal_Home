@@ -60,7 +60,15 @@
                             </td>
                             <td class="py-3 text-brown-600">{{ item.quantity }}</td>
                             <td class="py-3">
-                                <span class="text-brown-600">{{ item.item_price|floatformat:0 }} грн</span>
+                                {% if item.size_variant and item.size_variant.is_on_sale %}
+                                    <span class="text-red-600 font-semibold">{{ item.item_price|floatformat:0 }} грн</span><br>
+                                    <span class="text-brown-500 line-through text-sm">{{ item.size_variant.price|floatformat:0 }} грн</span>
+                                {% elif item.furniture.is_promotional and item.furniture.promotional_price %}
+                                    <span class="text-red-600 font-semibold">{{ item.item_price|floatformat:0 }} грн</span><br>
+                                    <span class="text-brown-500 line-through text-sm">{{ item.furniture.price|floatformat:0 }} грн</span>
+                                {% else %}
+                                    <span class="text-brown-600">{{ item.item_price|floatformat:0 }} грн</span>
+                                {% endif %}
                             </td>
                             <td class="py-3 text-brown-600">{{ item.item_price|multiply:item.quantity|floatformat:0 }} грн</td>
                             <td class="py-3">

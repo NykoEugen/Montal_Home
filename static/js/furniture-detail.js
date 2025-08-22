@@ -12,11 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
     let basePrice = 0;
     let originalPrice = 0;
     let selectedSizePrice = 0;
+    let isPromotional = false;
     
     if (mainPriceElement) {
         basePrice = parseFloat(mainPriceElement.textContent.replace(' грн', '').trim());
-        originalPrice = basePrice;
         selectedSizePrice = basePrice;
+        
+        // Check if furniture is promotional
+        if (originalPriceElement && originalPriceElement.style.display !== 'none') {
+            originalPrice = parseFloat(originalPriceElement.textContent.replace(' грн', '').trim());
+            isPromotional = true;
+        } else {
+            originalPrice = basePrice;
+            isPromotional = false;
+        }
     }
     
     // Get fabric_value from the data attribute
@@ -26,6 +35,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update total price
     function updateTotalPrice() {
         let totalPrice = selectedSizePrice;
+        let originalTotalPrice = selectedSizePrice;
+        
+        // Get selected option info
+        const selectedOption = sizeSelect ? sizeSelect.options[sizeSelect.selectedIndex] : null;
+        const isOnSale = selectedOption ? selectedOption.getAttribute('data-is-on-sale') === 'true' : false;
+        const originalSizePrice = selectedOption ? parseFloat(selectedOption.getAttribute('data-original-price') || 0) : 0;
+        
+        // Debug logging
+        console.log('updateTotalPrice:', {
+            selectedSizePrice,
+            isOnSale,
+            originalSizePrice,
+            selectedOption: selectedOption ? selectedOption.text : 'none'
+        });
+        
+        // Use original price for comparison if on sale
+        if (isOnSale && originalSizePrice > 0) {
+            originalTotalPrice = originalSizePrice;
+        }
         
         // Add fabric cost if fabric is selected
         if (fabricSelect && fabricSelect.value) {
@@ -34,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fabricPrice > 0) {
                 const fabricCost = fabricPrice * fabricValue;
                 totalPrice += fabricCost;
+                originalTotalPrice += fabricCost; // Add to original price too
                 fabricPriceSpan.textContent = Math.round(fabricCost);
                 fabricPriceInfo.classList.remove('hidden');
             } else {
@@ -46,25 +75,73 @@ document.addEventListener('DOMContentLoaded', function() {
         // Multiply by quantity for display only
         const qty = qtyInput ? Math.max(1, parseInt(qtyInput.value || '1', 10)) : 1;
         totalPrice = totalPrice * qty;
-
+        originalTotalPrice = originalTotalPrice * qty;
+        
+        // Debug logging
+        console.log('Final prices:', {
+            totalPrice,
+            originalTotalPrice,
+            isOnSale,
+            shouldShowPromo: isOnSale && originalTotalPrice > totalPrice
+        });
+        
         // Update the displayed price
         if (mainPriceElement) {
-            mainPriceElement.textContent = Math.round(totalPrice) + ' грн';
+            if (isOnSale && originalTotalPrice > totalPrice) {
+                // Show promotional price and original price
+                mainPriceElement.textContent = Math.round(totalPrice) + ' грн';
+                mainPriceElement.className = 'text-3xl text-red-600 font-semibold';
+                
+                if (originalPriceElement) {
+                    originalPriceElement.textContent = Math.round(originalTotalPrice) + ' грн';
+                    originalPriceElement.className = 'text-lg text-brown-500 line-through';
+                    originalPriceElement.style.display = 'block';
+                }
+            } else {
+                // Show regular price
+                mainPriceElement.textContent = Math.round(totalPrice) + ' грн';
+                mainPriceElement.className = 'text-3xl text-brown-800 font-semibold';
+                
+                if (originalPriceElement) {
+                    originalPriceElement.style.display = 'none';
+                }
+            }
         }
     }
     
     // Handle size variant selection
     if (sizeSelect) {
+        console.log('Adding change listener to size select');
+        
+        // Test click handler
+        sizeSelect.addEventListener('click', function() {
+            console.log('Size select clicked!');
+        });
+        
         sizeSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const sizePrice = parseFloat(selectedOption.getAttribute('data-price') || 0);
+            const originalSizePrice = parseFloat(selectedOption.getAttribute('data-original-price') || 0);
+            const isOnSale = selectedOption.getAttribute('data-is-on-sale') === 'true';
             const sizeDimensions = selectedOption.getAttribute('data-dimensions');
+            
+            // Debug logging
+            console.log('Size variant selected:', {
+                sizePrice,
+                originalSizePrice,
+                isOnSale,
+                sizeDimensions,
+                optionText: selectedOption.text
+            });
             
             if (sizePrice > 0) {
                 selectedSizePrice = sizePrice;
             } else {
                 selectedSizePrice = originalPrice;
             }
+            
+            // Update price display using the centralized function
+            updateTotalPrice();
             
             // Update dimensions in characteristics table
             const dimensionsValue = document.getElementById('dimensions-value');

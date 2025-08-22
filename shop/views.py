@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db import models
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -51,10 +53,12 @@ class HomeView(ListView):
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": Furniture.objects.filter(
-                    is_promotional=True, promotional_price__isnull=False
-                )[
-                    :6
-                ],  # Limit to 6 promotional items
+                    is_promotional=True, 
+                    promotional_price__isnull=False
+                ).filter(
+                    models.Q(sale_end_date__isnull=True) |  # No end date (permanent sale)
+                    models.Q(sale_end_date__gt=timezone.now())  # End date in future
+                ).order_by('-created_at')[:6],  # Limit to 6 promotional items, newest first
             }
         )
         return context
@@ -90,11 +94,12 @@ class CartView(TemplateView):
                 fabric_category_id = None
                 variant_image_id = None
             
-            # Calculate item price
+            # Calculate item price and get size variant
+            size_variant = None
             if size_variant_id and size_variant_id != 'base':
                 try:
                     size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
-                    item_price = float(size_variant.price)
+                    item_price = float(size_variant.current_price)
                 except (FurnitureSizeVariant.DoesNotExist, ValueError):
                     item_price = furniture.current_price
             else:
@@ -117,6 +122,7 @@ class CartView(TemplateView):
                     "quantity": quantity,
                     "item_price": item_price,
                     "size_variant_id": size_variant_id,
+                    "size_variant": size_variant,  # Add size variant object for template
                     "fabric_category_id": fabric_category_id,
                     "variant_image_id": variant_image_id,
                     "total_price": item_price * quantity,

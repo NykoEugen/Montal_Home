@@ -11,6 +11,11 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
     size_variants = furniture.get_size_variants()
     variant_images = furniture.variant_images.all()
     gallery_images = list(getattr(furniture, 'images').all()) if hasattr(furniture, 'images') else []
+    
+    # Debug: Print size variants info
+    print(f"Debug: Furniture '{furniture.name}' has {len(size_variants)} size variants")
+    for variant in size_variants:
+        print(f"  - {variant.dimensions}: Current={variant.current_price}, Original={variant.price}, OnSale={variant.is_on_sale}")
 
     # Virtual parameter structure for consistent template access
     class VirtualParameter:

@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const origEl = document.getElementById('alt-original-price');
     const sizeChips = document.querySelectorAll('.size-chip');
     const variantChips = document.querySelectorAll('.variant-chip');
+    
+
     const sizeInput = document.getElementById('alt-size-input');
     const variantInput = document.getElementById('alt-variant-input');
     const fabricSelect = document.getElementById('alt-fabric');
@@ -30,22 +32,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function recompute() {
         let total = selectedPrice;
+        let originalTotal = selectedPrice;
+        
+        // Get selected size chip info for promotional pricing
+        const selectedSizeChip = document.querySelector('.size-chip.bg-beige-100');
+        const isOnSale = selectedSizeChip ? selectedSizeChip.getAttribute('data-is-on-sale') === 'true' : false;
+        const originalSizePrice = selectedSizeChip ? parseFloat(selectedSizeChip.getAttribute('data-original-price') || '0') : 0;
+        
+        // Use original price for comparison if on sale
+        if (isOnSale && originalSizePrice > 0) {
+            originalTotal = originalSizePrice;
+        }
+        
         if (fabricSelect && fabricSelect.value && fabricExtra && fabricExtraPrice) {
             const calculatedPrice = parseFloat(fabricSelect.options[fabricSelect.selectedIndex].getAttribute('data-calculated-price') || '0');
             if (calculatedPrice > 0) {
                 fabricExtra.classList.remove('hidden');
                 fabricExtraPrice.textContent = Math.round(calculatedPrice);
                 total += calculatedPrice;
+                originalTotal += calculatedPrice; // Add to original price too
             } else {
                 fabricExtra.classList.add('hidden');
             }
         } else if (fabricExtra) {
             fabricExtra.classList.add('hidden');
         }
+        
         const q = Math.max(1, parseInt(qty.value || '1', 10));
         if (qtyInput) qtyInput.value = String(q);
+        total = total * q;
+        originalTotal = originalTotal * q;
+        
         if (priceEl) {
-            priceEl.textContent = Math.round(total * q) + ' грн';
+            if (isOnSale && originalTotal > total) {
+                // Show promotional price and original price
+                priceEl.textContent = Math.round(total) + ' грн';
+                priceEl.className = 'text-3xl text-red-600 font-semibold';
+                
+                if (origEl) {
+                    origEl.textContent = Math.round(originalTotal) + ' грн';
+                    origEl.className = 'text-lg text-brown-500 line-through';
+                    origEl.style.display = 'block';
+                }
+            } else {
+                // Show regular price
+                priceEl.textContent = Math.round(total) + ' грн';
+                priceEl.className = 'text-3xl text-brown-800 font-semibold';
+                
+                if (origEl) {
+                    origEl.style.display = 'none';
+                }
+            }
         }
     }
 
@@ -75,8 +112,38 @@ document.addEventListener('DOMContentLoaded', () => {
     sizeChips.forEach(b => b.addEventListener('click', () => {
         sizeChips.forEach(x => x.classList.remove('bg-beige-100','ring-2','ring-brown-800'));
         b.classList.add('bg-beige-100','ring-2','ring-brown-800');
-        const p = parseFloat(b.getAttribute('data-price') || '0');
-        selectedPrice = p > 0 ? p : basePrice;
+        
+        const currentPrice = parseFloat(b.getAttribute('data-price') || '0');
+        const originalPrice = parseFloat(b.getAttribute('data-original-price') || '0');
+        const isOnSale = b.getAttribute('data-is-on-sale') === 'true';
+        
+
+        
+        selectedPrice = currentPrice > 0 ? currentPrice : basePrice;
+        
+        // Update price display to show promotional pricing
+        if (priceEl) {
+            if (isOnSale && originalPrice > currentPrice) {
+                // Show promotional price and original price
+                priceEl.textContent = Math.round(currentPrice) + ' грн';
+                priceEl.className = 'text-3xl text-red-600 font-semibold';
+                
+                if (origEl) {
+                    origEl.textContent = Math.round(originalPrice) + ' грн';
+                    origEl.className = 'text-lg text-brown-500 line-through';
+                    origEl.style.display = 'block';
+                }
+            } else {
+                // Show regular price
+                priceEl.textContent = Math.round(currentPrice) + ' грн';
+                priceEl.className = 'text-3xl text-brown-800 font-semibold';
+                
+                if (origEl) {
+                    origEl.style.display = 'none';
+                }
+            }
+        }
+        
         if (sizeInput) sizeInput.value = b.getAttribute('data-id') || '';
         const d = b.getAttribute('data-dimensions');
         if (dimCell && d) dimCell.textContent = d; else if (dimCell) dimCell.textContent = dimCell.getAttribute('data-base') || '';

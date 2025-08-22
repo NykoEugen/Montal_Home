@@ -46,7 +46,14 @@
                         <select id="size-variant" required class="w-full p-3 border border-brown-300 rounded-lg focus:ring-2 focus:ring-brown-400 focus:border-brown-400 bg-white">
                             <option value="" disabled selected>Оберіть розмір</option>
                             {% for variant in size_variants %}
-                                <option value="{{ variant.id }}" data-price="{{ variant.price }}" data-dimensions="{{ variant.dimensions }}">{{ variant.dimensions }} — {{ variant.price|floatformat:0 }} грн</option>
+                                <option value="{{ variant.id }}" 
+                                        data-price="{{ variant.current_price }}" 
+                                        data-original-price="{{ variant.price }}"
+                                        data-dimensions="{{ variant.dimensions }}"
+                                        data-is-on-sale="{{ variant.is_on_sale|yesno:'true,false' }}">
+                                    {{ variant.dimensions }} — {{ variant.current_price|floatformat:0 }} грн
+                                    {% if variant.is_on_sale %} (знижка){% endif %}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -150,5 +157,9 @@
     </div>
 </div>
 
+<script>
+    console.log('Inline script test - template loaded');
+    // alert('Template loaded!'); // Temporary test - commented out
+</script>
 <script src="{% static 'js/furniture-detail.js' %}"></script>
 {% endblock %}

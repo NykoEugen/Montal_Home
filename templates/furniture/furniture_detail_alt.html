@@ -42,6 +42,7 @@
             <p class="text-lg text-brown-500 line-through" id="alt-original-price">{{ furniture.price|floatformat:0 }} грн</p>
           {% else %}
             <p class="text-3xl text-brown-800 font-semibold" id="alt-main-price">{{ furniture.price|floatformat:0 }} грн</p>
+            <p class="text-lg text-brown-500 line-through" id="alt-original-price" style="display: none;">{{ furniture.price|floatformat:0 }} грн</p>
           {% endif %}
         </div>
 
@@ -68,10 +69,24 @@
           <label for="alt-size" class="block text-brown-700 font-medium mb-2">Розмір (ВхШхД)</label>
           <div class="grid grid-cols-2 gap-2">
             {% if base_dimensions and not base_size_variant_id %}
-            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" data-id="base" data-price="{{ furniture.current_price }}" data-dimensions="{{ base_dimensions }}">{{ base_dimensions }}</button>
+            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" 
+                    data-id="base" 
+                    data-price="{{ furniture.current_price }}" 
+                    data-original-price="{{ furniture.price }}"
+                    data-dimensions="{{ base_dimensions }}"
+                    data-is-on-sale="{{ furniture.is_promotional|yesno:'true,false' }}">
+                {{ base_dimensions }}
+            </button>
             {% endif %}
             {% for variant in size_variants %}
-            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" data-id="{{ variant.id }}" data-price="{{ variant.price }}" data-dimensions="{{ variant.dimensions }}">{{ variant.dimensions }}</button>
+            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" 
+                    data-id="{{ variant.id }}" 
+                    data-price="{{ variant.current_price }}" 
+                    data-original-price="{{ variant.price }}"
+                    data-dimensions="{{ variant.dimensions }}"
+                    data-is-on-sale="{{ variant.is_on_sale|yesno:'true,false' }}">
+                {{ variant.dimensions }}
+            </button>
             {% endfor %}
           </div>
         </div>
