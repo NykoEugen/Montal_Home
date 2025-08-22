@@ -6,6 +6,8 @@ app_name: str = "shop"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("search/", views.SearchView.as_view(), name="search"),
+    path("search-suggestions/", views.search_suggestions, name="search_suggestions"),
     path("promotions/", views.promotions, name="promotions"),
     path("where-to-buy/", views.where_to_buy, name="where_to_buy"),
     path("contacts/", views.contacts, name="contacts"),

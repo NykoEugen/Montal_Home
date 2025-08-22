@@ -23,6 +23,34 @@
                             Montal Home
                         </a>
                     </div>
+                    
+                    <!-- Search field -->
+                    <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+                        <div class="relative w-full">
+                            <form action="{% url 'shop:search' %}" method="GET" class="w-full" role="search">
+                                <div class="relative search-field">
+                                    <input 
+                                        type="text" 
+                                        name="q" 
+                                        placeholder="Пошук меблів..." 
+                                        value="{{ request.GET.q|default:'' }}"
+                                        class="w-full pl-10 pr-4 py-2 border border-beige-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent text-brown-800 placeholder-brown-400"
+                                        aria-label="Пошук меблів за назвою, описом або кодом товару"
+                                        autocomplete="off"
+                                        id="search-input-desktop"
+                                    >
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-brown-400" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </form>
+                            <!-- Search dropdown -->
+                            <div id="search-dropdown-desktop" class="absolute top-full left-0 right-0 bg-white border border-beige-300 rounded-lg shadow-lg z-50 hidden max-h-96 overflow-y-auto">
+                                <div id="search-suggestions-desktop" class="py-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Desktop nav -->
                     <div class="hidden md:flex items-center space-x-4">
                         <a href="{% url 'shop:home' %}" class="nav-link hover:text-brown-600 focus:text-brown-600 transition">Головна</a>
@@ -54,6 +82,31 @@
             <!-- Mobile nav -->
             <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-beige-200">
                 <div class="flex flex-col space-y-2 p-4">
+                    <!-- Mobile search field -->
+                    <div class="mb-4">
+                        <form action="{% url 'shop:search' %}" method="GET" class="w-full" role="search">
+                            <div class="relative search-field">
+                                <input 
+                                    type="text" 
+                                    name="q" 
+                                    placeholder="Пошук меблів..." 
+                                    value="{{ request.GET.q|default:'' }}"
+                                    class="w-full pl-10 pr-4 py-2 border border-beige-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent text-brown-800 placeholder-brown-400"
+                                    aria-label="Пошук меблів за назвою, описом або кодом товару"
+                                    autocomplete="off"
+                                    id="search-input-mobile"
+                                >
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-brown-400" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                        </form>
+                        <!-- Mobile search dropdown -->
+                        <div id="search-dropdown-mobile" class="relative bg-white border border-beige-300 rounded-lg shadow-lg z-50 hidden max-h-64 overflow-y-auto mt-1">
+                            <div id="search-suggestions-mobile" class="py-2"></div>
+                        </div>
+                    </div>
+                    
                     <a href="{% url 'shop:home' %}" class="nav-link">Головна</a>
                     <a href="{% url 'categories:categories_list' %}" class="nav-link">Каталог</a>
                     <a href="{% url 'shop:promotions' %}" class="nav-link">Акції</a>
@@ -192,6 +245,7 @@
     <script src="{% static 'js/filters.js' %}"></script>
     <script src="{% static 'js/checkout.js' %}"></script>
     <script src="{% static 'js/chat-button.js' %}"></script>
+    <script src="{% static 'js/search.js' %}"></script>
     <script>
         // Mobile menu toggle
         const menuBtn = document.getElementById('mobile-menu-button');

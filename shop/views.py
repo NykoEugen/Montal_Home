@@ -6,8 +6,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import DetailView, ListView, TemplateView
+from django.urls import reverse
 
 from categories.models import Category
 from delivery.views import search_city
@@ -170,6 +171,40 @@ class ContactsView(TemplateView):
     """Contacts page."""
 
     template_name = "shop/contacts.html"
+
+
+class SearchView(ListView):
+    """Search furniture by name."""
+    
+    model = Furniture
+    template_name = "shop/search_results.html"
+    context_object_name = "furniture"
+    paginate_by = ITEMS_PER_PAGE
+
+    def get_queryset(self):
+        """Filter furniture based on search query."""
+        queryset = Furniture.objects.select_related("sub_category__category").all()
+        search_query = self.request.GET.get("q", "").strip()
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) | 
+                Q(description__icontains=search_query) |
+                Q(article_code__icontains=search_query)
+            )
+        else:
+            queryset = queryset.none()  # Return empty queryset if no search query
+            
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """Add additional context data."""
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "search_query": self.request.GET.get("q", "").strip(),
+            "categories": Category.objects.all(),
+        })
+        return context
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -400,3 +435,35 @@ def where_to_buy(request: HttpRequest) -> HttpResponse:
 def contacts(request: HttpRequest) -> HttpResponse:
     """Legacy contacts view for backward compatibility."""
     return ContactsView.as_view()(request)
+
+
+@require_http_methods(["GET"])
+def search_suggestions(request):
+    """Return search suggestions for AJAX dropdown."""
+    query = request.GET.get('q', '').strip()
+    
+    if len(query) < 2:  # Only search if query is at least 2 characters
+        return JsonResponse({'suggestions': []})
+    
+    # Search in furniture names, descriptions, and article codes
+    furniture_results = Furniture.objects.filter(
+        Q(name__icontains=query) | 
+        Q(description__icontains=query) |
+        Q(article_code__icontains=query)
+    ).select_related('sub_category__category')[:10]  # Limit to 10 results
+    
+    suggestions = []
+    for furniture in furniture_results:
+        suggestions.append({
+            'id': furniture.id,
+            'name': furniture.name,
+            'article_code': furniture.article_code,
+            'category': f"{furniture.sub_category.category.name} → {furniture.sub_category.name}",
+            'price': str(furniture.current_price),
+            'image_url': furniture.image.url if furniture.image else None,
+            'url': reverse('furniture:furniture_detail', kwargs={'furniture_slug': furniture.slug}),
+            'is_promotional': furniture.is_promotional,
+            'promotional_price': str(furniture.promotional_price) if furniture.promotional_price else None
+        })
+    
+    return JsonResponse({'suggestions': suggestions})
