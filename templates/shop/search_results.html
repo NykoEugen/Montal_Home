@@ -1,0 +1,127 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}Пошук меблів - {{ search_query }}{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-brown-800 mb-4">
+        Результати пошуку
+        {% if search_query %}
+            для "{{ search_query }}"
+        {% endif %}
+    </h1>
+    
+    {% if search_query %}
+        <p class="text-brown-600 mb-6">
+            Знайдено {{ furniture.paginator.count }} товарів
+        </p>
+    {% endif %}
+</div>
+
+{% if furniture %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for item in furniture %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
+                {% else %}
+                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
+                        <i class="fas fa-image text-4xl text-beige-400"></i>
+                    </div>
+                {% endif %}
+                
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-brown-800 mb-2 line-clamp-2">
+                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="hover:text-brown-600 transition">
+                            {{ item.name }}
+                        </a>
+                    </h3>
+                    
+                    <p class="text-sm text-brown-600 mb-2">
+                        {{ item.sub_category.category.name }} → {{ item.sub_category.name }}
+                    </p>
+                    
+                    <p class="text-sm text-brown-500 mb-3 line-clamp-2">
+                        {{ item.description|truncatewords:15 }}
+                    </p>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-lg font-bold text-brown-800">
+                            {% if item.is_promotional and item.promotional_price %}
+                                <span class="text-red-600">{{ item.promotional_price }} грн</span>
+                                <span class="text-sm text-gray-500 line-through ml-2">{{ item.price }} грн</span>
+                            {% else %}
+                                {{ item.price }} грн
+                            {% endif %}
+                        </div>
+                        
+                        <button 
+                            onclick="addToCart('{{ item.id }}', 'base', null, null)"
+                            class="bg-brown-600 hover:bg-brown-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-sm"
+                        >
+                            <i class="fas fa-cart-plus mr-1"></i>
+                            В кошик
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if furniture.has_other_pages %}
+        <div class="mt-8 flex justify-center">
+            <nav class="flex items-center space-x-2">
+                {% if furniture.has_previous %}
+                    <a href="?q={{ search_query }}&page={{ furniture.previous_page_number }}" 
+                       class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                {% endif %}
+                
+                {% for num in furniture.paginator.page_range %}
+                    {% if furniture.number == num %}
+                        <span class="px-3 py-2 bg-brown-600 text-white rounded">{{ num }}</span>
+                    {% elif num > furniture.number|add:'-3' and num < furniture.number|add:'3' %}
+                        <a href="?q={{ search_query }}&page={{ num }}" 
+                           class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                            {{ num }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if furniture.has_next %}
+                    <a href="?q={{ search_query }}&page={{ furniture.next_page_number }}" 
+                       class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </nav>
+        </div>
+    {% endif %}
+    
+{% else %}
+    <div class="text-center py-12">
+        <i class="fas fa-search text-6xl text-beige-400 mb-4"></i>
+        <h2 class="text-2xl font-semibold text-brown-800 mb-2">
+            {% if search_query %}
+                Нічого не знайдено
+            {% else %}
+                Введіть пошуковий запит
+            {% endif %}
+        </h2>
+        <p class="text-brown-600 mb-6">
+            {% if search_query %}
+                Спробуйте змінити пошуковий запит або перегляньте наш каталог
+            {% else %}
+                Введіть назву меблів для пошуку
+            {% endif %}
+        </p>
+        <a href="{% url 'categories:categories_list' %}" 
+           class="bg-brown-600 hover:bg-brown-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+            Переглянути каталог
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
