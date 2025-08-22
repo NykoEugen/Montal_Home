@@ -1,0 +1,72 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-brown-800 mb-8">Гарантія</h1>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold text-brown-800 mb-4">Гарантійні зобов'язання</h2>
+            <p class="text-brown-600 mb-6">
+                Ми надаємо повну гарантію на всі наші меблі та забезпечуємо якісне обслуговування протягом гарантійного періоду.
+            </p>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-3">Гарантійний період</h3>
+                    <ul class="text-brown-600 space-y-2">
+                        <li>• <strong>24 місяці</strong> - на всі меблі</li>
+                        <li>• <strong>12 місяців</strong> - на механізми трансформації</li>
+                        <li>• <strong>6 місяців</strong> - на тканини та оббивку</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-brown-800 mb-3">Що покриває гарантія</h3>
+                    <ul class="text-brown-600 space-y-2">
+                        <li>• Виробничі дефекти</li>
+                        <li>• Пошкодження конструкції</li>
+                        <li>• Несправності механізмів</li>
+                        <li>• Дефекти фурнітури</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-brown-800 mb-3">Умови гарантії</h3>
+            <div class="bg-beige-50 p-4 rounded-lg mb-6">
+                <ul class="text-brown-600 space-y-2">
+                    <li>• Гарантія діє тільки при правильній експлуатації меблів</li>
+                    <li>• Збереження гарантійного талона та документів про покупку</li>
+                    <li>• Використання меблів за призначенням</li>
+                    <li>• Дотримання рекомендацій з догляду</li>
+                </ul>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-brown-800 mb-3">Що не покриває гарантія</h3>
+            <div class="bg-red-50 p-4 rounded-lg mb-6">
+                <ul class="text-brown-600 space-y-2">
+                    <li>• Пошкодження внаслідок неправильної експлуатації</li>
+                    <li>• Механічні пошкодження під час транспортування</li>
+                    <li>• Зміни кольору під впливом сонячних променів</li>
+                    <li>• Пошкодження від вологи або високої температури</li>
+                    <li>• Зношування тканини внаслідок експлуатації</li>
+                </ul>
+            </div>
+            
+            <h3 class="text-xl font-semibold text-brown-800 mb-3">Як оформити гарантійний випадок</h3>
+            <div class="bg-green-50 p-4 rounded-lg mb-6">
+                <ol class="text-brown-600 space-y-2">
+                    <li>1. Зв'яжіться з нами за телефоном або через соціальні мережі</li>
+                    <li>2. Опишіть проблему та надайте фото пошкодження</li>
+                    <li>3. Надайте гарантійний талон та документи про покупку</li>
+                    <li>4. Наш спеціаліст оцінить ситуацію та запропонує рішення</li>
+                    <li>5. При підтвердженні гарантійного випадку проведемо ремонт або заміну</li>
+                </ol>
+            </div>
+            
+            <div class="text-center mt-8">
+                <p class="text-brown-600 mb-4">Маєте питання щодо гарантії?</p>
+                <a href="{% url 'shop:contacts' %}" class="bg-brown-600 text-white px-6 py-3 rounded-lg hover:bg-brown-700 transition">
+                    Зв'язатися з нами
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
