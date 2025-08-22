@@ -26,7 +26,11 @@ def search_city(city_name: str) -> JsonResponse:
 @require_GET
 def get_warehouses(request):
     city_ref = request.GET.get("city_ref", "").strip()
+    
     if not city_ref:
+        return JsonResponse([], safe=False)
+
+    if not NOVA_POSHTA_API_KEY:
         return JsonResponse([], safe=False)
 
     payload = {

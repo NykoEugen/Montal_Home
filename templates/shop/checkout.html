@@ -62,7 +62,19 @@
                 <!-- Nova Poshta Fields -->
                 <div id="nova-poshta-fields" class="hidden">
                     {% for field in form %}
-                        {% if field.name in 'delivery_city_label,delivery_branch_label' %}
+                        {% if field.name == 'delivery_city_label' %}
+                            <div class="mb-4 relative">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                                {% endif %}
+                                <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10" style="top: 100%; left: 0;"></ul>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% for field in form %}
+                        {% if field.name == 'delivery_branch_label' %}
                             {% if field.is_hidden %}
                                 {{ field }}
                             {% else %}
@@ -97,16 +109,15 @@
 
             <!-- Hidden fields -->
             {% for field in form %}
-                {% if field.is_hidden and field.name not in 'delivery_city_label,delivery_branch_label' %}
+                {% if field.is_hidden and field.name not in 'delivery_branch_label' %}
                     {{ field }}
                 {% endif %}
             {% endfor %}
-
-            <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10"></ul>
 
             <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
         </form>
     </div>
 
     <script src="{% static 'js/checkout-delivery.js' %}"></script>
+    <script src="{% static 'js/checkout.js' %}"></script>
 {% endblock %}

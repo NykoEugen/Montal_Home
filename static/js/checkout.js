@@ -31,48 +31,70 @@ document.addEventListener('DOMContentLoaded', () => {
                         item.classList.add("px-2", "py-1", "hover:bg-gray-100", "cursor-pointer");
 
                         item.onclick = () => {
+                            console.log('City selected:', city);
                             input.value = city.label;
                             list.innerHTML = "";
                             list.classList.add("hidden");
 
-                            document.querySelector('[name="delivery_city"]').value = city.ref;
+                            const deliveryCityInput = document.querySelector('[name="delivery_city"]');
+                            if (deliveryCityInput) {
+                                deliveryCityInput.value = city.ref;
+                            } else {
+                                console.error('delivery_city hidden field not found');
+                            }
 
                             let cityNameInput = document.querySelector('[name="delivery_city_name"]');
                             if (cityNameInput) cityNameInput.value = city.label;
 
                             // Очистити список відділень
                             const warehouseSelect = document.getElementById("warehouse-select");
-                            warehouseSelect.innerHTML = '<option value="">Завантаження відділень...</option>';
+                            console.log('Warehouse select element:', warehouseSelect);
+                            
+                            if (warehouseSelect) {
+                                warehouseSelect.innerHTML = '<option value="">Завантаження відділень...</option>';
+                                console.log('Fetching warehouses for city_ref:', city.ref);
 
-                            // Завантажити відділення
-                            fetch(`/delivery/np/warehouses?city_ref=${city.ref}`)
-                                .then(res => res.json())
-                                .then(data => {
-                                    const branchHiddenInput = document.querySelector('[name="delivery_branch"]');
-                                    branchHiddenInput.value = "";
+                                // Завантажити відділення
+                                fetch(`/delivery/np/warehouses?city_ref=${city.ref}`)
+                                    .then(res => {
+                                        console.log('Warehouse API response status:', res.status);
+                                        return res.json();
+                                    })
+                                    .then(data => {
+                                        console.log('Warehouse API response data:', data);
+                                        const branchHiddenInput = document.querySelector('[name="delivery_branch"]');
+                                        if (branchHiddenInput) branchHiddenInput.value = "";
 
-                                    warehouseSelect.innerHTML = ""; // Очистити перед додаванням
+                                        warehouseSelect.innerHTML = ""; // Очистити перед додаванням
 
-                                    if (!data.length) {
-                                        warehouseSelect.innerHTML = '<option value="">Відділень не знайдено</option>';
-                                        return;
-                                    }
+                                        if (!data.length) {
+                                            warehouseSelect.innerHTML = '<option value="">Відділень не знайдено</option>';
+                                            return;
+                                        }
 
-                                    data.forEach(wh => {
-                                        const option = document.createElement("option");
-                                        option.value = wh.ref;
-                                        option.textContent = wh.label;
-                                        warehouseSelect.appendChild(option);
+                                        data.forEach(wh => {
+                                            const option = document.createElement("option");
+                                            option.value = wh.ref;
+                                            option.textContent = wh.label;
+                                            warehouseSelect.appendChild(option);
+                                        });
+
+                                        warehouseSelect.onchange = () => {
+                                            let selectedOption = warehouseSelect.options[warehouseSelect.selectedIndex];
+                                            const branchHiddenInput = document.querySelector('[name="delivery_branch"]');
+                                            if (branchHiddenInput) branchHiddenInput.value = selectedOption.value;
+
+                                            let branchNameInput = document.querySelector('[name="delivery_branch_name"]');
+                                            if (branchNameInput) branchNameInput.value = selectedOption.textContent;
+                                        };
+                                    })
+                                    .catch(error => {
+                                        console.error('Error loading warehouses:', error);
+                                        warehouseSelect.innerHTML = '<option value="">Помилка завантаження</option>';
                                     });
-
-                                    warehouseSelect.onchange = () => {
-                                        let selectedOption = warehouseSelect.options[warehouseSelect.selectedIndex];
-                                        document.querySelector('[name="delivery_branch"]').value = selectedOption.value;
-
-                                        let branchNameInput = document.querySelector('[name="delivery_branch_name"]');
-                                        if (branchNameInput) branchNameInput.value = selectedOption.textContent;
-                                    };
-                                });
+                            } else {
+                                console.error('Warehouse select element not found');
+                            }
                         };
 
                         list.appendChild(item);
