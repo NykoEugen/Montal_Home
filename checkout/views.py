@@ -65,15 +65,22 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     variant_image_id = None
                 
                 # Calculate price based on size variant and fabric
+                size_variant = None
                 if size_variant_id and size_variant_id != 'base':
                     try:
                         from furniture.models import FurnitureSizeVariant
                         size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
                         price = float(size_variant.current_price)
+                        size_variant_original_price = float(size_variant.price)
+                        size_variant_is_promotional = size_variant.is_on_sale
                     except (FurnitureSizeVariant.DoesNotExist, ValueError):
                         price = float(furniture.current_price)
+                        size_variant_original_price = None
+                        size_variant_is_promotional = False
                 else:
                     price = float(furniture.current_price)
+                    size_variant_original_price = None
+                    size_variant_is_promotional = False
                 
                 # Add fabric cost if fabric is selected
                 if fabric_category_id:
@@ -90,6 +97,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     furniture=furniture,
                     quantity=quantity,
                     price=price,
+                    original_price=float(furniture.price),
+                    is_promotional=furniture.is_promotional,
+                    size_variant_original_price=size_variant_original_price,
+                    size_variant_is_promotional=size_variant_is_promotional,
                     size_variant_id=None if size_variant_id == 'base' else size_variant_id,
                     fabric_category_id=fabric_category_id,
                     variant_image_id=variant_image_id,

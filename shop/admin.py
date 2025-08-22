@@ -291,6 +291,9 @@ class OrderAdmin(admin.ModelAdmin):
         "delivery_type",
         "payment_type",
         "created_at",
+        "total_items",
+        "total_amount",
+        "total_savings"
     ]
     list_filter = ["delivery_type", "payment_type", "created_at"]
     search_fields = [
@@ -299,8 +302,16 @@ class OrderAdmin(admin.ModelAdmin):
         "customer_phone_number",
         "customer_email",
     ]
-    readonly_fields = ["created_at"]
+    readonly_fields = ["created_at", "total_savings", "total_original_amount"]
     inlines = [OrderItemInline]
+    
+    def total_items(self, obj):
+        return sum(item.quantity for item in obj.orderitem_set.all())
+    total_items.short_description = 'Total Items'
+    
+    def total_amount(self, obj):
+        return sum(item.price * item.quantity for item in obj.orderitem_set.all())
+    total_amount.short_description = 'Total Amount'
 
     fieldsets = (
         (
@@ -326,16 +337,38 @@ class OrderAdmin(admin.ModelAdmin):
             },
         ),
         ("Оплата", {"fields": ("payment_type",)}),
-        ("Системна інформація", {"fields": ("created_at",), "classes": ("collapse",)}),
+        ("Системна інформація", {"fields": ("created_at", "total_savings", "total_original_amount"), "classes": ("collapse",)}),
     )
 
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ["order", "furniture", "quantity", "price", "variant_info", "size_variant_info", "fabric_info", "total_price"]
-    list_filter = ["order__created_at"]
+    list_display = [
+        "order", "furniture", "quantity", "price_display", 
+        "is_promotional", "size_variant_info", "fabric_info", "total_price", "savings_amount"
+    ]
+    list_filter = ["is_promotional", "size_variant_is_promotional", "order__created_at"]
     search_fields = ["order__customer_name", "furniture__name"]
-    readonly_fields = ["price"]
+    readonly_fields = [
+        "price", "original_price", "is_promotional", "price_display", "savings_amount",
+        "size_variant_id", "size_variant_original_price", "size_variant_is_promotional",
+        "fabric_category_id", "variant_image_id"
+    ]
+    
+    fieldsets = (
+        ('Order Information', {
+            'fields': ('order', 'furniture', 'quantity')
+        }),
+        ('Pricing Information', {
+            'fields': ('price', 'original_price', 'is_promotional', 'price_display', 'savings_amount')
+        }),
+        ('Size Variant Information', {
+            'fields': ('size_variant_id', 'size_variant_original_price', 'size_variant_is_promotional')
+        }),
+        ('Additional Information', {
+            'fields': ('fabric_category_id', 'variant_image_id')
+        }),
+    )
 
     def total_price(self, obj):
         if obj.price is not None:
@@ -361,7 +394,10 @@ class OrderItemAdmin(admin.ModelAdmin):
             try:
                 from furniture.models import FurnitureSizeVariant
                 variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
-                return f"{variant.dimensions} - {variant.price} грн"
+                if obj.size_variant_is_promotional and obj.size_variant_original_price:
+                    return f"{variant.dimensions} - {obj.price} грн (знижка з {obj.size_variant_original_price} грн)"
+                else:
+                    return f"{variant.dimensions} - {obj.price} грн"
             except (FurnitureSizeVariant.DoesNotExist, ValueError):
                 return f"Розмір ID {obj.size_variant_id} (видалено або недійсний)"
         return "Стандартний розмір"
