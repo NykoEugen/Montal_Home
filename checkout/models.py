@@ -55,6 +55,24 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"Order {self.id} by {self.customer_name} {self.customer_last_name}"
+    
+    @property
+    def total_savings(self):
+        """Calculate total savings for the entire order."""
+        return sum(item.savings_amount for item in self.orderitem_set.all())
+    
+    @property
+    def total_original_amount(self):
+        """Calculate total original amount before any discounts."""
+        total = 0
+        for item in self.orderitem_set.all():
+            if item.is_promotional and item.original_price:
+                total += item.original_price * item.quantity
+            elif item.size_variant_is_promotional and item.size_variant_original_price:
+                total += item.size_variant_original_price * item.quantity
+            else:
+                total += item.price * item.quantity
+        return total
 
 
 class OrderItem(models.Model):
@@ -63,11 +81,35 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
     
+    # Promotional pricing information
+    original_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        verbose_name="Оригінальна ціна"
+    )
+    is_promotional = models.BooleanField(
+        default=False, 
+        verbose_name="Акційний товар"
+    )
+    
     # Size variant and fabric information
     size_variant_id = models.PositiveIntegerField(
         null=True, 
         blank=True, 
         verbose_name="ID розмірного варіанту"
+    )
+    size_variant_original_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        verbose_name="Оригінальна ціна розмірного варіанту"
+    )
+    size_variant_is_promotional = models.BooleanField(
+        default=False, 
+        verbose_name="Акційний розмірний варіант"
     )
     fabric_category_id = models.PositiveIntegerField(
         null=True, 
@@ -86,3 +128,27 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.furniture.name} ({self.quantity})"
+    
+    @property
+    def price_display(self):
+        """Display price with promotional information."""
+        if self.is_promotional and self.original_price:
+            return f"{self.price} грн (знижка з {self.original_price} грн)"
+        return f"{self.price} грн"
+    
+    @property
+    def size_variant_price_display(self):
+        """Display size variant price with promotional information."""
+        if self.size_variant_is_promotional and self.size_variant_original_price:
+            return f"{self.price} грн (знижка з {self.size_variant_original_price} грн)"
+        return f"{self.price} грн"
+    
+    @property
+    def savings_amount(self):
+        """Calculate total savings for this item."""
+        savings = 0
+        if self.is_promotional and self.original_price:
+            savings += (self.original_price - self.price) * self.quantity
+        if self.size_variant_is_promotional and self.size_variant_original_price:
+            savings += (self.size_variant_original_price - self.price) * self.quantity
+        return savings

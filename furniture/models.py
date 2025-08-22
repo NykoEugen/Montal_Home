@@ -60,6 +60,12 @@ class Furniture(models.Model):
         verbose_name="Акційна ціна",
         help_text="Ціна зі знижкою",
     )
+    sale_end_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата закінчення акції",
+        help_text="Коли закінчується акційна пропозиція"
+    )
     description = models.TextField(
         verbose_name="Опис", help_text="Детальний опис меблів"
     )
@@ -87,6 +93,33 @@ class Furniture(models.Model):
         verbose_name="Коефіцієнт тканини",
         help_text="Множник для розрахунку вартості тканини"
     )
+
+    @property
+    def discount_percentage(self):
+        """Calculate discount percentage for promotional items."""
+        if self.is_promotional and self.promotional_price and self.price:
+            discount = ((self.price - self.promotional_price) / self.price) * 100
+            return int(discount)
+        return 0
+
+    @property
+    def current_price(self):
+        """Get current price (promotional if available, otherwise regular)."""
+        return self.promotional_price if self.is_promotional and self.promotional_price else self.price
+
+    @property
+    def is_sale_active(self):
+        """Check if the sale is still active based on end date."""
+        if not self.is_promotional or not self.sale_end_date:
+            return False
+        return timezone.now() < self.sale_end_date
+
+    @property
+    def sale_end_date_iso(self):
+        """Get sale end date in ISO format for JavaScript."""
+        if self.sale_end_date:
+            return self.sale_end_date.isoformat()
+        return None
 
     class Meta:
         db_table = "furniture"
@@ -203,6 +236,15 @@ class FurnitureSizeVariant(models.Model):
         verbose_name="Ціна",
         help_text="Ціна для цього розміру"
     )
+    promotional_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Акційна ціна",
+        help_text="Акційна ціна для цього розміру (залиште порожнім для використання основної акційної ціни)"
+    )
 
     class Meta:
         db_table = "furniture_size_variants"
@@ -232,6 +274,30 @@ class FurnitureSizeVariant(models.Model):
             return f"{int(self.height)}x{int(self.width)}x{int(self.length)}-{int(self.unfolded_length)} см"
         else:
             return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
+
+    @property
+    def current_price(self):
+        """Get current price (promotional if available, otherwise regular)."""
+        if self.promotional_price is not None:
+            return self.promotional_price
+        elif self.furniture.is_promotional and self.furniture.promotional_price:
+            return self.furniture.promotional_price
+        return self.price or 0
+
+    @property
+    def discount_percentage(self):
+        """Calculate discount percentage for this size variant."""
+        if self.price and self.current_price and self.current_price < self.price:
+            discount = ((self.price - self.current_price) / self.price) * 100
+            return int(discount)
+        return 0
+
+    @property
+    def is_on_sale(self):
+        """Check if this size variant is on sale."""
+        if self.price and self.current_price:
+            return self.current_price < self.price
+        return False
 
 
 class FurnitureVariantImage(models.Model):
