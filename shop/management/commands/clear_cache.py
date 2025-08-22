@@ -1,28 +1,14 @@
-from django.apps import AppConfig
+from django.core.management.base import BaseCommand
 import os
 import shutil
-import glob
 
+class Command(BaseCommand):
+    help = 'Clear all cache files (__pycache__, .pyc, static files)'
 
-class ShopConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "shop"
-
-    def ready(self):
-        """Clear cache when Django starts"""
-        import django
-        if django.setup:
-            # Only run in development
-            from django.conf import settings
-            if settings.DEBUG:
-                self.clear_cache_on_startup()
-
-    def clear_cache_on_startup(self):
-        """Clear cache files on server startup"""
+    def handle(self, *args, **options):
         from django.conf import settings
-        import os
         
-        print("🧹 Clearing cache on startup...")
+        self.stdout.write('🧹 Clearing cache...')
         
         # Clear __pycache__ directories
         base_dir = settings.BASE_DIR
@@ -37,8 +23,9 @@ class ShopConfig(AppConfig):
                     try:
                         shutil.rmtree(pycache_path)
                         pycache_count += 1
-                    except OSError:
-                        pass
+                        self.stdout.write(f'🗑️  Removed: {pycache_path}')
+                    except OSError as e:
+                        self.stdout.write(f'⚠️  Could not remove {pycache_path}: {e}')
         
         # Remove .pyc files
         for root, dirs, files in os.walk(base_dir):
@@ -48,10 +35,11 @@ class ShopConfig(AppConfig):
                     try:
                         os.remove(pyc_path)
                         pyc_count += 1
-                    except OSError:
-                        pass
+                        self.stdout.write(f'🗑️  Removed: {pyc_path}')
+                    except OSError as e:
+                        self.stdout.write(f'⚠️  Could not remove {pyc_path}: {e}')
         
-        # Touch static files to update timestamps
+        # Touch static files
         static_dirs = getattr(settings, 'STATICFILES_DIRS', [])
         touched_count = 0
         
@@ -64,7 +52,15 @@ class ShopConfig(AppConfig):
                             try:
                                 os.utime(file_path, None)
                                 touched_count += 1
-                            except OSError:
-                                pass
+                                self.stdout.write(f'📝 Touched: {file_path}')
+                            except OSError as e:
+                                self.stdout.write(f'⚠️  Could not touch {file_path}: {e}')
         
-        print(f"✅ Cache cleared: {pycache_count} __pycache__ dirs, {pyc_count} .pyc files, {touched_count} static files touched")
+        self.stdout.write(
+            self.style.SUCCESS(f'✅ Cache cleared successfully!')
+        )
+        self.stdout.write(f'📊 Summary: {pycache_count} __pycache__ dirs, {pyc_count} .pyc files, {touched_count} static files touched')
+        self.stdout.write(
+            self.style.WARNING('💡 Tip: Hard refresh your browser (Ctrl+F5 or Cmd+Shift+R) to see changes')
+        )
+

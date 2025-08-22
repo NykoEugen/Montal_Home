@@ -1,4 +1,5 @@
 {% extends 'shop/base.html' %}
+{% load static %}
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Оформлення замовлення</h1>
     <div class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
@@ -107,32 +108,5 @@
         </form>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const deliveryTypeSelect = document.getElementById('delivery-type');
-            const localDeliveryFields = document.getElementById('local-delivery-fields');
-            const novaPoshtaFields = document.getElementById('nova-poshta-fields');
-
-            function toggleDeliveryFields() {
-                const selectedValue = deliveryTypeSelect.value;
-                
-                if (selectedValue === 'local') {
-                    localDeliveryFields.classList.remove('hidden');
-                    novaPoshtaFields.classList.add('hidden');
-                } else if (selectedValue === 'nova_poshta') {
-                    localDeliveryFields.classList.add('hidden');
-                    novaPoshtaFields.classList.remove('hidden');
-                } else {
-                    localDeliveryFields.classList.add('hidden');
-                    novaPoshtaFields.classList.add('hidden');
-                }
-            }
-
-            // Initial state
-            toggleDeliveryFields();
-
-            // Listen for changes
-            deliveryTypeSelect.addEventListener('change', toggleDeliveryFields);
-        });
-    </script>
+    <script src="{% static 'js/checkout-delivery.js' %}"></script>
 {% endblock %}

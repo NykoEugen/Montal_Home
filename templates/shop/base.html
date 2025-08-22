@@ -9,6 +9,7 @@
     <title>{% block title %}Інтернет-магазин меблів{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/chat-button.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
 </head>
@@ -93,6 +94,44 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+    
+    <!-- Floating Chat Button -->
+    <div class="chat-button">
+        <button id="chat-toggle" class="bg-brown-600 hover:bg-brown-700 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transition-all duration-300" aria-label="Почати діалог">
+            <i class="fas fa-comments text-xl"></i>
+        </button>
+    </div>
+    
+    <!-- Chat Popup -->
+    <div id="chat-popup" class="chat-popup">
+        <div class="chat-popup-header">
+            <div class="chat-popup-title">Почати діалог</div>
+            <button class="chat-popup-close" id="chat-close" aria-label="Закрити">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chat-options">
+            <a href="https://t.me/montal_home" target="_blank" class="chat-option">
+                <div class="chat-option-icon chat-option-telegram">
+                    <i class="fab fa-telegram-plane"></i>
+                </div>
+                <div>
+                    <div class="chat-option-text">Telegram</div>
+                    <div class="chat-option-subtitle">Швидкий відгук</div>
+                </div>
+            </a>
+            <a href="viber://chat?number=+380678416272" class="chat-option">
+                <div class="chat-option-icon chat-option-viber">
+                    <i class="fab fa-viber"></i>
+                </div>
+                <div>
+                    <div class="chat-option-text">Viber</div>
+                    <div class="chat-option-subtitle">Безкоштовні дзвінки</div>
+                </div>
+            </a>
+        </div>
+    </div>
+    
     <footer class="bg-brown-800 text-white py-12 mt-8">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -107,25 +146,25 @@
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Контакти</h3>
                     <ul class="space-y-2 text-beige-200">
-                        <li>
+                        <!-- <li>
                             <span class="font-medium">Email:</span>
                             <a href="mailto:info@furniturestore.com" class="nav-link">info@furniturestore.com</a>
-                        </li>
+                        </li> -->
                         <li>
                             <span class="font-medium">Телефон:</span>
-                            <a href="tel:+380123456789" class="nav-link">+38 (012) 345-67-89</a>
+                            <a href="tel:+380678416272" class="nav-link">+38 (067) 841-62-72</a>
                         </li>
                         <li>
                             <span class="font-medium">Адреса:</span>
-                            <span>вул. Меблева, 123, Київ, Україна</span>
+                            <span>Дніпро, проспект Богдана Хмельницького, 31Д</span>
                         </li>
                         <li>
-                            <a href="https://www.instagram.com/yourusername" target="_blank" class="social-icon nav-link">
+                            <a href="https://www.instagram.com/planeta_style" target="_blank" class="social-icon nav-link">
                                 <i class="fab fa-instagram"></i> | planet_style
                             </a>
                         </li>
                         <li>
-                            <a href="https://www.tiktok.com/@yourusername" target="_blank" class="social-icon nav-link">
+                            <a href="https://www.tiktok.com/@planeta_style_ua" target="_blank" class="social-icon nav-link">
                                 <i class="fab fa-tiktok"></i> | planet_style
                             </a>
                         </li>
@@ -152,6 +191,7 @@
     <script src="{% static 'js/carousel.js' %}"></script>
     <script src="{% static 'js/filters.js' %}"></script>
     <script src="{% static 'js/checkout.js' %}"></script>
+    <script src="{% static 'js/chat-button.js' %}"></script>
     <script>
         // Mobile menu toggle
         const menuBtn = document.getElementById('mobile-menu-button');
