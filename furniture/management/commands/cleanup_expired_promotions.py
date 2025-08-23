@@ -77,6 +77,13 @@ class Command(BaseCommand):
                 item.sale_end_date = None
                 item.save()
                 
+                # Also clear size variant promotional prices that depend on this furniture
+                size_variants_to_clear = item.size_variants.filter(
+                    is_promotional=False,  # Only clear variants that don't have their own promotional status
+                    promotional_price__isnull=False
+                )
+                size_variants_to_clear.update(promotional_price=None)
+                
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'✓ Removed promotional status from: {item.name}'

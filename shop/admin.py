@@ -44,7 +44,7 @@ class FurnitureSizeVariantInline(admin.TabularInline):
     """Inline admin for furniture size variants."""
     model = FurnitureSizeVariant
     extra = 1
-    fields = ['height', 'width', 'length', 'is_foldable', 'unfolded_length', 'price', 'promotional_price', 'current_price_display', 'discount_display']
+    fields = ['height', 'width', 'length', 'is_foldable', 'unfolded_length', 'price', 'is_promotional', 'promotional_price', 'sale_end_date', 'current_price_display', 'discount_display']
     readonly_fields = ['current_price_display', 'discount_display']
     
     def current_price_display(self, obj):
@@ -148,7 +148,7 @@ class FurnitureAdmin(admin.ModelAdmin):
     search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureVariantImageInline, FurnitureImageInline]
-    actions = ['set_sale_end_date', 'clear_sale_end_date', 'make_promotional', 'remove_promotional', 'cleanup_expired_promotions']
+    actions = ['set_sale_end_date', 'clear_sale_end_date', 'make_promotional', 'remove_promotional', 'cleanup_expired_promotions', 'clear_size_variant_promotions']
     
     def available_sizes(self, obj):
         return obj.get_available_sizes()
@@ -240,6 +240,16 @@ class FurnitureAdmin(admin.ModelAdmin):
         except Exception as e:
             self.message_user(request, f"Помилка при очищенні акцій: {e}", level='ERROR')
     cleanup_expired_promotions.short_description = "Очистити закінчені акції"
+    
+    def clear_size_variant_promotions(self, request, queryset):
+        """Clear promotional prices from size variants of selected furniture."""
+        total_cleared = 0
+        for furniture in queryset:
+            cleared = furniture.size_variants.filter(promotional_price__isnull=False).update(promotional_price=None)
+            total_cleared += cleared
+        
+        self.message_user(request, f"Акційні ціни видалено з {total_cleared} розмірних варіантів.")
+    clear_size_variant_promotions.short_description = "Очистити акційні ціни розмірних варіантів"
 
 
 class OrderItemInline(admin.TabularInline):
@@ -432,19 +442,19 @@ class OrderItemAdmin(admin.ModelAdmin):
 class FurnitureSizeVariantAdmin(admin.ModelAdmin):
     """Admin configuration for FurnitureSizeVariant model."""
     list_display = [
-        'furniture', 'dimensions', 'price', 'promotional_price', 'current_price', 'discount_percentage', 'is_on_sale', 'is_foldable'
+        'furniture', 'dimensions', 'price', 'is_promotional', 'promotional_price', 'sale_end_date', 'current_price', 'discount_percentage', 'is_on_sale', 'is_foldable'
     ]
-    list_filter = ['furniture__sub_category', 'is_foldable', 'furniture__is_promotional']
+    list_filter = ['furniture__sub_category', 'is_foldable', 'furniture__is_promotional', 'is_promotional']
     search_fields = ['furniture__name']
     ordering = ['furniture__name', 'height', 'width', 'length']
-    actions = ['set_promotional_price', 'clear_promotional_price', 'apply_parent_promotion']
+    actions = ['set_promotional_price', 'clear_promotional_price', 'apply_parent_promotion', 'make_promotional', 'remove_promotional', 'set_sale_end_date', 'clear_sale_end_date']
     
     fieldsets = (
         ('Основна інформація', {
             'fields': ('furniture', 'height', 'width', 'length', 'is_foldable', 'unfolded_length')
         }),
-        ('Ціни', {
-            'fields': ('price', 'promotional_price'),
+        ('Ціни та акції', {
+            'fields': ('price', 'is_promotional', 'promotional_price', 'sale_end_date'),
             'description': 'Встановіть акційну ціну для цього розміру. Залиште порожнім для використання основної акційної ціни меблів.'
         }),
         ('Інформація про ціни', {
@@ -535,3 +545,31 @@ class FurnitureSizeVariantAdmin(admin.ModelAdmin):
                 updated += 1
         self.message_user(request, f"Акційну ціну батьківських меблів застосовано до {updated} розмірних варіантів.")
     apply_parent_promotion.short_description = "Застосувати акцію батьківських меблів"
+    
+    def make_promotional(self, request, queryset):
+        """Make selected size variants promotional."""
+        updated = queryset.update(is_promotional=True)
+        self.message_user(request, f"{updated} розмірних варіантів зроблено акційними.")
+    make_promotional.short_description = "Зробити акційними"
+    
+    def remove_promotional(self, request, queryset):
+        """Remove promotional status from selected size variants."""
+        updated = queryset.update(is_promotional=False, promotional_price=None, sale_end_date=None)
+        self.message_user(request, f"Акційний статус видалено з {updated} розмірних варіантів.")
+    remove_promotional.short_description = "Видалити акційний статус"
+    
+    def set_sale_end_date(self, request, queryset):
+        """Set sale end date for selected size variants."""
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        
+        # Store selected IDs in session for the next step
+        request.session['size_variant_sale_items_ids'] = list(queryset.values_list('id', flat=True))
+        return HttpResponseRedirect(reverse('admin:size_variant_sale_end_date_form'))
+    set_sale_end_date.short_description = "Встановити дату закінчення акції"
+    
+    def clear_sale_end_date(self, request, queryset):
+        """Clear sale end date for selected size variants."""
+        updated = queryset.update(sale_end_date=None)
+        self.message_user(request, f"Дату закінчення акції очищено для {updated} розмірних варіантів.")
+    clear_sale_end_date.short_description = "Очистити дату закінчення акції"

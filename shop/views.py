@@ -53,12 +53,18 @@ class HomeView(ListView):
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": Furniture.objects.filter(
-                    is_promotional=True, 
-                    promotional_price__isnull=False
-                ).filter(
-                    models.Q(sale_end_date__isnull=True) |  # No end date (permanent sale)
-                    models.Q(sale_end_date__gt=timezone.now())  # End date in future
-                ).order_by('-created_at')[:6],  # Limit to 6 promotional items, newest first
+                    models.Q(
+                        is_promotional=True, 
+                        promotional_price__isnull=False
+                    ) & (
+                        models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
+                    ) | models.Q(
+                        size_variants__is_promotional=True,
+                        size_variants__promotional_price__isnull=False
+                    ) & (
+                        models.Q(size_variants__sale_end_date__isnull=True) | models.Q(size_variants__sale_end_date__gt=timezone.now())
+                    )
+                ).distinct().order_by('-created_at')[:6],
             }
         )
         return context
@@ -161,10 +167,21 @@ class PromotionsView(ListView):
     paginate_by = ITEMS_PER_PAGE
 
     def get_queryset(self):
-        """Get only promotional furniture."""
+        """Get only active promotional furniture."""
+        from django.db import models
         return Furniture.objects.filter(
-            is_promotional=True, promotional_price__isnull=False
-        )
+            models.Q(
+                is_promotional=True, 
+                promotional_price__isnull=False
+            ) & (
+                models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
+            ) | models.Q(
+                size_variants__is_promotional=True,
+                size_variants__promotional_price__isnull=False
+            ) & (
+                models.Q(size_variants__sale_end_date__isnull=True) | models.Q(size_variants__sale_end_date__gt=timezone.now())
+            )
+        ).distinct()
 
 
 class WhereToBuyView(TemplateView):

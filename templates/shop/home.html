@@ -30,7 +30,7 @@
                                 <!-- Sale Badge -->
                                 <div class="absolute top-3 left-3 z-10">
                                     <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                                        -{{ item.discount_percentage }}%
+                                        -{{ item.best_discount_percentage }}%
                                     </div>
                                 </div>
                                 
@@ -80,11 +80,11 @@
                                     <!-- Price Section -->
                                     <div class="space-y-2">
                                         <div class="flex items-center gap-2">
-                                            <span class="text-2xl font-bold text-red-600">{{ item.promotional_price|floatformat:0 }} грн</span>
-                                            <span class="text-lg text-gray-400 line-through">{{ item.price|floatformat:0 }} грн</span>
+                                            <span class="text-2xl font-bold text-red-600">{{ item.best_promotional_price|floatformat:0 }} грн</span>
+                                            <span class="text-lg text-gray-400 line-through">{{ item.best_original_price|floatformat:0 }} грн</span>
                                         </div>
                                         <div class="text-sm text-green-600 font-medium">
-                                            Економія: {{ item.price|calculate_savings:item.promotional_price|floatformat:0 }} грн
+                                            Економія: {{ item.best_original_price|calculate_savings:item.best_promotional_price|floatformat:0 }} грн
                                         </div>
                                     </div>
                                     
