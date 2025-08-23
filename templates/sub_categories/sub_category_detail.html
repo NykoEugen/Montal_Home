@@ -230,18 +230,15 @@
                 {% if page_obj %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for item in page_obj %}
-                            <div class="furniture-card bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                                <!-- Promotional Badge -->
-                                {% if item.is_promotional and item.promotional_price %}
-                                <div class="absolute top-3 left-3 z-10">
-                                    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                                        -{{ item.discount_percentage|floatformat:0 }}%
-                                    </div>
-                                </div>
-                                {% endif %}
-                                
+                            <div class="furniture-card bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group relative">
                                 <!-- Image Container -->
                                 <div class="relative overflow-hidden">
+                                    <!-- Promotional Badge -->
+                                    {% if item.is_promotional and item.promotional_price %}
+                                    <div class="promotional-badge">
+                                        -{{ item.discount_percentage|floatformat:0 }}%
+                                    </div>
+                                    {% endif %}
                                     {% if item.image %}
                                         <img src="{{ item.image.url }}" alt="{{ item.name }}" 
                                              class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">

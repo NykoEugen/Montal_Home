@@ -460,11 +460,45 @@ li.border-beige-200 {
     overflow: hidden;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     cursor: pointer;
+    position: relative;
 }
 
 .furniture-card:hover {
     transform: scale(1.03);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* Promotional badge styles */
+.promotional-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: rotate(-5deg);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        transform: rotate(-5deg) scale(1);
+    }
+    50% {
+        transform: rotate(-5deg) scale(1.05);
+    }
+}
+
+/* Card image container */
+.card-image-container {
+    position: relative;
+    overflow: hidden;
+    height: 224px; /* h-56 equivalent */
 }
 
 .btn-grad {
