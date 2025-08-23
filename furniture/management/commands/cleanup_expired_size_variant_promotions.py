@@ -25,12 +25,12 @@ class Command(BaseCommand):
         # Get current time
         now = timezone.now()
         
-        # Find all size variants that have promotional prices and belong to furniture with expired sales
+        # Find all size variants with their own expired promotional status
         expired_variants = FurnitureSizeVariant.objects.filter(
+            is_promotional=True,
             promotional_price__isnull=False,
-            furniture__is_promotional=True,
-            furniture__sale_end_date__isnull=False,
-            furniture__sale_end_date__lt=now
+            sale_end_date__isnull=False,
+            sale_end_date__lt=now
         )
         
         if not expired_variants.exists():
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         
         self.stdout.write(
             self.style.WARNING(
-                f'Found {expired_variants.count()} size variants with expired promotional prices:'
+                f'Found {expired_variants.count()} size variants with expired promotional status:'
             )
         )
         
@@ -72,20 +72,22 @@ class Command(BaseCommand):
             total_savings += savings
             
             if not dry_run:
-                # Remove promotional price
+                # Remove promotional status
+                variant.is_promotional = False
                 variant.promotional_price = None
+                variant.sale_end_date = None
                 variant.save()
                 
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'✓ Removed promotional price from: {variant.furniture.name} - {variant.dimensions}'
+                        f'✓ Removed promotional status from: {variant.furniture.name} - {variant.dimensions}'
                     )
                 )
         
         if dry_run:
             self.stdout.write(
                 self.style.WARNING(
-                    f'\nDRY RUN: Would remove promotional prices from {expired_variants.count()} size variants'
+                    f'\nDRY RUN: Would remove promotional status from {expired_variants.count()} size variants'
                 )
             )
             self.stdout.write(
@@ -96,7 +98,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\nSuccessfully removed promotional prices from {expired_variants.count()} size variants'
+                    f'\nSuccessfully removed promotional status from {expired_variants.count()} size variants'
                 )
             )
             self.stdout.write(

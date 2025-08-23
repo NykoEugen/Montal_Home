@@ -110,8 +110,10 @@ class Furniture(models.Model):
     @property
     def is_sale_active(self):
         """Check if the sale is still active based on end date."""
-        if not self.is_promotional or not self.sale_end_date:
+        if not self.is_promotional or not self.promotional_price:
             return False
+        if not self.sale_end_date:
+            return True  # Permanent sale (no end date)
         return timezone.now() < self.sale_end_date
 
     @property
@@ -138,7 +140,22 @@ class Furniture(models.Model):
         """Auto-generate slug if not provided."""
         if not self.slug:
             self.slug = slugify(self.name)
+        
+        # Check if promotional status changed
+        if self.pk:  # Only for existing objects
+            try:
+                old_instance = Furniture.objects.get(pk=self.pk)
+                promotional_changed = old_instance.is_promotional != self.is_promotional
+            except Furniture.DoesNotExist:
+                promotional_changed = False
+        else:
+            promotional_changed = False
+        
         super().save(*args, **kwargs)
+        
+        # If promotional status was disabled, clear size variant promotional prices
+        if promotional_changed and not self.is_promotional:
+            self.size_variants.filter(promotional_price__isnull=False).update(promotional_price=None)
 
     @property
     def current_price(self) -> float:
@@ -146,6 +163,57 @@ class Furniture(models.Model):
         if self.is_promotional and self.promotional_price:
             return float(self.promotional_price)
         return float(self.price)
+    
+    @property
+    def best_promotional_price(self):
+        """Get the best promotional price from furniture or size variants."""
+        if self.is_promotional and self.promotional_price and self.is_sale_active:
+            return self.promotional_price
+        
+        # Check if any size variants are promotional
+        promotional_variants = self.size_variants.filter(
+            is_promotional=True,
+            promotional_price__isnull=False
+        ).filter(
+            models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
+        )
+        
+        if promotional_variants.exists():
+            # Return the lowest promotional price from size variants
+            return min(variant.promotional_price for variant in promotional_variants)
+        
+        return None
+    
+    @property
+    def best_original_price(self):
+        """Get the original price for promotional display."""
+        if self.is_promotional and self.promotional_price and self.is_sale_active:
+            return self.price
+        
+        # Check if any size variants are promotional
+        promotional_variants = self.size_variants.filter(
+            is_promotional=True,
+            promotional_price__isnull=False
+        ).filter(
+            models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
+        )
+        
+        if promotional_variants.exists():
+            # Return the highest original price from promotional size variants
+            return max(variant.price for variant in promotional_variants)
+        
+        return self.price
+    
+    @property
+    def best_discount_percentage(self):
+        """Calculate discount percentage for best promotional price."""
+        promotional_price = self.best_promotional_price
+        original_price = self.best_original_price
+        
+        if promotional_price and original_price and promotional_price < original_price:
+            discount = ((original_price - promotional_price) / original_price) * 100
+            return int(discount)
+        return 0
 
     @property
     def discount_percentage(self) -> int:
@@ -245,6 +313,17 @@ class FurnitureSizeVariant(models.Model):
         verbose_name="Акційна ціна",
         help_text="Акційна ціна для цього розміру (залиште порожнім для використання основної акційної ціни)"
     )
+    is_promotional = models.BooleanField(
+        default=False,
+        verbose_name="Акційний розмір",
+        help_text="Чи є цей розмір акційним незалежно від основного товару"
+    )
+    sale_end_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата закінчення акції розміру",
+        help_text="Коли закінчується акційна пропозиція для цього розміру"
+    )
 
     class Meta:
         db_table = "furniture_size_variants"
@@ -278,9 +357,11 @@ class FurnitureSizeVariant(models.Model):
     @property
     def current_price(self):
         """Get current price (promotional if available, otherwise regular)."""
-        if self.promotional_price is not None:
+        if self.is_promotional and self.promotional_price and self.is_sale_active:
             return self.promotional_price
-        elif self.furniture.is_promotional and self.furniture.promotional_price:
+        elif (self.furniture.is_promotional and 
+              self.furniture.promotional_price and 
+              self.furniture.is_sale_active):
             return self.furniture.promotional_price
         return self.price or 0
 
@@ -298,6 +379,15 @@ class FurnitureSizeVariant(models.Model):
         if self.price and self.current_price:
             return self.current_price < self.price
         return False
+    
+    @property
+    def is_sale_active(self):
+        """Check if the size variant sale is still active based on end date."""
+        if not self.is_promotional or not self.promotional_price:
+            return False
+        if not self.sale_end_date:
+            return True  # Permanent sale (no end date)
+        return timezone.now() < self.sale_end_date
 
 
 class FurnitureVariantImage(models.Model):
