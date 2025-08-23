@@ -1,76 +1,298 @@
 {% extends 'shop/base.html' %}
+{% load cart_filters %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
-        <div class="flex flex-col lg:flex-row">
-            <div class="lg:w-1/4 lg:pr-8 mb-6 lg:mb-0">
-                <h2 class="filter-title">Фільтри</h2>
-                <form method="get">
-                    <!-- Сортування -->
-                    <div class="filter-block">
-                        <div class="filter-label" onclick="toggleDropdown(this)">Сортування за ціною</div>
-                        <div class="filter-options">
-                            <label><input type="radio" name="sort" value="" {% if not current_sort %}checked{% endif %}> За замовчуванням</label>
-                            <label><input type="radio" name="sort" value="price_asc" {% if current_sort == 'price_asc' %}checked{% endif %}> Від дешевого до дорогого</label>
-                            <label><input type="radio" name="sort" value="price_desc" {% if current_sort == 'price_desc' %}checked{% endif %}> Від дорогого до дешевого</label>
-                        </div>
-                    </div>
-
-                    <!-- Фільтри параметрів -->
-                    {% for key, param in filter_options.items %}
-                    <div class="filter-block">
-                        <div class="filter-label" onclick="toggleDropdown(this)">{{ param.label }}</div>
-                        <div class="filter-options">
-                            <label><input type="radio" name="param_{{ key }}" value=""> Усі</label>
-                            {% for value in param.values %}
-                            <label>
-                                <input type="radio" name="param_{{ key }}" value="{{ value }}"
-                                {% for filter_key, filter_value in current_filters %}
-                                    {% if filter_key == 'param_'|add:key and filter_value == value %}checked{% endif %}
-                                {% endfor %}>
-                                {{ value }}
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endfor %}
-
-                    <button type="submit" class="filter-submit">Застосувати фільтри</button>
-                    <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="filter-reset">Скинути фільтри</a>
-                </form>
+        <!-- Header Section -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-brown-500 to-brown-600 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-bold text-brown-800">{{ sub_category.name }}</h1>
             </div>
+            <div class="hidden md:flex items-center gap-2 text-sm text-brown-600">
+                <span>{{ page_obj.paginator.count }} товарів</span>
+                <div class="w-2 h-2 bg-brown-500 rounded-full"></div>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Filters Sidebar -->
+            <div class="lg:w-1/4">
+                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-4">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-brown-800">Фільтри</h2>
+                        <button id="clearAllFilters" class="text-sm text-red-500 hover:text-red-700 transition-colors">
+                            Очистити все
+                        </button>
+                    </div>
+
+                    <form method="get" id="filterForm">
+                        <!-- Price Range Filter -->
+                        <div class="filter-section mb-6">
+                            <div class="filter-header" onclick="toggleFilterSection(this)">
+                                <h3 class="text-lg font-semibold text-brown-700">Діапазон цін</h3>
+                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="filter-content">
+                                <div class="space-y-3">
+                                    <div class="flex gap-2">
+                                        <input type="number" name="min_price" placeholder="Від" 
+                                               value="{{ request.GET.min_price|default:'' }}"
+                                               class="w-full px-3 py-2 border border-beige-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                        <input type="number" name="max_price" placeholder="До" 
+                                               value="{{ request.GET.max_price|default:'' }}"
+                                               class="w-full px-3 py-2 border border-beige-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                    </div>
+                                    <div class="text-xs text-brown-600">
+                                        Ціни в гривнях
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stock Status Filter -->
+                        <div class="filter-section mb-6">
+                            <div class="filter-header" onclick="toggleFilterSection(this)">
+                                <h3 class="text-lg font-semibold text-brown-700">Наявність</h3>
+                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="filter-content">
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox" name="stock_status" value="in_stock" 
+                                               {% if 'in_stock' in request.GET|getlist:'stock_status' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 rounded focus:ring-brown-500">
+                                        <span class="text-brown-700">На складі</span>
+                                        <span class="ml-auto text-xs text-brown-500 bg-green-100 px-2 py-1 rounded-full">✓</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox" name="stock_status" value="on_order" 
+                                               {% if 'on_order' in request.GET|getlist:'stock_status' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 rounded focus:ring-brown-500">
+                                        <span class="text-brown-700">Під замовлення</span>
+                                        <span class="ml-auto text-xs text-brown-500 bg-orange-100 px-2 py-1 rounded-full">⏳</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Promotional Items Filter -->
+                        <div class="filter-section mb-6">
+                            <div class="filter-header" onclick="toggleFilterSection(this)">
+                                <h3 class="text-lg font-semibold text-brown-700">Акційні товари</h3>
+                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="filter-content">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="promotional_only" value="true" 
+                                           {% if request.GET.promotional_only %}checked{% endif %}
+                                           class="w-4 h-4 text-red-600 border-beige-300 rounded focus:ring-red-500">
+                                    <span class="text-brown-700">Тільки акційні</span>
+                                    <span class="ml-auto text-xs text-red-500 bg-red-100 px-2 py-1 rounded-full">🔥</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Sorting -->
+                        <div class="filter-section mb-6">
+                            <div class="filter-header" onclick="toggleFilterSection(this)">
+                                <h3 class="text-lg font-semibold text-brown-700">Сортування</h3>
+                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="filter-content">
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="sort" value="" 
+                                               {% if not current_sort %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">За замовчуванням</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="sort" value="price_asc" 
+                                               {% if current_sort == 'price_asc' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">Від дешевого до дорогого</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="sort" value="price_desc" 
+                                               {% if current_sort == 'price_desc' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">Від дорогого до дешевого</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="sort" value="name_asc" 
+                                               {% if current_sort == 'name_asc' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">За назвою А-Я</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="sort" value="name_desc" 
+                                               {% if current_sort == 'name_desc' %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">За назвою Я-А</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Parameter Filters -->
+                        {% for key, param in filter_options.items %}
+                        <div class="filter-section mb-6">
+                            <div class="filter-header" onclick="toggleFilterSection(this)">
+                                <h3 class="text-lg font-semibold text-brown-700">{{ param.label }}</h3>
+                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="filter-content">
+                                <div class="space-y-2 max-h-48 overflow-y-auto">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="param_{{ key }}" value="" 
+                                               {% if not request.GET|get_item:'param_'|add:key %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">Усі</span>
+                                    </label>
+                                    {% for value in param.values %}
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="radio" name="param_{{ key }}" value="{{ value }}"
+                                               {% if request.GET|get_item:'param_'|add:key == value %}checked{% endif %}
+                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
+                                        <span class="text-brown-700">{{ value }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Filter Actions -->
+                        <div class="space-y-3 pt-4 border-t border-beige-200">
+                            <button type="submit" class="w-full bg-gradient-to-r from-brown-500 to-brown-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-brown-600 hover:to-brown-700 transition-all duration-300 transform hover:scale-105">
+                                Застосувати фільтри
+                            </button>
+                            <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" 
+                               class="block w-full bg-beige-200 text-brown-700 py-3 px-4 rounded-lg text-center font-semibold hover:bg-beige-300 transition-all duration-300">
+                                Скинути фільтри
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
             <div class="lg:w-3/4">
-                <h1 class="text-3xl font-bold text-brown-800 mb-8">{{ sub_category.name }}</h1>
+                <!-- Active Filters Display -->
+                {% if current_filters or request.GET.min_price or request.GET.max_price or request.GET|has_stock_status or request.GET.promotional_only %}
+                <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-brown-700">Активні фільтри:</h3>
+                        <button onclick="clearAllFilters()" class="text-sm text-red-500 hover:text-red-700 transition-colors">
+                            Очистити все
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        {% if request.GET.min_price or request.GET.max_price %}
+                        <span class="bg-brown-100 text-brown-700 px-3 py-1 rounded-full text-sm">
+                            Ціна: {{ request.GET.min_price|default:'0' }} - {{ request.GET.max_price|default:'∞' }} грн
+                        </span>
+                        {% endif %}
+                        {% for status in request.GET|getlist:'stock_status' %}
+                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                            {% if status == 'in_stock' %}На складі{% else %}Під замовлення{% endif %}
+                        </span>
+                        {% endfor %}
+                        {% if request.GET.promotional_only %}
+                        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+                            Тільки акційні
+                        </span>
+                        {% endif %}
+                        {% for filter_key, filter_value in current_filters %}
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                            {{ filter_key|replace:'param_:'|title }}: {{ filter_value }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Products Grid -->
                 {% if page_obj %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for item in page_obj %}
-                            <div class="furniture-card">
-                                {% if item.image %}
-                                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover rounded-t-lg">
-                                {% else %}
-                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center rounded-t-lg">
-                                        <span class="text-brown-500">Немає зображення</span>
+                            <div class="furniture-card bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group relative">
+                                <!-- Image Container -->
+                                <div class="relative overflow-hidden">
+                                    <!-- Promotional Badge -->
+                                    {% if item.is_promotional and item.promotional_price %}
+                                    <div class="promotional-badge">
+                                        -{{ item.discount_percentage|floatformat:0 }}%
                                     </div>
-                                {% endif %}
-                                <div class="p-4">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h2 class="text-xl font-semibold text-brown-800">{{ item.name }}</h2>
-                                        <span class="px-2 py-1 text-xs rounded-full {% if item.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
+                                    {% endif %}
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" alt="{{ item.name }}" 
+                                             class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                                    {% else %}
+                                        <div class="w-full h-56 bg-gradient-to-br from-beige-200 to-beige-300 flex items-center justify-center">
+                                            <svg class="w-16 h-16 text-beige-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Hover Overlay -->
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                                        <div class="p-4 text-white">
+                                            <div class="text-sm font-medium">Переглянути деталі</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Content -->
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h2 class="text-lg font-bold text-brown-800 group-hover:text-brown-600 transition-colors duration-300 line-clamp-2">{{ item.name }}</h2>
+                                        <span class="px-2 py-1 text-xs rounded-full font-medium {% if item.stock_status == 'in_stock' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-orange-100 text-orange-700 border border-orange-200{% endif %}">
                                             {% if item.stock_status == 'in_stock' %}
-                                                На складі
+                                                ✓ На складі
                                             {% else %}
-                                                Під замовлення
+                                                ⏳ Під замовлення
                                             {% endif %}
                                         </span>
                                     </div>
-                                    <p class="text-brown-600 mt-2">{{ item.description|truncatewords:20 }}</p>
-                                    {% if item.is_promotional and item.promotional_price %}
-                                        <p class="text-lg font-bold text-red-600">{{ item.promotional_price|floatformat:0 }} грн</p>
-                                        <p class="text-brown-500 line-through">{{ item.price|floatformat:0 }} грн</p>
-                                    {% else %}
-                                        <p class="text-lg font-bold text-brown-800">{{ item.price|floatformat:0 }} грн</p>
-                                    {% endif %}
+                                    
+                                    <!-- Description -->
+                                    <p class="text-brown-600 text-sm mb-4 line-clamp-3">{{ item.description|truncatewords:15 }}</p>
+                                    
+                                    <!-- Price Section -->
+                                    <div class="space-y-2 mb-4">
+                                        {% if item.is_promotional and item.promotional_price %}
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-2xl font-bold text-red-600">{{ item.promotional_price|floatformat:0 }} грн</span>
+                                                <span class="text-lg text-gray-400 line-through">{{ item.price|floatformat:0 }} грн</span>
+                                            </div>
+                                            <div class="text-sm text-green-600 font-medium">
+                                                Економія: {{ item.price|calculate_savings:item.promotional_price|floatformat:0 }} грн
+                                            </div>
+                                        {% else %}
+                                            <div class="text-2xl font-bold text-brown-800">{{ item.price|floatformat:0 }} грн</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Action Button -->
                                     <div class="mt-4">
-                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="btn-grad">
+                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" 
+                                           class="block bg-gradient-to-r from-brown-500 to-brown-600 text-white py-3 px-4 rounded-lg text-center font-semibold group-hover:from-brown-600 group-hover:to-brown-700 transition-all duration-300 transform group-hover:scale-105">
                                             Деталі
                                         </a>
                                     </div>
@@ -78,35 +300,53 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <!-- Навігація пагінації -->
+                    
+                    <!-- Pagination -->
                     {% if page_obj.has_other_pages %}
-                        <div class="mt-8 flex justify-center space-x-2">
-                            {% if page_obj.has_previous %}
-                                <a href="?page={{ page_obj.previous_page_number }}"
-                                   class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
-                                    Попередня
-                                </a>
-                            {% endif %}
-                            {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                    <span class="px-4 py-2 bg-brown-800 text-white rounded-md">{{ num }}</span>
-                                {% else %}
-                                    <a href="?page={{ num }}"
-                                       class="px-4 py-2 bg-gray-200 text-brown-800 rounded-md hover:bg-beige-700">
-                                        {{ num }}
+                        <div class="mt-12 flex justify-center">
+                            <nav class="flex items-center space-x-2">
+                                {% if page_obj.has_previous %}
+                                    <a href="{% build_url_with_params page_obj.previous_page_number %}"
+                                       class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
+                                        ← Попередня
                                     </a>
                                 {% endif %}
-                            {% endfor %}
-                            {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}"
-                                   class="px-4 py-2 bg-gray-200 text-brown-800 rounded-md hover:bg-beige-700">
-                                    Наступна
-                                </a>
-                            {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <span class="px-4 py-2 bg-brown-500 text-white rounded-lg font-semibold">{{ num }}</span>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <a href="{% build_url_with_params num %}"
+                                           class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
+                                            {{ num }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <a href="{% build_url_with_params page_obj.next_page_number %}"
+                                       class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
+                                        Наступна →
+                                    </a>
+                                {% endif %}
+                            </nav>
                         </div>
                     {% endif %}
                 {% else %}
-                    <p class="text-brown-600">Товарів у цій підкатегорії поки немає.</p>
+                    <!-- Empty State -->
+                    <div class="text-center py-16">
+                        <div class="w-24 h-24 bg-beige-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-12 h-12 text-beige-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-brown-800 mb-2">Товарів не знайдено</h3>
+                        <p class="text-brown-600 mb-6">Спробуйте змінити параметри фільтрів або подивіться інші категорії</p>
+                        <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" 
+                           class="bg-gradient-to-r from-brown-500 to-brown-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-brown-600 hover:to-brown-700 transition-all duration-300">
+                            Скинути фільтри
+                        </a>
+                    </div>
                 {% endif %}
             </div>
         </div>

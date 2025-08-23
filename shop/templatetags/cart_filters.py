@@ -1,4 +1,5 @@
 from django import template
+from django.utils.http import urlencode
 
 register = template.Library()
 
@@ -21,4 +22,59 @@ def calculate_savings(price, promotional_price):
     try:
         return float(price) - float(promotional_price)
     except (ValueError, TypeError):
-        return 0 
+        return 0
+
+@register.filter
+def get_item(dictionary, key):
+    """Get an item from a dictionary by key."""
+    return dictionary.get(key)
+
+@register.filter
+def replace(value, arg):
+    """Replace a substring in a string."""
+    try:
+        old, new = arg.split(':', 1)
+        return value.replace(old, new)
+    except (ValueError, AttributeError):
+        return value
+
+@register.filter
+def has_values(get_dict, key):
+    """Check if a GET parameter has any values."""
+    try:
+        values = get_dict.getlist(key)
+        return len(values) > 0
+    except (AttributeError, TypeError):
+        return False
+
+@register.filter
+def has_stock_status(get_dict):
+    """Check if stock_status parameters exist."""
+    try:
+        values = get_dict.getlist('stock_status')
+        return len(values) > 0
+    except (AttributeError, TypeError):
+        return False
+
+@register.filter
+def getlist(get_dict, key):
+    """Get a list of values for a GET parameter."""
+    try:
+        return get_dict.getlist(key)
+    except (AttributeError, TypeError):
+        return []
+
+@register.simple_tag(takes_context=True)
+def build_url_with_params(context, page_number=None):
+    """Build URL with current parameters and optional page number."""
+    request = context['request']
+    params = request.GET.copy()
+    
+    if page_number is not None:
+        params['page'] = page_number
+    elif 'page' in params:
+        del params['page']
+    
+    if params:
+        return f"?{urlencode(params)}"
+    return "" 
