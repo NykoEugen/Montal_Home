@@ -38,15 +38,9 @@ DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 INTERNAL_IPS = ["127.0.0.1"]
 
-print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-    'https://839e5552db58.ngrok-free.app',
-]
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
 
-print("CSRF_TRUSTED_ORIGINS:", CSRF_TRUSTED_ORIGINS)
 
 # Application definition
 
@@ -71,6 +65,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -106,19 +101,23 @@ WSGI_APPLICATION = "store.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("PGDATABASE"),
+        "USER": os.environ.get("PGUSER"),
+        "PASSWORD": os.environ.get("PGPASSWORD"),
+        "HOST": os.environ.get("PGHOST"),
+        "PORT": os.environ.get("PGPORT", "5432"),
     }
 }
 
 # Use PostgreSQL in production
 if os.getenv("DATABASE_URL"):
     import dj_database_url
-
-    database_url = os.getenv("DATABASE_URL")
-    if database_url:
-        db_config = dj_database_url.parse(database_url)
-        DATABASES["default"].update(db_config)
+    DATABASES["default"] = dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=60,
+        ssl_require=True
+    )
 
 
 # Password validation
@@ -154,15 +153,18 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+# --- Статика (WhiteNoise) ---
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATIC_URL = "static/"
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# --- Медіа в Cloudinary ---
+INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -176,16 +178,15 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-
-# ngrok settings
-USE_X_FORWARDED_HOST = True
-USE_X_FORWARDED_PORT = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
 
 # Session settings
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
-
 # Cache settings
 CACHES = {
     "default": {
@@ -203,23 +204,42 @@ LOGGING = {
             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
     },
     "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose" if DEBUG else "simple",
+        },
         "file": {
-            "level": "INFO",
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "logs" / "django.log",
             "formatter": "verbose",
-        },
+        } if not DEBUG else None,
     },
     "root": {
-        "handlers": ["file"],
+        "handlers": ["console", "file"] if not DEBUG else ["console"],
         "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
     },
 }
 
-# Create logs directory if it doesn't exist
-(BASE_DIR / "logs").mkdir(exist_ok=True)
+# # Create logs directory if it doesn't exist
+# (BASE_DIR / "logs").mkdir(exist_ok=True)
 
 # Application-specific settings
 FURNITURE_PARAM_LABELS = {
