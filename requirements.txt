@@ -11,7 +11,8 @@ psycopg2-binary==2.9.10
 # Image processing
 Pillow==11.2.1
 whitenoise==6.9.0
-django-cloudinary-storage==0.16.0
+django-cloudinary-storage==0.3.0
+cloudinary>=1.41,<2.0
 
 # Environment and configuration
 python-dotenv==1.1.0
