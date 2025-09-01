@@ -708,6 +708,7 @@ li.border-beige-200 {
     border: none !important;
     box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2) !important;
     overflow: hidden !important;
+    background-color: var(--brown-500) !important;
 }
 
 .furniture-card .mt-4 a::before {
@@ -723,12 +724,24 @@ li.border-beige-200 {
 
 .furniture-card .mt-4 a:hover {
     background: linear-gradient(135deg, var(--brown-600), var(--brown-700)) !important;
+    background-color: var(--brown-600) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(90, 65, 55, 0.3) !important;
 }
 
 .furniture-card .mt-4 a:hover::before {
     left: 100%;
+}
+
+/* Force button background override */
+.furniture-card .mt-4 a.bg-gradient-to-r {
+    background: linear-gradient(135deg, var(--brown-500), var(--brown-600)) !important;
+    background-color: var(--brown-500) !important;
+}
+
+.furniture-card .mt-4 a.bg-gradient-to-r:hover {
+    background: linear-gradient(135deg, var(--brown-600), var(--brown-700)) !important;
+    background-color: var(--brown-600) !important;
 }
 
 /* Additional Furniture Card Enhancements */
