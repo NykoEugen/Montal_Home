@@ -583,7 +583,7 @@ li.border-beige-200 {
 }
 
 /* Sale Badge Animation */
-.promo-card .bg-gradient-to-r {
+.promo-card .bg-gradient-to-r.from-red-500 {
     animation: pulse-glow 2s infinite;
 }
 
@@ -659,6 +659,24 @@ li.border-beige-200 {
 .promo-card .bg-gradient-to-r.from-red-500 {
     position: relative;
     overflow: hidden;
+}
+
+/* Ensure action buttons are always visible */
+.furniture-card .bg-gradient-to-r.from-brown-500 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Additional button styling to ensure visibility */
+.furniture-card a[href*="furniture_detail"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
 }
 
 .promo-card .bg-gradient-to-r.from-red-500::before {
