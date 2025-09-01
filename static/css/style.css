@@ -744,6 +744,64 @@ li.border-beige-200 {
     background-color: var(--brown-600) !important;
 }
 
+/* Additional button background fixes */
+.furniture-card .mt-4 a[href*="furniture_detail"] {
+    background: linear-gradient(135deg, var(--brown-500), var(--brown-600)) !important;
+    background-color: var(--brown-500) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.furniture-card .mt-4 a[href*="furniture_detail"]:hover {
+    background: linear-gradient(135deg, var(--brown-600), var(--brown-700)) !important;
+    background-color: var(--brown-600) !important;
+}
+
+/* Most specific override for button background */
+.furniture-card .mt-4 a.block.bg-gradient-to-r {
+    background: linear-gradient(135deg, var(--brown-500), var(--brown-600)) !important;
+    background-color: var(--brown-500) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2) !important;
+}
+
+.furniture-card .mt-4 a.block.bg-gradient-to-r:hover {
+    background: linear-gradient(135deg, var(--brown-600), var(--brown-700)) !important;
+    background-color: var(--brown-600) !important;
+    box-shadow: 0 8px 20px rgba(90, 65, 55, 0.3) !important;
+}
+
+/* Emergency button background fix */
+.furniture-card .mt-6 a,
+.furniture-card .mt-4 a,
+.furniture-card a[href*="furniture_detail"] {
+    background: linear-gradient(135deg, #5a4137, #513b24) !important;
+    background-color: #5a4137 !important;
+    color: white !important;
+    border: none !important;
+    display: block !important;
+    padding: 16px 24px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2) !important;
+    position: relative !important;
+    z-index: 10 !important;
+    overflow: hidden !important;
+}
+
+.furniture-card .mt-6 a:hover,
+.furniture-card .mt-4 a:hover,
+.furniture-card a[href*="furniture_detail"]:hover {
+    background: linear-gradient(135deg, #513b24, #403125) !important;
+    background-color: #513b24 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(90, 65, 55, 0.3) !important;
+}
+
 /* Additional Furniture Card Enhancements */
 .furniture-card h2 {
     transition: color 0.3s ease;
