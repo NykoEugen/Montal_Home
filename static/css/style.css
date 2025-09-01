@@ -453,44 +453,67 @@ li.border-beige-200 {
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
+/* Enhanced Furniture Card Styles */
 .furniture-card {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .furniture-card:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border-color: rgba(90, 65, 55, 0.2);
 }
 
-/* Promotional badge styles */
+.furniture-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brown-500), var(--brown-600));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.furniture-card:hover::before {
+    opacity: 1;
+}
+
+/* Enhanced Promotional Badge Styles */
 .promotional-badge {
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: 16px;
+    left: 16px;
     z-index: 20;
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: white;
-    padding: 6px 12px;
-    border-radius: 9999px;
+    padding: 8px 16px;
+    border-radius: 20px;
     font-size: 0.875rem;
-    font-weight: bold;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transform: rotate(-5deg);
-    animation: pulse-badge 2s infinite;
+    font-weight: 700;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+    transform: rotate(-3deg);
+    animation: pulse-badge 3s ease-in-out infinite;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
 }
 
 @keyframes pulse-badge {
     0%, 100% {
-        transform: rotate(-5deg) scale(1);
+        transform: rotate(-3deg) scale(1);
+        box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
     }
     50% {
-        transform: rotate(-5deg) scale(1.05);
+        transform: rotate(-3deg) scale(1.08);
+        box-shadow: 0 12px 24px rgba(239, 68, 68, 0.4);
     }
 }
 
@@ -501,19 +524,23 @@ li.border-beige-200 {
     height: 224px; /* h-56 equivalent */
 }
 
+/* Legacy button styles - kept for backward compatibility */
 .btn-grad {
     display: inline-block;
-    padding: 10px 20px;
-    border-radius: 6px;
-    background-color: var(--brown-800);
+    padding: 12px 24px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--brown-500), var(--brown-600));
     color: white;
     text-decoration: none;
-    font-weight: 500;
-    box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2);
+    transition: all 0.3s ease;
 }
 
 .btn-grad:hover {
-    background: linear-gradient(to bottom, var(--brown-800), var(--brown-300));
+    background: linear-gradient(135deg, var(--brown-600), var(--brown-700));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(90, 65, 55, 0.3);
 }
 
 /* Enhanced Carousel Styles */
@@ -661,16 +688,7 @@ li.border-beige-200 {
     overflow: hidden;
 }
 
-/* Ensure action buttons are always visible */
-.furniture-card .bg-gradient-to-r.from-brown-500 {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    position: relative !important;
-    z-index: 10 !important;
-}
-
-/* Action button visibility fix */
+/* Enhanced Action Button Styles */
 .furniture-card .mt-4 a {
     display: block !important;
     visibility: visible !important;
@@ -679,6 +697,84 @@ li.border-beige-200 {
     cursor: pointer !important;
     position: relative !important;
     z-index: 10 !important;
+    background: linear-gradient(135deg, var(--brown-500), var(--brown-600)) !important;
+    color: white !important;
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2) !important;
+    overflow: hidden !important;
+}
+
+.furniture-card .mt-4 a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s ease;
+}
+
+.furniture-card .mt-4 a:hover {
+    background: linear-gradient(135deg, var(--brown-600), var(--brown-700)) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(90, 65, 55, 0.3) !important;
+}
+
+.furniture-card .mt-4 a:hover::before {
+    left: 100%;
+}
+
+/* Additional Furniture Card Enhancements */
+.furniture-card h2 {
+    transition: color 0.3s ease;
+}
+
+.furniture-card:hover h2 {
+    color: var(--brown-600) !important;
+}
+
+/* Stock status badge enhancements */
+.furniture-card .bg-green-100,
+.furniture-card .bg-orange-100 {
+    transition: all 0.3s ease;
+}
+
+.furniture-card:hover .bg-green-100 {
+    background-color: #dcfce7 !important;
+    border-color: #16a34a !important;
+}
+
+.furniture-card:hover .bg-orange-100 {
+    background-color: #fed7aa !important;
+    border-color: #ea580c !important;
+}
+
+/* Price animation */
+.furniture-card .text-red-600,
+.furniture-card .text-brown-800 {
+    transition: transform 0.3s ease;
+}
+
+.furniture-card:hover .text-red-600,
+.furniture-card:hover .text-brown-800 {
+    transform: scale(1.05);
+}
+
+/* Savings badge enhancement */
+.furniture-card .bg-green-50 {
+    transition: all 0.3s ease;
+}
+
+.furniture-card:hover .bg-green-50 {
+    background-color: #f0fdf4 !important;
+    transform: scale(1.02);
 }
 
 .promo-card .bg-gradient-to-r.from-red-500::before {
