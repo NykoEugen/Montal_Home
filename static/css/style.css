@@ -677,6 +677,72 @@ li.border-beige-200 {
     opacity: 1 !important;
     text-decoration: none !important;
     cursor: pointer !important;
+    background: #5a4137 !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    margin-top: 16px !important;
+    border: 2px solid #5a4137 !important;
+}
+
+/* Debug styling for action buttons */
+.furniture-card .mt-4 a {
+    background: #5a4137 !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: 2px solid #5a4137 !important;
+}
+
+/* Most specific rule for the action button */
+.furniture-card .mt-4 a[href*="furniture_detail"][class*="bg-gradient-to-r"] {
+    background: #5a4137 !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: 2px solid #5a4137 !important;
+    position: relative !important;
+    z-index: 100 !important;
+    min-height: 48px !important;
+    line-height: 1.5 !important;
+}
+
+/* Emergency button fix - should override everything */
+.furniture-card .mt-4 a {
+    background: #ff0000 !important;
+    color: white !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: 3px solid #ff0000 !important;
+    position: relative !important;
+    z-index: 9999 !important;
+    min-height: 50px !important;
+    line-height: 1.5 !important;
+    margin-top: 10px !important;
+    font-size: 16px !important;
 }
 
 .promo-card .bg-gradient-to-r.from-red-500::before {
