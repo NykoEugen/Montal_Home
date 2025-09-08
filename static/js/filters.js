@@ -46,15 +46,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Toggle filters content
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersContent = document.getElementById('filtersContent');
+    const toggleIcon = filtersToggle.querySelector('svg');
+    
+    if (filtersToggle && filtersContent) {
+        // Start with filters collapsed
+        filtersContent.classList.add('collapsed');
+        toggleIcon.style.transform = "rotate(0deg)";
+        
+        filtersToggle.addEventListener('click', function() {
+            if (filtersContent.classList.contains('collapsed')) {
+                filtersContent.classList.remove('collapsed');
+                filtersContent.classList.add('expanded');
+                toggleIcon.style.transform = "rotate(180deg)";
+            } else {
+                filtersContent.classList.remove('expanded');
+                filtersContent.classList.add('collapsed');
+                toggleIcon.style.transform = "rotate(0deg)";
+            }
+        });
+    }
+    
     // Initialize filter sections
     const filterHeaders = document.querySelectorAll('.filter-header');
     filterHeaders.forEach(header => {
         const content = header.nextElementSibling;
-        // Start with all sections expanded
-        content.style.display = "block";
+        // Start with all sections collapsed
+        content.style.display = "none";
         const icon = header.querySelector('svg');
         if (icon) {
-            icon.style.transform = "rotate(180deg)";
+            icon.style.transform = "rotate(0deg)";
         }
     });
 });
