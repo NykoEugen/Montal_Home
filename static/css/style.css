@@ -201,6 +201,24 @@ select.focus\:border-brown-600:focus {
 li.border-beige-200 {
     border-color: var(--beige-200);
 }
+
+/* Filters Content Animation */
+.filters-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.filters-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.filters-content.expanded {
+    max-height: 2000px;
+    opacity: 1;
+}
 /* Nav link */
 .nav-link {
   font-weight: 300;

@@ -204,16 +204,112 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Thumbnail click to swap main image
+    // Photo gallery navigation functionality
     const mainImg = document.getElementById('main-image');
-    document.querySelectorAll('[data-full]').forEach(function(thumb){
-        thumb.addEventListener('click', function(){
-            const url = this.getAttribute('data-full');
-            if (mainImg && url) {
-                mainImg.src = url;
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const dotIndicators = document.querySelectorAll('.dot-indicator');
+    const thumbnails = document.querySelectorAll('[data-full]');
+    
+    let currentImageIndex = 0;
+    let totalImages = thumbnails.length;
+    
+    // Function to update the main image and indicators
+    function updateMainImage(index) {
+        if (thumbnails.length === 0) return;
+        
+        currentImageIndex = index;
+        const thumbnail = thumbnails[currentImageIndex];
+        const imageUrl = thumbnail.getAttribute('data-full');
+        
+        if (mainImg && imageUrl) {
+            mainImg.src = imageUrl;
+        }
+        
+        // Update dot indicators
+        dotIndicators.forEach((dot, i) => {
+            if (i === currentImageIndex) {
+                dot.classList.remove('bg-brown-300');
+                dot.classList.add('bg-brown-600');
+            } else {
+                dot.classList.remove('bg-brown-600');
+                dot.classList.add('bg-brown-300');
             }
         });
+        
+        // Update thumbnail active state
+        thumbnails.forEach((thumb, i) => {
+            if (i === currentImageIndex) {
+                thumb.classList.add('ring-2', 'ring-brown-500');
+            } else {
+                thumb.classList.remove('ring-2', 'ring-brown-500');
+            }
+        });
+    }
+    
+    // Function to go to previous image
+    function goToPrevious() {
+        if (totalImages === 0) return;
+        const newIndex = currentImageIndex === 0 ? totalImages - 1 : currentImageIndex - 1;
+        updateMainImage(newIndex);
+    }
+    
+    // Function to go to next image
+    function goToNext() {
+        if (totalImages === 0) return;
+        const newIndex = currentImageIndex === totalImages - 1 ? 0 : currentImageIndex + 1;
+        updateMainImage(newIndex);
+    }
+    
+    // Navigation button event listeners
+    if (prevBtn) {
+        prevBtn.addEventListener('click', goToPrevious);
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', goToNext);
+    }
+    
+    // Dot indicator event listeners
+    dotIndicators.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            updateMainImage(index);
+        });
     });
+    
+    // Thumbnail click to swap main image
+    thumbnails.forEach(function(thumb, index){
+        thumb.addEventListener('click', function(){
+            updateMainImage(index);
+        });
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (totalImages <= 1) return;
+        
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            goToPrevious();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            goToNext();
+        }
+    });
+    
+    // Show/hide navigation buttons on hover
+    const galleryContainer = document.querySelector('.relative');
+    if (galleryContainer && totalImages > 1) {
+        galleryContainer.addEventListener('mouseenter', function() {
+            if (prevBtn) prevBtn.style.opacity = '1';
+            if (nextBtn) nextBtn.style.opacity = '1';
+        });
+        
+        galleryContainer.addEventListener('mouseleave', function() {
+            if (prevBtn) prevBtn.style.opacity = '0';
+            if (nextBtn) nextBtn.style.opacity = '0';
+        });
+    }
 
     // Quick buy modal logic
     const qbBtn = document.getElementById('quick-buy-btn');

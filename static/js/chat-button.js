@@ -4,10 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatPopup = document.getElementById('chat-popup');
     const chatClose = document.getElementById('chat-close');
     
-    // Show popup on page load
-    setTimeout(() => {
-        chatPopup.classList.add('show');
-    }, 1000);
+    // Popup will only show when user clicks the button
     
     // Toggle popup on button click
     chatToggle.addEventListener('click', function() {
