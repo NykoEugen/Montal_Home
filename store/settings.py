@@ -116,9 +116,6 @@ DATABASES = {
         "OPTIONS": {
             "connect_timeout": 10,  # Connection timeout in seconds
             "application_name": "montal_home",
-            # Connection pooling and resilience
-            "MAX_CONNS": 20,  # Maximum connections per process
-            "MIN_CONNS": 1,   # Minimum connections to maintain
         }
     }
 }
@@ -126,16 +123,17 @@ DATABASES = {
 # Use PostgreSQL in production with enhanced connection settings
 if os.getenv("DATABASE_URL"):
     import dj_database_url
-    DATABASES["default"] = dj_database_url.parse(
+    db_config = dj_database_url.parse(
         os.environ["DATABASE_URL"],
         conn_max_age=300,  # Increased from 60 to 300 seconds
-        ssl_require=True,
-        # Additional connection options for production
-        options={
-            "connect_timeout": 10,
-            "application_name": "montal_home_prod",
-        }
+        ssl_require=True
     )
+    # Add additional connection options for production
+    db_config["OPTIONS"] = {
+        "connect_timeout": 10,
+        "application_name": "montal_home_prod",
+    }
+    DATABASES["default"] = db_config
 
 
 # Password validation
