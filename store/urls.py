@@ -20,9 +20,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from . import views
+from .admin_utils import admin_connection_status_view, admin_retry_failed_operations_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("admin/connection-status/", admin_connection_status_view, name="admin_connection_status"),
+    path("admin/retry-operations/", admin_retry_failed_operations_view, name="admin_retry_operations"),
     path("health/", views.health_check, name="health_check"),
     path("health/simple/", views.simple_health_check, name="simple_health_check"),
     path("", include("shop.urls", namespace="shop")),
