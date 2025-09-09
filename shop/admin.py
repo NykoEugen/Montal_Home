@@ -9,9 +9,10 @@ from checkout.models import Order, OrderItem
 from furniture.models import Furniture, FurnitureSizeVariant, FurnitureImage, FurnitureVariantImage
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
+from store.admin_utils import ResilientModelAdmin, ResilientInlineAdmin
 
 
-class FurnitureParameterInline(admin.TabularInline):
+class FurnitureParameterInline(ResilientInlineAdmin):
     model = FurnitureParameter
     extra = 0
     fields = ("parameter", "value")
@@ -40,7 +41,7 @@ class FurnitureParameterInline(admin.TabularInline):
         return super().get_formset(request, obj, **kwargs)
 
 
-class FurnitureSizeVariantInline(admin.TabularInline):
+class FurnitureSizeVariantInline(ResilientInlineAdmin):
     """Inline admin for furniture size variants."""
     model = FurnitureSizeVariant
     extra = 1
@@ -78,13 +79,13 @@ class FurnitureSizeVariantInline(admin.TabularInline):
     discount_display.short_description = "Знижка"
 
 
-class FurnitureImageInline(admin.TabularInline):
+class FurnitureImageInline(ResilientInlineAdmin):
     model = FurnitureImage
     extra = 1
     fields = ["image", "alt_text", "position"]
 
 
-class FurnitureVariantImageInline(admin.TabularInline):
+class FurnitureVariantImageInline(ResilientInlineAdmin):
     model = FurnitureVariantImage
     extra = 1
     fields = ('name', 'image', 'link', 'is_default', 'position')
@@ -101,27 +102,27 @@ class FurnitureVariantImageInline(admin.TabularInline):
 
 
 @admin.register(Parameter)
-class ParameterAdmin(admin.ModelAdmin):
+class ParameterAdmin(ResilientModelAdmin):
     list_display = ("key", "label")
     search_fields = ("key", "label")
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ResilientModelAdmin):
     list_display = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     fieldsets = ((None, {"fields": ("name", "slug", "image")}),)
 
 
 @admin.register(SubCategory)
-class SubCategoryAdmin(admin.ModelAdmin):
+class SubCategoryAdmin(ResilientModelAdmin):
     list_display = ["name", "slug", "category"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ("allowed_params",)
 
 
 @admin.register(Furniture)
-class FurnitureAdmin(admin.ModelAdmin):
+class FurnitureAdmin(ResilientModelAdmin):
     list_display = [
         "name",
         "article_code",
@@ -252,7 +253,7 @@ class FurnitureAdmin(admin.ModelAdmin):
     clear_size_variant_promotions.short_description = "Очистити акційні ціни розмірних варіантів"
 
 
-class OrderItemInline(admin.TabularInline):
+class OrderItemInline(ResilientInlineAdmin):
     model = OrderItem
     extra = 0
     fields = ["furniture", "variant_info", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
@@ -303,7 +304,7 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ResilientModelAdmin):
     list_display = [
         "id",
         "customer_name",
@@ -363,7 +364,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
+class OrderItemAdmin(ResilientModelAdmin):
     list_display = [
         "order", "furniture", "quantity", "price_display", 
         "is_promotional", "size_variant_info", "fabric_info", "total_price", "savings_amount"
@@ -439,7 +440,7 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(FurnitureSizeVariant)
-class FurnitureSizeVariantAdmin(admin.ModelAdmin):
+class FurnitureSizeVariantAdmin(ResilientModelAdmin):
     """Admin configuration for FurnitureSizeVariant model."""
     list_display = [
         'furniture', 'dimensions', 'price', 'is_promotional', 'promotional_price', 'sale_end_date', 'current_price', 'discount_percentage', 'is_on_sale', 'is_foldable'

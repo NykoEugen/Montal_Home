@@ -66,12 +66,15 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "store.middleware.ConnectionResilienceMiddleware",  # Connection resilience
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "store.middleware.PostRequestResilienceMiddleware",  # POST request resilience
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "store.middleware.AdminConnectionMonitorMiddleware",  # Admin connection monitoring
 ]
 
 ROOT_URLCONF = "store.urls"
@@ -107,16 +110,31 @@ DATABASES = {
         "PASSWORD": os.environ.get("PGPASSWORD"),
         "HOST": os.environ.get("PGHOST"),
         "PORT": os.environ.get("PGPORT", "5432"),
+        # Connection optimization settings
+        "CONN_MAX_AGE": 300,  # Keep connections alive for 5 minutes
+        "CONN_HEALTH_CHECKS": True,  # Enable connection health checks
+        "OPTIONS": {
+            "connect_timeout": 10,  # Connection timeout in seconds
+            "application_name": "montal_home",
+            # Connection pooling and resilience
+            "MAX_CONNS": 20,  # Maximum connections per process
+            "MIN_CONNS": 1,   # Minimum connections to maintain
+        }
     }
 }
 
-# Use PostgreSQL in production
+# Use PostgreSQL in production with enhanced connection settings
 if os.getenv("DATABASE_URL"):
     import dj_database_url
     DATABASES["default"] = dj_database_url.parse(
         os.environ["DATABASE_URL"],
-        conn_max_age=60,
-        ssl_require=True
+        conn_max_age=300,  # Increased from 60 to 300 seconds
+        ssl_require=True,
+        # Additional connection options for production
+        options={
+            "connect_timeout": 10,
+            "application_name": "montal_home_prod",
+        }
     )
 
 
@@ -193,19 +211,38 @@ if not DEBUG:
     USE_X_FORWARDED_HOST = True
     USE_X_FORWARDED_PORT = True
 
-# Session settings
+# Session settings with enhanced resilience
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request for better persistence
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# CSRF settings with enhanced security
 CSRF_COOKIE_SECURE = not DEBUG
-# Cache settings
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = True  # Store CSRF token in session for better reliability
+
+# Enhanced cache settings with fallback
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "unique-snowflake",
+        "TIMEOUT": 300,  # 5 minutes default timeout
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+            "CULL_FREQUENCY": 3,
+        }
+    },
+    # Fallback cache for critical operations
+    "fallback": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
 
-# Logging configuration
+# Enhanced logging configuration for connection monitoring
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -214,15 +251,41 @@ LOGGING = {
             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs" / "django.log",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django.db.backends": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",  # Log database connection issues
+            "propagate": False,
+        },
+        "django.db": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "store.connection": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "file"],
         "level": "INFO",
     },
 }
@@ -265,3 +328,28 @@ CARGO_WAREHOUSE_REF = "9a68df70-0267-42a8-bb5c-37f427e36ee4"
 
 # Pagination settings
 ITEMS_PER_PAGE = 9
+
+# Connection resilience and retry settings
+CONNECTION_RESILIENCE = {
+    "MAX_RETRIES": 3,
+    "RETRY_DELAY": 1,  # seconds
+    "EXPONENTIAL_BACKOFF": True,
+    "CIRCUIT_BREAKER_THRESHOLD": 5,  # failures before circuit opens
+    "CIRCUIT_BREAKER_TIMEOUT": 60,  # seconds before trying again
+}
+
+# Admin panel specific settings for graceful reconnects
+ADMIN_CONNECTION_SETTINGS = {
+    "ENABLE_AUTO_RECONNECT": True,
+    "CONNECTION_TIMEOUT": 30,  # seconds
+    "RETRY_ATTEMPTS": 3,
+    "FALLBACK_MODE": True,  # Enable fallback for critical operations
+}
+
+# POST request resilience settings
+POST_REQUEST_RESILIENCE = {
+    "ENABLE_RETRY": True,
+    "MAX_RETRIES": 2,
+    "RETRY_DELAY": 0.5,  # seconds
+    "SAVE_DRAFT_ON_FAILURE": True,  # Save form data on connection failure
+}

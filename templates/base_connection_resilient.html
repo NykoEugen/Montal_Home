@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Montal Home{% endblock %}</title>
+    
+    <!-- Connection Resilience CSS -->
+    <style>
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            z-index: 9999;
+            font-family: monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .connection-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .connection-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .connection-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .retry-button {
+            margin-left: 10px;
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid #007bff;
+            background: transparent;
+            color: #007bff;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .retry-button:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .connection-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .connection-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .draft-restored {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Connection Status Indicator -->
+    <div id="connection-indicator" class="connection-status connected">
+        DB: connected
+    </div>
+    
+    <!-- Connection Notifications Container -->
+    <div id="connection-notifications"></div>
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Connection Resilience JavaScript -->
+    <script src="{% static 'js/connection-resilience.js' %}"></script>
+    
+    <!-- Admin-specific connection monitoring -->
+    {% if request.path|slice:":7" == "/admin/" %}
+    <script>
+        // Enhanced admin connection monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            // Monitor admin form submissions
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    // Save form data before submission
+                    if (window.connectionResilience) {
+                        window.connectionResilience.saveFormData(form);
+                    }
+                });
+            });
+            
+            // Add connection status to admin pages
+            const adminHeader = document.querySelector('.breadcrumbs, .module h2');
+            if (adminHeader && window.connectionResilience) {
+                const statusDiv = document.createElement('div');
+                statusDiv.id = 'admin-connection-status';
+                statusDiv.style.cssText = 'float: right; margin-top: 5px;';
+                adminHeader.appendChild(statusDiv);
+                
+                // Update status periodically
+                setInterval(() => {
+                    window.connectionResilience.checkConnectionHealth();
+                }, 10000);
+            }
+        });
+    </script>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
