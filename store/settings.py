@@ -241,6 +241,7 @@ CACHES = {
 }
 
 # Enhanced logging configuration for connection monitoring
+# Production-friendly logging (console only for Heroku)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -259,37 +260,47 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
-        "file": {
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "logs" / "django.log",
-            "formatter": "verbose",
-        },
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["console", "file"],
+            "handlers": ["console"],
             "level": "WARNING",  # Log database connection issues
             "propagate": False,
         },
         "django.db": {
-            "handlers": ["console", "file"],
+            "handlers": ["console"],
             "level": "WARNING",
             "propagate": False,
         },
         "store.connection": {
-            "handlers": ["console", "file"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
     },
     "root": {
-        "handlers": ["console", "file"],
+        "handlers": ["console"],
         "level": "INFO",
     },
 }
 
-# # Create logs directory if it doesn't exist
-# (BASE_DIR / "logs").mkdir(exist_ok=True)
+# Add file logging only in development
+if DEBUG and not os.getenv("DATABASE_URL"):
+    # Create logs directory if it doesn't exist (development only)
+    logs_dir = BASE_DIR / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    
+    # Only add file logging in development when not using DATABASE_URL (production)
+    LOGGING["handlers"]["file"] = {
+        "class": "logging.FileHandler",
+        "filename": logs_dir / "django.log",
+        "formatter": "verbose",
+    }
+    
+    # Add file handler to all loggers in development
+    for logger_name in LOGGING["loggers"]:
+        LOGGING["loggers"][logger_name]["handlers"].append("file")
+    LOGGING["root"]["handlers"].append("file")
 
 # Application-specific settings
 FURNITURE_PARAM_LABELS = {
