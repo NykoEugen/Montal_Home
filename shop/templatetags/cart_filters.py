@@ -65,58 +65,14 @@ def getlist(get_dict, key):
         return []
 
 @register.simple_tag(takes_context=True)
-def pagination_url(context, page_number):
-    """Generate clean pagination URL with current parameters and new page number."""
-    request = context['request']
-    params = request.GET.copy()
-    
-    # Remove existing page parameter to avoid duplication
-    if 'page' in params:
-        del params['page']
-    
-    # Ensure page_number is a clean integer/string
-    try:
-        # Handle case where page_number might be a list or other type
-        if isinstance(page_number, list):
-            page_number = page_number[0] if page_number else 1
-        page_number = str(int(page_number))
-    except (ValueError, TypeError):
-        page_number = '1'
-    
-    # Add new page number
-    params['page'] = page_number
-    
-    # Generate clean URL
-    query_string = params.urlencode()
-    if query_string:
-        return f"?{query_string}"
-    return f"?page={page_number}"
-
-@register.simple_tag(takes_context=True)
-def clean_pagination_url(context, page_number):
-    """Generate completely clean pagination URL with current parameters and new page number."""
-    request = context['request']
-    
-    # Create a new clean QueryDict
-    clean_params = {}
-    
-    # Copy only the parameters we want to keep
-    for key, value in request.GET.items():
-        # Skip page parameter
-        if key == 'page':
-            continue
-        
-        # Handle single values (not lists)
-        if isinstance(value, list):
-            if value:  # Only add if list is not empty
-                clean_params[key] = value[0]  # Take first value
-        else:
-            clean_params[key] = value
-    
-    # Add new page number
-    clean_params['page'] = str(page_number)
-    
-    # Generate clean URL
-    from urllib.parse import urlencode
-    query_string = urlencode(clean_params)
-    return f"?{query_string}" if query_string else f"?page={page_number}"
+def page_url(context, page_number):
+    """
+    Повертає URL з поточними GET-параметрами, але з оновленим page.
+    Усуває дублікати page та коректно кодує мульти-значення.
+    """
+    request = context["request"]
+    params = request.GET.copy()     # QueryDict (mutable copy)
+    # Примусово ставимо один page (не список)
+    params.setlist("page", [str(int(page_number)) if str(page_number).isdigit() else "1"])
+    qs = params.urlencode()         # правильне кодування для QueryDict
+    return f"?{qs}" if qs else "?page=1"
