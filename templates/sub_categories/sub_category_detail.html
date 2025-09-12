@@ -308,7 +308,7 @@
                         <div class="mt-12 flex justify-center">
                             <nav class="flex items-center space-x-2">
                                 {% if page_obj.has_previous %}
-                                    <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                                    <a href="{% pagination_url page_obj.previous_page_number %}"
                                        class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
                                         ← Попередня
                                     </a>
@@ -318,7 +318,7 @@
                                     {% if page_obj.number == num %}
                                         <span class="px-4 py-2 bg-brown-500 text-white rounded-lg font-semibold">{{ num }}</span>
                                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                        <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}"
+                                        <a href="{% pagination_url num %}"
                                            class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
                                             {{ num }}
                                         </a>
@@ -326,7 +326,7 @@
                                 {% endfor %}
                                 
                                 {% if page_obj.has_next %}
-                                    <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
+                                    <a href="{% pagination_url page_obj.next_page_number %}"
                                        class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
                                         Наступна →
                                     </a>
