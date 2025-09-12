@@ -24,6 +24,12 @@ def sub_categories_details(
     min_price = request.GET.get("min_price")
     max_price = request.GET.get("max_price")
     
+    # Handle potential list values
+    if isinstance(min_price, list):
+        min_price = min_price[0] if min_price else None
+    if isinstance(max_price, list):
+        max_price = max_price[0] if max_price else None
+    
     if min_price:
         try:
             min_price = float(min_price)
@@ -45,6 +51,8 @@ def sub_categories_details(
 
     # Promotional items filtering
     promotional_only = request.GET.get("promotional_only")
+    if isinstance(promotional_only, list):
+        promotional_only = promotional_only[0] if promotional_only else None
     if promotional_only:
         furniture = furniture.filter(is_promotional=True, promotional_price__isnull=False)
 
@@ -53,7 +61,12 @@ def sub_categories_details(
     for param in sub_category.allowed_params.all():
         param_key = f"param_{param.key}"
         if param_key in request.GET and request.GET[param_key]:
-            parameter_filters.append((param_key, request.GET[param_key]))
+            param_value = request.GET[param_key]
+            # Handle potential list values
+            if isinstance(param_value, list):
+                param_value = param_value[0] if param_value else None
+            if param_value:
+                parameter_filters.append((param_key, param_value))
 
     # Apply parameter filters
     for param_key, value in parameter_filters:
@@ -64,6 +77,9 @@ def sub_categories_details(
 
     # Sorting
     sort = request.GET.get("sort", "")
+    if isinstance(sort, list):
+        sort = sort[0] if sort else ""
+    
     if sort == "price_asc":
         furniture = furniture.order_by("price")
     elif sort == "price_desc":
@@ -78,7 +94,12 @@ def sub_categories_details(
 
     # Pagination
     paginator = Paginator(furniture, 12)  # 12 items per page
+    
+    # Get page number, handling potential list values
     page_number = request.GET.get("page")
+    if isinstance(page_number, list):
+        page_number = page_number[0] if page_number else None
+    
     page_obj = paginator.get_page(page_number)
 
     # Prepare filter options
