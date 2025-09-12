@@ -63,3 +63,20 @@ def getlist(get_dict, key):
         return get_dict.getlist(key)
     except (AttributeError, TypeError):
         return []
+
+@register.simple_tag(takes_context=True)
+def pagination_url(context, page_number):
+    """Generate clean pagination URL with current parameters and new page number."""
+    request = context['request']
+    params = request.GET.copy()
+    
+    # Remove existing page parameter to avoid duplication
+    if 'page' in params:
+        del params['page']
+    
+    # Add new page number
+    params['page'] = page_number
+    
+    if params:
+        return f"?{params.urlencode()}"
+    return f"?page={page_number}"
