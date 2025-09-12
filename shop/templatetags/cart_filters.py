@@ -71,7 +71,19 @@ def build_url_with_params(context, page_number=None):
     params = request.GET.copy()
     
     if page_number is not None:
-        params['page'] = page_number
+        # Ensure page_number is a string, not a list
+        if isinstance(page_number, list):
+            page_number = page_number[0] if page_number else 1
+        
+        # Convert to string and ensure it's a valid page number
+        try:
+            page_number = int(page_number)
+            if page_number < 1:
+                page_number = 1
+        except (ValueError, TypeError):
+            page_number = 1
+            
+        params['page'] = str(page_number)
     elif 'page' in params:
         del params['page']
     
@@ -84,7 +96,20 @@ def build_pagination_url(context, page_number):
     """Build pagination URL with current parameters."""
     request = context['request']
     params = request.GET.copy()
-    params['page'] = page_number
+    
+    # Ensure page_number is a string, not a list
+    if isinstance(page_number, list):
+        page_number = page_number[0] if page_number else 1
+    
+    # Convert to string and ensure it's a valid page number
+    try:
+        page_number = int(page_number)
+        if page_number < 1:
+            page_number = 1
+    except (ValueError, TypeError):
+        page_number = 1
+    
+    params['page'] = str(page_number)
     
     if params:
         return f"?{urlencode(params)}"
