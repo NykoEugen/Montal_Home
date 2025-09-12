@@ -77,20 +77,8 @@ def sub_categories_details(
         furniture = furniture.order_by("-is_promotional", "name")
 
     # Pagination
-    paginator = Paginator(furniture, 12)  # Increased items per page
+    paginator = Paginator(furniture, 12)  # 12 items per page
     page_number = request.GET.get("page")
-    
-    # Ensure page_number is properly handled
-    if page_number:
-        try:
-            page_number = int(page_number)
-            if page_number < 1:
-                page_number = 1
-        except (ValueError, TypeError):
-            page_number = 1
-    else:
-        page_number = 1
-    
     page_obj = paginator.get_page(page_number)
 
     # Prepare filter options
