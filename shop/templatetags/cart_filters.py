@@ -77,4 +77,15 @@ def build_url_with_params(context, page_number=None):
     
     if params:
         return f"?{urlencode(params)}"
-    return "" 
+    return ""
+
+@register.simple_tag(takes_context=True)
+def build_pagination_url(context, page_number):
+    """Build pagination URL with current parameters."""
+    request = context['request']
+    params = request.GET.copy()
+    params['page'] = page_number
+    
+    if params:
+        return f"?{urlencode(params)}"
+    return f"?page={page_number}" 
