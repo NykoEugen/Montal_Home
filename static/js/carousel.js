@@ -7,9 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!carousel || !items || items.length === 0) return;
 
-    // Initialize countdown timers
-    initializeCountdownTimers();
-
     // Calculate items per slide based on screen size
     function getItemsPerSlide() {
         if (window.innerWidth >= 1024) return 3; // Desktop
@@ -261,6 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     updateCarousel();
     startAutoPlay();
+    
+    // Initialize countdown timers
+    initializeCountdownTimers();
 
     // Add loading animation
     carousel.style.opacity = '0';
