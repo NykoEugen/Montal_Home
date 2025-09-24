@@ -135,6 +135,36 @@
         console.log('Inline script in home.html loaded!');
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Inline DOMContentLoaded fired!');
+            
+            // Check if carousel elements exist
+            const carousel = document.getElementById('promoCarousel');
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            const testPrevButton = document.getElementById('testPrevButton');
+            const testNextButton = document.getElementById('testNextButton');
+            
+            console.log('Elements check:', {
+                carousel: !!carousel,
+                prevButton: !!prevButton,
+                nextButton: !!nextButton,
+                testPrevButton: !!testPrevButton,
+                testNextButton: !!testNextButton
+            });
+            
+            // Add simple click handlers to test buttons
+            if (testPrevButton) {
+                testPrevButton.addEventListener('click', function() {
+                    console.log('Test Prev button clicked!');
+                    alert('Test Prev clicked!');
+                });
+            }
+            
+            if (testNextButton) {
+                testNextButton.addEventListener('click', function() {
+                    console.log('Test Next button clicked!');
+                    alert('Test Next clicked!');
+                });
+            }
         });
     </script>
 
