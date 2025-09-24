@@ -1,13 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, looking for carousel elements...');
+    
     const carousel = document.getElementById('promoCarousel');
     const prevButton = document.getElementById('prevButton');
     const nextButton = document.getElementById('nextButton');
     const items = carousel?.children;
     const indicators = document.querySelectorAll('.carousel-indicator');
     
-    if (!carousel) return;
+    console.log('Found elements:', {
+        carousel: !!carousel,
+        prevButton: !!prevButton,
+        nextButton: !!nextButton,
+        itemsCount: items ? items.length : 0,
+        indicatorsCount: indicators.length
+    });
     
-    if (!items || items.length === 0) return;
+    if (!carousel) {
+        console.log('Carousel not found');
+        return;
+    }
+    
+    if (!items || items.length === 0) {
+        console.log('No carousel items found');
+        return;
+    }
+    
+    console.log('Carousel initialized successfully');
 
     // Calculate items per slide based on screen size
     function getItemsPerSlide() {
@@ -131,17 +149,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Event listeners
-    nextButton?.addEventListener('click', (e) => {
-        e.preventDefault();
-        nextSlide();
-        resetAutoPlay();
-    });
+    if (nextButton) {
+        console.log('Adding click listener to next button');
+        nextButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Next button clicked!');
+            nextSlide();
+            resetAutoPlay();
+        });
+    } else {
+        console.log('Next button not found!');
+    }
 
-    prevButton?.addEventListener('click', (e) => {
-        e.preventDefault();
-        prevSlide();
-        resetAutoPlay();
-    });
+    if (prevButton) {
+        console.log('Adding click listener to prev button');
+        prevButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Prev button clicked!');
+            prevSlide();
+            resetAutoPlay();
+        });
+    } else {
+        console.log('Prev button not found!');
+    }
 
     // Indicator clicks
     indicators.forEach((indicator, index) => {
@@ -263,6 +293,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize countdown timers
     initializeCountdownTimers();
+    
+    // Test buttons for debugging
+    const testPrevButton = document.getElementById('testPrevButton');
+    const testNextButton = document.getElementById('testNextButton');
+    
+    if (testPrevButton) {
+        testPrevButton.addEventListener('click', () => {
+            console.log('Test prev button clicked');
+            prevSlide();
+        });
+    }
+    
+    if (testNextButton) {
+        testNextButton.addEventListener('click', () => {
+            console.log('Test next button clicked');
+            nextSlide();
+        });
+    }
 
     // Add loading animation
     carousel.style.opacity = '0';
