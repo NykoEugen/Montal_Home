@@ -20,8 +20,28 @@ class PromotionalCarousel {
     }
     
     init() {
+        console.log('=== PromotionalCarousel INIT ===');
+        console.log('Carousel element:', this.carousel);
+        console.log('Prev button:', this.prevButton);
+        console.log('Next button:', this.nextButton);
+        console.log('Indicators count:', this.indicators.length);
+        console.log('Items count:', this.items?.length);
+        
+        if (this.items && this.items.length > 0) {
+            console.log('Items found:', Array.from(this.items).map((item, index) => {
+                const title = item.querySelector('h3')?.textContent || 'No title';
+                return `${index + 1}. ${title}`;
+            }));
+            console.log(`Total items loaded: ${this.items.length}`);
+        }
+        
         if (!this.carousel || !this.items || this.items.length === 0) {
-            console.log('Carousel elements not found');
+            console.error('Carousel elements not found - carousel:', !!this.carousel, 'items:', this.items?.length);
+            return;
+        }
+        
+        if (!this.prevButton || !this.nextButton) {
+            console.error('Navigation buttons not found - prev:', !!this.prevButton, 'next:', !!this.nextButton);
             return;
         }
         
@@ -34,21 +54,31 @@ class PromotionalCarousel {
     }
     
     setupEventListeners() {
+        console.log('Setting up event listeners...');
+        
         // Navigation buttons
         if (this.prevButton) {
+            console.log('Adding click listener to previous button');
             this.prevButton.addEventListener('click', (e) => {
+                console.log('Previous button clicked!');
                 e.preventDefault();
                 this.prevSlide();
                 this.resetAutoPlay();
             });
+        } else {
+            console.error('Previous button not found for event listener');
         }
         
         if (this.nextButton) {
+            console.log('Adding click listener to next button');
             this.nextButton.addEventListener('click', (e) => {
+                console.log('Next button clicked!');
                 e.preventDefault();
                 this.nextSlide();
                 this.resetAutoPlay();
             });
+        } else {
+            console.error('Next button not found for event listener');
         }
         
         // Indicator clicks
@@ -86,19 +116,41 @@ class PromotionalCarousel {
     }
     
     getItemsPerSlide() {
-        if (window.innerWidth >= 1024) return 3; // Desktop
-        if (window.innerWidth >= 768) return 2;  // Tablet
-        return 1; // Mobile
+        let itemsPerSlide;
+        if (window.innerWidth >= 1024) {
+            itemsPerSlide = 3; // Desktop
+        } else if (window.innerWidth >= 768) {
+            itemsPerSlide = 2;  // Tablet
+        } else {
+            itemsPerSlide = 1; // Mobile
+        }
+        
+        console.log('getItemsPerSlide:', {
+            windowWidth: window.innerWidth,
+            itemsPerSlide
+        });
+        
+        return itemsPerSlide;
     }
     
     updateCarousel() {
-        if (this.isTransitioning) return;
-        
         const itemsPerSlide = this.getItemsPerSlide();
         const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         const slideWidth = 100 / itemsPerSlide;
+        const translateX = this.currentIndex * slideWidth;
         
-        this.carousel.style.transform = `translateX(-${this.currentIndex * slideWidth}%)`;
+        console.log('updateCarousel:', {
+            itemsPerSlide,
+            totalSlides,
+            slideWidth,
+            currentIndex: this.currentIndex,
+            translateX,
+            totalItems: this.items.length,
+            isTransitioning: this.isTransitioning,
+            itemsList: Array.from(this.items).map(item => item.textContent?.trim().substring(0, 30))
+        });
+        
+        this.carousel.style.transform = `translateX(-${translateX}%)`;
         this.updateIndicators();
         this.updateButtonStates();
     }
@@ -107,21 +159,48 @@ class PromotionalCarousel {
         const itemsPerSlide = this.getItemsPerSlide();
         const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
-        this.indicators.forEach((indicator, index) => {
-            if (index < totalSlides) {
-                indicator.style.display = 'block';
-                if (index === this.currentIndex) {
-                    indicator.classList.add('bg-white');
-                    indicator.classList.remove('bg-white/50');
-                    indicator.style.transform = 'scale(1.2)';
-                } else {
-                    indicator.classList.remove('bg-white');
-                    indicator.classList.add('bg-white/50');
-                    indicator.style.transform = 'scale(1)';
-                }
-            } else {
-                indicator.style.display = 'none';
+        // Generate indicators container if it doesn't exist
+        let indicatorsContainer = document.getElementById('carousel-indicators');
+        if (!indicatorsContainer) {
+            console.log('Indicators container not found, creating...');
+            indicatorsContainer = document.createElement('div');
+            indicatorsContainer.id = 'carousel-indicators';
+            indicatorsContainer.className = 'absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2';
+            
+            const carouselWrapper = this.carousel.closest('.carousel-wrapper');
+            if (carouselWrapper) {
+                carouselWrapper.appendChild(indicatorsContainer);
             }
+        }
+        
+        // Clear existing indicators
+        indicatorsContainer.innerHTML = '';
+        
+        // Create indicators for each slide
+        for (let i = 0; i < totalSlides; i++) {
+            const indicator = document.createElement('div');
+            indicator.className = 'carousel-indicator w-2 h-2 rounded-full bg-white/50 transition-all duration-300 cursor-pointer';
+            indicator.addEventListener('click', () => {
+                this.goToSlide(i);
+                this.resetAutoPlay();
+            });
+            
+            if (i === this.currentIndex) {
+                indicator.classList.add('bg-white');
+                indicator.classList.remove('bg-white/50');
+                indicator.style.transform = 'scale(1.2)';
+            }
+            
+            indicatorsContainer.appendChild(indicator);
+        }
+        
+        // Update indicators reference
+        this.indicators = indicatorsContainer.querySelectorAll('.carousel-indicator');
+        
+        console.log('Indicators updated:', {
+            totalSlides,
+            currentIndex: this.currentIndex,
+            indicatorsCount: this.indicators.length
         });
     }
     
@@ -129,53 +208,82 @@ class PromotionalCarousel {
         const itemsPerSlide = this.getItemsPerSlide();
         const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
-        // Update button disabled states
-        this.prevButton.disabled = this.currentIndex === 0;
-        this.nextButton.disabled = this.currentIndex === totalSlides - 1;
+        console.log('updateButtonStates (cyclic):', {
+            itemsPerSlide,
+            totalSlides,
+            currentIndex: this.currentIndex,
+            totalItems: this.items.length,
+            cyclicMode: true
+        });
         
-        // Visual feedback for disabled state
-        if (this.prevButton.disabled) {
-            this.prevButton.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            this.prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
+        // In cyclic mode, buttons are always enabled
+        this.prevButton.disabled = false;
+        this.nextButton.disabled = false;
         
-        if (this.nextButton.disabled) {
-            this.nextButton.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            this.nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
+        // Remove any disabled styling
+        this.prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        this.nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
     }
     
     nextSlide() {
-        if (this.isTransitioning) return;
+        console.log('nextSlide called, isTransitioning:', this.isTransitioning);
+        if (this.isTransitioning) {
+            console.log('Already transitioning, skipping');
+            return;
+        }
         
         const itemsPerSlide = this.getItemsPerSlide();
         const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
+        console.log('Items per slide:', itemsPerSlide, 'Total slides:', totalSlides, 'Current index:', this.currentIndex);
         
         this.isTransitioning = true;
-        this.currentIndex = (this.currentIndex + 1) % totalSlides;
         
+        // Cyclic navigation - go to next slide or back to first
+        if (this.currentIndex >= totalSlides - 1) {
+            this.currentIndex = 0; // Go back to first slide
+            console.log('Reached last slide, going back to first slide');
+        } else {
+            this.currentIndex++;
+            console.log('Moving to next slide');
+        }
+        
+        console.log('New current index:', this.currentIndex);
         this.updateCarousel();
         
         setTimeout(() => {
             this.isTransitioning = false;
+            console.log('Transition completed');
         }, 700);
     }
     
     prevSlide() {
-        if (this.isTransitioning) return;
+        console.log('prevSlide called, isTransitioning:', this.isTransitioning);
+        if (this.isTransitioning) {
+            console.log('Already transitioning, skipping');
+            return;
+        }
         
         const itemsPerSlide = this.getItemsPerSlide();
         const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
+        console.log('Items per slide:', itemsPerSlide, 'Total slides:', totalSlides, 'Current index:', this.currentIndex);
         
         this.isTransitioning = true;
-        this.currentIndex = (this.currentIndex - 1 + totalSlides) % totalSlides;
         
+        // Cyclic navigation - go to previous slide or to last
+        if (this.currentIndex <= 0) {
+            this.currentIndex = totalSlides - 1; // Go to last slide
+            console.log('Reached first slide, going to last slide');
+        } else {
+            this.currentIndex--;
+            console.log('Moving to previous slide');
+        }
+        
+        console.log('New current index:', this.currentIndex);
         this.updateCarousel();
         
         setTimeout(() => {
             this.isTransitioning = false;
+            console.log('Transition completed');
         }, 700);
     }
     
@@ -276,5 +384,169 @@ class PromotionalCarousel {
 // Initialize carousel when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing promotional carousel...');
-    new PromotionalCarousel();
+    
+    // Try to initialize the carousel
+    try {
+        const carousel = new PromotionalCarousel();
+        console.log('Carousel instance created:', carousel);
+    } catch (error) {
+        console.error('Error initializing carousel:', error);
+        
+        // Fallback: Simple button functionality
+        console.log('Setting up fallback carousel functionality...');
+        setupFallbackCarousel();
+    }
 });
+
+// Fallback carousel functionality
+function setupFallbackCarousel() {
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const carousel = document.getElementById('promoCarousel');
+    
+    if (!prevButton || !nextButton || !carousel) {
+        console.error('Fallback: Required elements not found');
+        return;
+    }
+    
+    let currentIndex = 0;
+    const items = carousel.children;
+    
+    if (items.length === 0) {
+        console.log('Fallback: No items found');
+        return;
+    }
+    
+    function getItemsPerSlide() {
+        if (window.innerWidth >= 1024) return 3;
+        if (window.innerWidth >= 768) return 2;
+        return 1;
+    }
+    
+    function updateCarousel() {
+        const itemsPerSlide = getItemsPerSlide();
+        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        const slideWidth = 100 / itemsPerSlide;
+        const translateX = currentIndex * slideWidth;
+        
+        console.log('Fallback updateCarousel:', {
+            itemsPerSlide,
+            totalSlides,
+            currentIndex,
+            translateX,
+            prevDisabled: currentIndex === 0,
+            nextDisabled: currentIndex === totalSlides - 1
+        });
+        
+        carousel.style.transform = `translateX(-${translateX}%)`;
+        
+        // In cyclic mode, buttons are always enabled
+        prevButton.disabled = false;
+        nextButton.disabled = false;
+        
+        // Remove any disabled styling
+        prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        // Update indicators
+        updateIndicators();
+    }
+    
+    function updateIndicators() {
+        const itemsPerSlide = getItemsPerSlide();
+        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        
+        // Generate indicators container if it doesn't exist
+        let indicatorsContainer = document.getElementById('carousel-indicators');
+        if (!indicatorsContainer) {
+            console.log('Fallback: Indicators container not found, creating...');
+            indicatorsContainer = document.createElement('div');
+            indicatorsContainer.id = 'carousel-indicators';
+            indicatorsContainer.className = 'absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2';
+            
+            const carouselWrapper = carousel.closest('.carousel-wrapper');
+            if (carouselWrapper) {
+                carouselWrapper.appendChild(indicatorsContainer);
+            }
+        }
+        
+        // Clear existing indicators
+        indicatorsContainer.innerHTML = '';
+        
+        // Create indicators for each slide
+        for (let i = 0; i < totalSlides; i++) {
+            const indicator = document.createElement('div');
+            indicator.className = 'carousel-indicator w-2 h-2 rounded-full bg-white/50 transition-all duration-300 cursor-pointer';
+            indicator.addEventListener('click', () => {
+                currentIndex = i;
+                updateCarousel();
+            });
+            
+            if (i === currentIndex) {
+                indicator.classList.add('bg-white');
+                indicator.classList.remove('bg-white/50');
+                indicator.style.transform = 'scale(1.2)';
+            }
+            
+            indicatorsContainer.appendChild(indicator);
+        }
+        
+        console.log('Fallback indicators updated:', {
+            totalSlides,
+            currentIndex,
+            indicatorsCount: totalSlides
+        });
+    }
+    
+    prevButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemsPerSlide = getItemsPerSlide();
+        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        
+        console.log('Fallback prevButton click (cyclic):', {
+            itemsPerSlide,
+            totalSlides,
+            currentIndex
+        });
+        
+        // Cyclic navigation - go to previous slide or to last
+        if (currentIndex <= 0) {
+            currentIndex = totalSlides - 1; // Go to last slide
+            console.log('Fallback: Reached first slide, going to last slide');
+        } else {
+            currentIndex--;
+            console.log('Fallback: Moving to previous slide');
+        }
+        
+        console.log('Fallback: Previous clicked, new index:', currentIndex);
+        updateCarousel();
+    });
+    
+    nextButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemsPerSlide = getItemsPerSlide();
+        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        
+        console.log('Fallback nextButton click (cyclic):', {
+            itemsPerSlide,
+            totalSlides,
+            currentIndex
+        });
+        
+        // Cyclic navigation - go to next slide or back to first
+        if (currentIndex >= totalSlides - 1) {
+            currentIndex = 0; // Go back to first slide
+            console.log('Fallback: Reached last slide, going back to first slide');
+        } else {
+            currentIndex++;
+            console.log('Fallback: Moving to next slide');
+        }
+        
+        console.log('Fallback: Next clicked, new index:', currentIndex);
+        updateCarousel();
+    });
+    
+    // Initial setup
+    updateCarousel();
+    console.log('Fallback carousel setup completed');
+}

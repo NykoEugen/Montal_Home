@@ -55,7 +55,7 @@ class HomeView(ListView):
                 "promotional_furniture": Furniture.objects.filter(
                     is_promotional=True, 
                     promotional_price__isnull=False
-                ).order_by('-created_at')[:6],
+                ).order_by('-created_at'),
             }
         )
         return context
