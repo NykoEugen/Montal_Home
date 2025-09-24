@@ -1,69 +1,116 @@
-console.log('Carousel script file loaded!');
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, looking for carousel elements...');
-    
-    const carousel = document.getElementById('promoCarousel');
-    const prevButton = document.getElementById('prevButton');
-    const nextButton = document.getElementById('nextButton');
-    const items = carousel?.children;
-    const indicators = document.querySelectorAll('.carousel-indicator');
-    
-    console.log('Found elements:', {
-        carousel: !!carousel,
-        prevButton: !!prevButton,
-        nextButton: !!nextButton,
-        itemsCount: items ? items.length : 0,
-        indicatorsCount: indicators.length
-    });
-    
-    if (!carousel) {
-        console.log('Carousel not found');
-        return;
+/**
+ * Carousel functionality for promotional furniture
+ * Clean implementation with consistent variable naming
+ */
+class PromotionalCarousel {
+    constructor() {
+        this.carousel = document.getElementById('promoCarousel');
+        this.prevButton = document.getElementById('prevButton');
+        this.nextButton = document.getElementById('nextButton');
+        this.indicators = document.querySelectorAll('.carousel-indicator');
+        this.items = this.carousel?.children;
+        
+        this.currentIndex = 0;
+        this.isTransitioning = false;
+        this.autoPlayInterval = null;
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+        
+        this.init();
     }
     
-    if (!items || items.length === 0) {
-        console.log('No carousel items found');
-        return;
+    init() {
+        if (!this.carousel || !this.items || this.items.length === 0) {
+            console.log('Carousel elements not found');
+            return;
+        }
+        
+        console.log('PromotionalCarousel initialized successfully');
+        this.setupEventListeners();
+        this.updateCarousel();
+        this.startAutoPlay();
+        this.initializeCountdownTimers();
+        this.setupResponsiveHandling();
     }
     
-    console.log('Carousel initialized successfully');
-
-    // Calculate items per slide based on screen size
-    function getItemsPerSlide() {
+    setupEventListeners() {
+        // Navigation buttons
+        if (this.prevButton) {
+            this.prevButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.prevSlide();
+                this.resetAutoPlay();
+            });
+        }
+        
+        if (this.nextButton) {
+            this.nextButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.nextSlide();
+                this.resetAutoPlay();
+            });
+        }
+        
+        // Indicator clicks
+        this.indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => {
+                this.goToSlide(index);
+                this.resetAutoPlay();
+            });
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                this.prevSlide();
+                this.resetAutoPlay();
+            } else if (e.key === 'ArrowRight') {
+                this.nextSlide();
+                this.resetAutoPlay();
+            }
+        });
+        
+        // Touch/swipe support
+        this.carousel.addEventListener('touchstart', (e) => {
+            this.touchStartX = e.touches[0].clientX;
+        });
+        
+        this.carousel.addEventListener('touchend', (e) => {
+            this.touchEndX = e.changedTouches[0].clientX;
+            this.handleSwipe();
+        });
+        
+        // Auto-play pause on hover
+        this.carousel.addEventListener('mouseenter', () => this.stopAutoPlay());
+        this.carousel.addEventListener('mouseleave', () => this.startAutoPlay());
+    }
+    
+    getItemsPerSlide() {
         if (window.innerWidth >= 1024) return 3; // Desktop
         if (window.innerWidth >= 768) return 2;  // Tablet
         return 1; // Mobile
     }
-
-    let currentIndex = 0;
-    let isTransitioning = false;
-    let autoPlayInterval;
-
-    function updateCarousel() {
-        if (isTransitioning) return;
+    
+    updateCarousel() {
+        if (this.isTransitioning) return;
         
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         const slideWidth = 100 / itemsPerSlide;
         
-        carousel.style.transform = `translateX(-${currentIndex * slideWidth}%)`;
-        
-        // Update indicators
-        updateIndicators();
-        
-        // Update button states
-        updateButtonStates();
+        this.carousel.style.transform = `translateX(-${this.currentIndex * slideWidth}%)`;
+        this.updateIndicators();
+        this.updateButtonStates();
     }
-
-    function updateIndicators() {
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+    
+    updateIndicators() {
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
-        indicators.forEach((indicator, index) => {
+        this.indicators.forEach((indicator, index) => {
             if (index < totalSlides) {
                 indicator.style.display = 'block';
-                if (index === currentIndex) {
+                if (index === this.currentIndex) {
                     indicator.classList.add('bg-white');
                     indicator.classList.remove('bg-white/50');
                     indicator.style.transform = 'scale(1.2)';
@@ -77,188 +124,125 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    function updateButtonStates() {
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+    
+    updateButtonStates() {
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
-        // Add/remove disabled states
-        prevButton.disabled = currentIndex === 0;
-        nextButton.disabled = currentIndex === totalSlides - 1;
+        // Update button disabled states
+        this.prevButton.disabled = this.currentIndex === 0;
+        this.nextButton.disabled = this.currentIndex === totalSlides - 1;
         
         // Visual feedback for disabled state
-        if (prevButton.disabled) {
-            prevButton.classList.add('opacity-50', 'cursor-not-allowed');
+        if (this.prevButton.disabled) {
+            this.prevButton.classList.add('opacity-50', 'cursor-not-allowed');
         } else {
-            prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            this.prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
         }
         
-        if (nextButton.disabled) {
-            nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+        if (this.nextButton.disabled) {
+            this.nextButton.classList.add('opacity-50', 'cursor-not-allowed');
         } else {
-            nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            this.nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
-
-    function nextSlide() {
-        if (isTransitioning) return;
+    
+    nextSlide() {
+        if (this.isTransitioning) return;
         
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
-        isTransitioning = true;
-        currentIndex = (currentIndex + 1) % totalSlides;
+        this.isTransitioning = true;
+        this.currentIndex = (this.currentIndex + 1) % totalSlides;
         
-        updateCarousel();
-        
-        setTimeout(() => {
-            isTransitioning = false;
-        }, 700);
-    }
-
-    function prevSlide() {
-        if (isTransitioning) return;
-        
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
-        
-        isTransitioning = true;
-        currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
-        
-        updateCarousel();
+        this.updateCarousel();
         
         setTimeout(() => {
-            isTransitioning = false;
+            this.isTransitioning = false;
         }, 700);
     }
-
-    function goToSlide(index) {
-        if (isTransitioning) return;
+    
+    prevSlide() {
+        if (this.isTransitioning) return;
         
-        const itemsPerSlide = getItemsPerSlide();
-        const totalSlides = Math.ceil(items.length / itemsPerSlide);
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
+        
+        this.isTransitioning = true;
+        this.currentIndex = (this.currentIndex - 1 + totalSlides) % totalSlides;
+        
+        this.updateCarousel();
+        
+        setTimeout(() => {
+            this.isTransitioning = false;
+        }, 700);
+    }
+    
+    goToSlide(index) {
+        if (this.isTransitioning) return;
+        
+        const itemsPerSlide = this.getItemsPerSlide();
+        const totalSlides = Math.ceil(this.items.length / itemsPerSlide);
         
         if (index >= 0 && index < totalSlides) {
-            isTransitioning = true;
-            currentIndex = index;
+            this.isTransitioning = true;
+            this.currentIndex = index;
             
-            updateCarousel();
+            this.updateCarousel();
             
             setTimeout(() => {
-                isTransitioning = false;
+                this.isTransitioning = false;
             }, 700);
         }
     }
-
-    // Event listeners
-    if (nextButton) {
-        console.log('Adding click listener to next button');
-        nextButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('Next button clicked!');
-            nextSlide();
-            resetAutoPlay();
-        });
-    } else {
-        console.log('Next button not found!');
-    }
-
-    if (prevButton) {
-        console.log('Adding click listener to prev button');
-        prevButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('Prev button clicked!');
-            prevSlide();
-            resetAutoPlay();
-        });
-    } else {
-        console.log('Prev button not found!');
-    }
-
-    // Indicator clicks
-    indicators.forEach((indicator, index) => {
-        indicator.addEventListener('click', () => {
-            goToSlide(index);
-            resetAutoPlay();
-        });
-    });
-
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') {
-            prevSlide();
-            resetAutoPlay();
-        } else if (e.key === 'ArrowRight') {
-            nextSlide();
-            resetAutoPlay();
-        }
-    });
-
-    // Touch/swipe support
-    let startX = 0;
-    let endX = 0;
-
-    carousel.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-    });
-
-    carousel.addEventListener('touchend', (e) => {
-        endX = e.changedTouches[0].clientX;
-        handleSwipe();
-    });
-
-    function handleSwipe() {
+    
+    handleSwipe() {
         const swipeThreshold = 50;
-        const diff = startX - endX;
+        const diff = this.touchStartX - this.touchEndX;
         
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0) {
-                nextSlide();
+                this.nextSlide();
             } else {
-                prevSlide();
+                this.prevSlide();
             }
-            resetAutoPlay();
+            this.resetAutoPlay();
         }
     }
-
-    // Auto-play functionality
-    function startAutoPlay() {
-        autoPlayInterval = setInterval(() => {
-            nextSlide();
+    
+    startAutoPlay() {
+        this.autoPlayInterval = setInterval(() => {
+            this.nextSlide();
         }, 5000);
     }
-
-    function resetAutoPlay() {
-        if (autoPlayInterval) {
-            clearInterval(autoPlayInterval);
-            startAutoPlay();
+    
+    resetAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.startAutoPlay();
         }
     }
-
-    function stopAutoPlay() {
-        if (autoPlayInterval) {
-            clearInterval(autoPlayInterval);
+    
+    stopAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
         }
     }
-
-    // Pause auto-play on hover
-    carousel.addEventListener('mouseenter', stopAutoPlay);
-    carousel.addEventListener('mouseleave', startAutoPlay);
-
-    // Initialize countdown timers
-    function initializeCountdownTimers() {
+    
+    initializeCountdownTimers() {
         const timers = document.querySelectorAll('.countdown-timer');
         
         timers.forEach(timer => {
             const endDate = timer.getAttribute('data-end');
             if (endDate) {
-                updateCountdown(timer, endDate);
-                setInterval(() => updateCountdown(timer, endDate), 1000);
+                this.updateCountdown(timer, endDate);
+                setInterval(() => this.updateCountdown(timer, endDate), 1000);
             }
         });
     }
-
-    function updateCountdown(timer, endDate) {
+    
+    updateCountdown(timer, endDate) {
         const now = new Date().getTime();
         const end = new Date(endDate).getTime();
         const distance = end - now;
@@ -275,49 +259,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         timer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
-
-    // Responsive handling
-    function handleResize() {
-        const newItemsPerSlide = getItemsPerSlide();
-        const currentItemsPerSlide = Math.ceil(items.length / Math.max(1, currentIndex + 1));
-        
-        if (newItemsPerSlide !== currentItemsPerSlide) {
-            currentIndex = 0;
-            updateCarousel();
-        }
-    }
-
-    window.addEventListener('resize', handleResize);
-
-    // Initialize
-    updateCarousel();
-    startAutoPlay();
     
-    // Initialize countdown timers
-    initializeCountdownTimers();
-    
-    // Test buttons for debugging
-    const testPrevButton = document.getElementById('testPrevButton');
-    const testNextButton = document.getElementById('testNextButton');
-    
-    if (testPrevButton) {
-        testPrevButton.addEventListener('click', () => {
-            console.log('Test prev button clicked');
-            prevSlide();
+    setupResponsiveHandling() {
+        window.addEventListener('resize', () => {
+            const newItemsPerSlide = this.getItemsPerSlide();
+            const currentItemsPerSlide = Math.ceil(this.items.length / Math.max(1, this.currentIndex + 1));
+            
+            if (newItemsPerSlide !== currentItemsPerSlide) {
+                this.currentIndex = 0;
+                this.updateCarousel();
+            }
         });
     }
-    
-    if (testNextButton) {
-        testNextButton.addEventListener('click', () => {
-            console.log('Test next button clicked');
-            nextSlide();
-        });
-    }
+}
 
-    // Add loading animation
-    carousel.style.opacity = '0';
-    setTimeout(() => {
-        carousel.style.transition = 'opacity 0.5s ease-in-out';
-        carousel.style.opacity = '1';
-    }, 100);
+// Initialize carousel when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing promotional carousel...');
+    new PromotionalCarousel();
 });
