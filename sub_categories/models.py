@@ -27,3 +27,7 @@ class SubCategory(models.Model):
 
     def __str__(self) -> str:
         return self.name
+    
+    def has_furniture(self) -> bool:
+        """Check if this subcategory has any furniture items."""
+        return self.furniture.exists()
