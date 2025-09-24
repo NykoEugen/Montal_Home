@@ -9,7 +9,8 @@ from sub_categories.models import SubCategory
 
 
 def sub_categories_list(request: HttpRequest) -> HttpResponse:
-    sub_categories = SubCategory.objects.all()
+    # Filter subcategories that have furniture items
+    sub_categories = SubCategory.objects.filter(furniture__isnull=False).distinct()
     context = {"sub_categories": sub_categories}
     return render(request, "sub_categories/sub_categories_list.html", context)
 

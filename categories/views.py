@@ -15,7 +15,11 @@ def categories_list(request: HttpRequest) -> HttpResponse:
 
 def category_detail(request: HttpRequest, category_slug: str) -> HttpResponse:
     category = get_object_or_404(Category, slug=category_slug)
-    sub_categories = SubCategory.objects.filter(category=category)
+    # Filter subcategories that have furniture items
+    sub_categories = SubCategory.objects.filter(
+        category=category, 
+        furniture__isnull=False
+    ).distinct()
     paginator = Paginator(sub_categories, 9)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
