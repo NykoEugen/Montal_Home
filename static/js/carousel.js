@@ -1,3 +1,5 @@
+console.log('Carousel script file loaded!');
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, looking for carousel elements...');
     
