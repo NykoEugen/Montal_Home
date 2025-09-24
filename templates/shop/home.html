@@ -123,50 +123,6 @@
         </div>
     {% endif %}
 
-    <!-- Test buttons for debugging -->
-    <div class="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
-        <h3 class="text-lg font-bold mb-2">Debug: Test Carousel Buttons</h3>
-        <button id="testPrevButton" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">Test Prev</button>
-        <button id="testNextButton" class="bg-blue-500 text-white px-4 py-2 rounded">Test Next</button>
-        <button onclick="alert('Inline JavaScript works!')" class="bg-green-500 text-white px-4 py-2 rounded ml-2">Test Alert</button>
-    </div>
-    
-    <script>
-        console.log('Inline script in home.html loaded!');
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Inline DOMContentLoaded fired!');
-            
-            // Check if carousel elements exist
-            const carousel = document.getElementById('promoCarousel');
-            const prevButton = document.getElementById('prevButton');
-            const nextButton = document.getElementById('nextButton');
-            const testPrevButton = document.getElementById('testPrevButton');
-            const testNextButton = document.getElementById('testNextButton');
-            
-            console.log('Elements check:', {
-                carousel: !!carousel,
-                prevButton: !!prevButton,
-                nextButton: !!nextButton,
-                testPrevButton: !!testPrevButton,
-                testNextButton: !!testNextButton
-            });
-            
-            // Add simple click handlers to test buttons
-            if (testPrevButton) {
-                testPrevButton.addEventListener('click', function() {
-                    console.log('Test Prev button clicked!');
-                    alert('Test Prev clicked!');
-                });
-            }
-            
-            if (testNextButton) {
-                testNextButton.addEventListener('click', function() {
-                    console.log('Test Next button clicked!');
-                    alert('Test Next clicked!');
-                });
-            }
-        });
-    </script>
 
     <!-- Блок "Про компанію" -->
     <div class="mb-12 bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center gap-6">
