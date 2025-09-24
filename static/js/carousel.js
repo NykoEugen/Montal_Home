@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const items = carousel?.children;
     const indicators = document.querySelectorAll('.carousel-indicator');
     
-    if (!carousel || !items || items.length === 0) return;
+    if (!carousel) return;
+    
+    if (!items || items.length === 0) return;
 
     // Calculate items per slide based on screen size
     function getItemsPerSlide() {
