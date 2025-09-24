@@ -128,7 +128,15 @@
         <h3 class="text-lg font-bold mb-2">Debug: Test Carousel Buttons</h3>
         <button id="testPrevButton" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">Test Prev</button>
         <button id="testNextButton" class="bg-blue-500 text-white px-4 py-2 rounded">Test Next</button>
+        <button onclick="alert('Inline JavaScript works!')" class="bg-green-500 text-white px-4 py-2 rounded ml-2">Test Alert</button>
     </div>
+    
+    <script>
+        console.log('Inline script in home.html loaded!');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Inline DOMContentLoaded fired!');
+        });
+    </script>
 
     <!-- Блок "Про компанію" -->
     <div class="mb-12 bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center gap-6">
