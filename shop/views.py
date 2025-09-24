@@ -53,18 +53,9 @@ class HomeView(ListView):
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": Furniture.objects.filter(
-                    models.Q(
-                        is_promotional=True, 
-                        promotional_price__isnull=False
-                    ) & (
-                        models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
-                    ) | models.Q(
-                        size_variants__is_promotional=True,
-                        size_variants__promotional_price__isnull=False
-                    ) & (
-                        models.Q(size_variants__sale_end_date__isnull=True) | models.Q(size_variants__sale_end_date__gt=timezone.now())
-                    )
-                ).distinct().order_by('-created_at')[:6],
+                    is_promotional=True, 
+                    promotional_price__isnull=False
+                ).order_by('-created_at')[:6],
             }
         )
         return context
