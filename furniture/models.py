@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from fabric_category.models import FabricBrand, FabricCategory
+from params.models import Parameter
 from sub_categories.models import SubCategory
 
 
@@ -234,7 +235,7 @@ class Furniture(models.Model):
 
     def get_size_variants(self):
         """Get all size variants for this furniture item."""
-        return self.size_variants.all()
+        return self.size_variants.select_related("parameter").all()
 
     def get_available_sizes(self):
         """Get formatted list of available sizes."""
@@ -324,6 +325,21 @@ class FurnitureSizeVariant(models.Model):
         verbose_name="Дата закінчення акції розміру",
         help_text="Коли закінчується акційна пропозиція для цього розміру"
     )
+    parameter = models.ForeignKey(
+        Parameter,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Параметр",
+        help_text="Параметр підкатегорії, який змінюється для цього розміру",
+        related_name="size_variants",
+    )
+    parameter_value = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Значення параметра",
+        help_text="Відображатиметься замість основного значення параметра при виборі цього розміру",
+    )
 
     class Meta:
         db_table = "furniture_size_variants"
@@ -344,6 +360,21 @@ class FurnitureSizeVariant(models.Model):
         if self.is_foldable and self.unfolded_length and self.unfolded_length <= self.length:
             raise ValidationError({
                 'unfolded_length': 'Розгорнута довжина повинна бути більшою за згорнуту довжину.'
+            })
+
+        if self.parameter:
+            allowed_params = self.furniture.sub_category.allowed_params
+            if not allowed_params.filter(pk=self.parameter.pk).exists():
+                raise ValidationError({
+                    'parameter': 'Цей параметр не дозволений для обраної підкатегорії.'
+                })
+            if not self.parameter_value:
+                raise ValidationError({
+                    'parameter_value': 'Для обраного параметра потрібно вказати значення.'
+                })
+        elif self.parameter_value:
+            raise ValidationError({
+                'parameter': 'Оберіть параметр або приберіть значення параметра.'
             })
 
     @property

@@ -45,7 +45,21 @@ class FurnitureSizeVariantInline(ResilientInlineAdmin):
     """Inline admin for furniture size variants."""
     model = FurnitureSizeVariant
     extra = 1
-    fields = ['height', 'width', 'length', 'is_foldable', 'unfolded_length', 'price', 'is_promotional', 'promotional_price', 'sale_end_date', 'current_price_display', 'discount_display']
+    fields = [
+        'height',
+        'width',
+        'length',
+        'is_foldable',
+        'unfolded_length',
+        'price',
+        'is_promotional',
+        'promotional_price',
+        'sale_end_date',
+        'parameter',
+        'parameter_value',
+        'current_price_display',
+        'discount_display',
+    ]
     readonly_fields = ['current_price_display', 'discount_display']
     
     def current_price_display(self, obj):
@@ -77,6 +91,19 @@ class FurnitureSizeVariantInline(ResilientInlineAdmin):
         except:
             return '-'
     discount_display.short_description = "Знижка"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "parameter":
+            parent = getattr(self, "parent_object", None)
+            if parent and parent.sub_category_id:
+                kwargs["queryset"] = parent.sub_category.allowed_params.all()
+            else:
+                kwargs["queryset"] = Parameter.objects.all()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def get_formset(self, request, obj=None, **kwargs):
+        self.parent_object = obj
+        return super().get_formset(request, obj, **kwargs)
 
 
 class FurnitureImageInline(ResilientInlineAdmin):

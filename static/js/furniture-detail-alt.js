@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const sizeChips = document.querySelectorAll('.size-chip');
     const variantChips = document.querySelectorAll('.variant-chip');
     
+    const parameterCells = new Map();
+    document.querySelectorAll('[data-param-key]').forEach(cell => {
+        const key = cell.getAttribute('data-param-key');
+        if (key) {
+            parameterCells.set(key, cell);
+        }
+    });
 
     const sizeInput = document.getElementById('alt-size-input');
     const variantInput = document.getElementById('alt-variant-input');
@@ -28,6 +35,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (priceEl) {
         basePrice = parseFloat(priceEl.textContent.replace(' грн','').trim());
         selectedPrice = basePrice;
+    }
+
+    resetVariantParameterCells();
+
+    function resetVariantParameterCells(exceptKey = null) {
+        if (!parameterCells.size) {
+            return;
+        }
+        parameterCells.forEach((cell, key) => {
+            if (key === 'dimensions' || (exceptKey && key === exceptKey)) {
+                return;
+            }
+            const base = cell.getAttribute('data-base') || '';
+            cell.textContent = base;
+        });
+    }
+
+    function applyVariantParameter(key, value) {
+        if (!parameterCells.size) {
+            return;
+        }
+        if (!key) {
+            resetVariantParameterCells();
+            return;
+        }
+        const cell = parameterCells.get(key);
+        resetVariantParameterCells(key);
+        if (cell) {
+            const base = cell.getAttribute('data-base') || '';
+            cell.textContent = value || base;
+        }
     }
 
     function recompute() {
@@ -116,11 +154,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentPrice = parseFloat(b.getAttribute('data-price') || '0');
         const originalPrice = parseFloat(b.getAttribute('data-original-price') || '0');
         const isOnSale = b.getAttribute('data-is-on-sale') === 'true';
-        
+        const paramKey = b.getAttribute('data-param-key');
+        const paramValue = b.getAttribute('data-param-value');
+
 
         
         selectedPrice = currentPrice > 0 ? currentPrice : basePrice;
-        
+        applyVariantParameter(paramKey, paramValue);
+
         // Update price display to show promotional pricing
         if (priceEl) {
             if (isOnSale && originalPrice > currentPrice) {

@@ -84,7 +84,11 @@
                     data-price="{{ variant.current_price }}" 
                     data-original-price="{{ variant.price }}"
                     data-dimensions="{{ variant.dimensions }}"
-                    data-is-on-sale="{{ variant.is_on_sale|yesno:'true,false' }}">
+                    data-is-on-sale="{{ variant.is_on_sale|yesno:'true,false' }}"
+                    {% if variant.parameter %}
+                    data-param-key="{{ variant.parameter.key }}"
+                    data-param-value="{{ variant.parameter_value }}"
+                    {% endif %}>
                 {{ variant.dimensions }}
             </button>
             {% endfor %}
@@ -141,7 +145,10 @@
             {% for param in parameters %}
             <tr class="bg-beige-50 rounded {% if param.key == 'dimensions' %}alt-dim-row{% endif %}">
               <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.label }}</td>
-              <td class="py-2 px-3 text-brown-800 font-medium w-1/2" {% if param.key == 'dimensions' %}id="alt-dimensions" data-base="{{ param.base_value|default:param.value }}"{% endif %}>{{ param.value }}</td>
+              <td class="py-2 px-3 text-brown-800 font-medium w-1/2" 
+                  {% if param.key == 'dimensions' %}id="alt-dimensions"{% else %}id="alt-param-{{ param.key }}"{% endif %}
+                  data-param-key="{{ param.key }}"
+                  data-base="{{ param.base_value|default:param.value }}">{{ param.value }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -162,4 +169,3 @@
 <script src="{% static 'js/furniture-detail-alt.js' %}"></script>
 {% endblock %}
 {% endblock %}
-
