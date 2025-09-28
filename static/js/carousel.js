@@ -117,7 +117,9 @@ class PromotionalCarousel {
     
     getItemsPerSlide() {
         let itemsPerSlide;
-        if (window.innerWidth >= 1024) {
+        if (window.innerWidth >= 1440) {
+            itemsPerSlide = 4; // Large desktop
+        } else if (window.innerWidth >= 1024) {
             itemsPerSlide = 3; // Desktop
         } else if (window.innerWidth >= 768) {
             itemsPerSlide = 2;  // Tablet
