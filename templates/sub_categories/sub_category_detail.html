@@ -238,34 +238,38 @@
                 {% if page_obj %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for item in page_obj %}
-                            <div class="furniture-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group relative">
-                                <!-- Image Container -->
-                                <div class="relative overflow-hidden">
-                                    <!-- Promotional Badge -->
+                            <div class="furniture-card bg-white rounded-2xl overflow-hidden group relative">
+                                <!-- Media block -->
+                                <div class="card-media relative">
                                     {% if item.is_promotional and item.promotional_price %}
-                                    <div class="promotional-badge">
-                                        -{{ item.discount_percentage|floatformat:0 }}%
-                                    </div>
+                                        <div class="promotional-badge">
+                                            -{{ item.discount_percentage|floatformat:0 }}%
+                                        </div>
                                     {% endif %}
+
                                     {% if item.image %}
-                                        <img src="{{ item.image.url }}" alt="{{ item.name }}" 
-                                             class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-700">
+                                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="card-media-img group-hover:scale-105">
                                     {% else %}
-                                        <div class="w-full h-64 bg-gradient-to-br from-beige-200 to-beige-300 flex items-center justify-center">
-                                            <svg class="w-20 h-20 text-beige-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                        <div class="card-media-placeholder">
+                                            <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
                                             </svg>
                                         </div>
                                     {% endif %}
-                                    
-                                    <!-- Removed text overlay for cleaner look -->
+
+                                    <div class="card-media-overlay">
+                                        {% if item.article_code %}
+                                            <span class="card-chip">Арт. {{ item.article_code }}</span>
+                                        {% endif %}
+                                        <span class="card-chip chip-secondary">{{ item.sub_category.name }}</span>
+                                    </div>
                                 </div>
-                                
-                                <!-- Enhanced Content -->
-                                <div class="p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <h2 class="text-xl font-bold text-brown-800 group-hover:text-brown-600 transition-colors duration-300 line-clamp-2 leading-tight">{{ item.name }}</h2>
-                                        <span class="px-3 py-1.5 text-xs rounded-full font-semibold {% if item.stock_status == 'in_stock' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-orange-100 text-orange-700 border border-orange-200{% endif %}">
+
+                                <!-- Content block -->
+                                <div class="card-body">
+                                    <div class="card-header">
+                                        <h2 class="card-title">{{ item.name }}</h2>
+                                        <span class="card-status {% if item.stock_status == 'in_stock' %}card-status--success{% else %}card-status--warning{% endif %}">
                                             {% if item.stock_status == 'in_stock' %}
                                                 ✓ На складі
                                             {% else %}
@@ -273,29 +277,32 @@
                                             {% endif %}
                                         </span>
                                     </div>
-                                    
-                                    
-                                    <!-- Enhanced Price Section -->
-                                    <div class="space-y-3 mb-6">
+
+                                    <div class="card-price-block">
                                         {% if item.is_promotional and item.promotional_price %}
-                                            <div class="flex items-center gap-3">
-                                                <span class="text-2xl font-bold text-red-600">{{ item.promotional_price|floatformat:0 }} грн</span>
-                                                <span class="text-lg text-gray-400 line-through">{{ item.price|floatformat:0 }} грн</span>
+                                            <div class="card-price-line">
+                                                <span class="card-price-current">{{ item.promotional_price|floatformat:0 }} грн</span>
+                                                <span class="card-price-old">{{ item.price|floatformat:0 }} грн</span>
                                             </div>
-                                            <div class="text-sm text-green-600 font-semibold bg-green-50 px-3 py-2 rounded-lg">
-                                                💰 Економія: {{ item.price|calculate_savings:item.promotional_price|floatformat:0 }} грн
+                                            <div class="card-price-extra">
+                                                <span class="card-price-saving">Економія {{ item.price|calculate_savings:item.promotional_price|floatformat:0 }} грн</span>
+                                                {% if item.sale_end_date %}
+                                                    <span class="card-price-deadline">Акція до {{ item.sale_end_date|date:"d.m" }}</span>
+                                                {% endif %}
                                             </div>
                                         {% else %}
-                                            <div class="text-2xl font-bold text-brown-800">{{ item.price|floatformat:0 }} грн</div>
+                                            <div class="card-price-line">
+                                                <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
+                                            </div>
                                         {% endif %}
                                     </div>
-                                    
-                                    <!-- Enhanced Action Button -->
-                                    <div class="mt-6">
-                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" 
-                                           class="block bg-gradient-to-r from-brown-500 to-brown-600 text-white py-4 px-6 rounded-xl text-center font-semibold group-hover:from-brown-600 group-hover:to-brown-700 transition-all duration-300 transform group-hover:scale-105 shadow-lg"
-                                           style="background: linear-gradient(135deg, #5a4137, #513b24) !important; background-color: #5a4137 !important; color: white !important; border: none !important; display: block !important; padding: 16px 24px !important; border-radius: 12px !important; text-align: center !important; font-weight: 600 !important; text-decoration: none !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2) !important;">
-                                            📋 Переглянути деталі
+
+                                    <div class="card-footer">
+                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="card-primary-action">
+                                            Переглянути деталі
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+                                            </svg>
                                         </a>
                                     </div>
                                 </div>
