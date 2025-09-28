@@ -23,27 +23,31 @@
 /* Carousel Items */
 .carousel-item {
     flex: 0 0 100%; /* Mobile: one slide */
+    max-width: 100%;
     box-sizing: border-box;
-    padding: 1rem 0.75rem;
+    padding: 1.25rem 1rem;
     animation: fadeInUp 0.6s ease-out;
-    min-width: 280px;
-    max-width: 320px;
 }
 
-/* Responsive Carousel Items - let JavaScript handle the sizing */
+/* Responsive Carousel Items - size strictly by viewport fraction */
 @media (min-width: 768px) {
     .carousel-item {
         flex: 0 0 50%; /* Tablet: two slides */
-        min-width: 300px;
-        max-width: 400px;
+        max-width: 50%;
     }
 }
 
 @media (min-width: 1024px) {
     .carousel-item {
         flex: 0 0 33.3333%; /* Desktop: three slides */
-        min-width: 320px;
-        max-width: 380px;
+        max-width: 33.3333%;
+    }
+}
+
+@media (min-width: 1440px) {
+    .carousel-item {
+        flex: 0 0 25%; /* Large desktop: four slides */
+        max-width: 25%;
     }
 }
 
@@ -235,11 +239,6 @@
 
 /* Responsive Enhancements */
 @media (max-width: 640px) {
-    .carousel-item {
-        min-width: 280px;
-        max-width: 320px;
-    }
-    
     .promo-card {
         margin: 0 0.5rem;
     }

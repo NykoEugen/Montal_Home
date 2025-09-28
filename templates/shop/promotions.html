@@ -19,9 +19,9 @@
             </div>
         </div>
 
-        {% if page_obj %}
+        {% if promotional_items %}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {% for item in page_obj %}
+                {% for item in promotional_items %}
                     <div class="promo-card rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white overflow-hidden relative group">
                         <!-- Sale Badge -->
                         <div class="absolute top-3 left-3 z-10">
@@ -98,38 +98,6 @@
                     </div>
                 {% endfor %}
             </div>
-            
-            <!-- Pagination -->
-            {% if page_obj.has_other_pages %}
-                <div class="mt-12 flex justify-center">
-                    <nav class="flex items-center space-x-2">
-                        {% if page_obj.has_previous %}
-                            <a href="?page={{ page_obj.previous_page_number }}"
-                               class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
-                                ← Попередня
-                            </a>
-                        {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <span class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold">{{ num }}</span>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                <a href="?page={{ num }}"
-                                   class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
-                                    {{ num }}
-                                </a>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}"
-                               class="px-4 py-2 bg-beige-200 text-brown-800 rounded-lg hover:bg-beige-300 transition-colors duration-200">
-                                Наступна →
-                            </a>
-                        {% endif %}
-                    </nav>
-                </div>
-            {% endif %}
         {% else %}
             <!-- Empty State -->
             <div class="text-center py-16">

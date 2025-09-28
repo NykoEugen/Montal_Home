@@ -1,3 +1,6 @@
+from collections import defaultdict
+import random
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
@@ -16,6 +19,30 @@ from categories.models import Category
 from delivery.views import search_city
 from furniture.models import Furniture, FurnitureSizeVariant
 from store.settings import ITEMS_PER_PAGE
+
+
+def fetch_active_promotional_furniture():
+    """Return queryset with all active promotional furniture records."""
+    now = timezone.now()
+    return (
+        Furniture.objects.filter(
+            (
+                Q(is_promotional=True, promotional_price__isnull=False)
+                & (Q(sale_end_date__isnull=True) | Q(sale_end_date__gt=now))
+            )
+            |
+            (
+                Q(size_variants__is_promotional=True, size_variants__promotional_price__isnull=False)
+                & (
+                    Q(size_variants__sale_end_date__isnull=True)
+                    | Q(size_variants__sale_end_date__gt=now)
+                )
+            )
+        )
+        .select_related("sub_category__category")
+        .prefetch_related("size_variants")
+        .distinct()
+    )
 
 
 class HomeView(ListView):
@@ -52,13 +79,45 @@ class HomeView(ListView):
                 "categories": Category.objects.all(),
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
-                "promotional_furniture": Furniture.objects.filter(
-                    is_promotional=True, 
-                    promotional_price__isnull=False
-                ).order_by('-created_at'),
+                "promotional_furniture": self._get_promotional_furniture(),
             }
         )
         return context
+
+    def _get_promotional_furniture(self) -> list[Furniture]:
+        """Return promotional items shuffled to interleave categories."""
+        promotional_items = list(fetch_active_promotional_furniture())
+        if not promotional_items:
+            return promotional_items
+
+        items_by_category: dict[object, list[Furniture]] = defaultdict(list)
+        uncategorised_key = object()
+
+        for item in promotional_items:
+            category = getattr(getattr(item, "sub_category", None), "category", None)
+            category_key = category.id if category else uncategorised_key
+            items_by_category[category_key].append(item)
+
+        # Shuffle within each category to avoid predictable ordering
+        for item_list in items_by_category.values():
+            random.shuffle(item_list)
+
+        shuffled_items: list[Furniture] = []
+        while items_by_category:
+            category_keys = list(items_by_category.keys())
+            random.shuffle(category_keys)
+
+            for key in category_keys:
+                item_list = items_by_category.get(key)
+                if not item_list:
+                    items_by_category.pop(key, None)
+                    continue
+
+                shuffled_items.append(item_list.pop())
+                if not item_list:
+                    items_by_category.pop(key, None)
+
+        return shuffled_items
 
 
 class CartView(TemplateView):
@@ -149,30 +208,18 @@ class CartView(TemplateView):
         return super().get(request, *args, **kwargs)
 
 
-class PromotionsView(ListView):
+class PromotionsView(TemplateView):
     """Promotional furniture listing."""
 
-    model = Furniture
     template_name = "shop/promotions.html"
-    context_object_name = "page_obj"
-    paginate_by = ITEMS_PER_PAGE
 
-    def get_queryset(self):
-        """Get only active promotional furniture."""
-        from django.db import models
-        return Furniture.objects.filter(
-            models.Q(
-                is_promotional=True, 
-                promotional_price__isnull=False
-            ) & (
-                models.Q(sale_end_date__isnull=True) | models.Q(sale_end_date__gt=timezone.now())
-            ) | models.Q(
-                size_variants__is_promotional=True,
-                size_variants__promotional_price__isnull=False
-            ) & (
-                models.Q(size_variants__sale_end_date__isnull=True) | models.Q(size_variants__sale_end_date__gt=timezone.now())
-            )
-        ).distinct()
+    def get_context_data(self, **kwargs):
+        """Provide full list of active promotional furniture items."""
+        context = super().get_context_data(**kwargs)
+        context["promotional_items"] = list(
+            fetch_active_promotional_furniture().order_by("-created_at")
+        )
+        return context
 
 
 class WhereToBuyView(TemplateView):
