@@ -3,7 +3,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.db.models import Q, Min, Max
 
-from furniture.models import Furniture
+from furniture.models import Furniture, FurnitureSizeVariant
 from params.models import FurnitureParameter
 from sub_categories.models import SubCategory
 
@@ -73,8 +73,15 @@ def sub_categories_details(
     for param_key, value in parameter_filters:
         key = param_key.replace("param_", "")
         furniture = furniture.filter(
-            parameters__parameter__key=key, parameters__value=value
+            Q(parameters__parameter__key=key, parameters__value=value)
+            | Q(
+                size_variants__parameter__key=key,
+                size_variants__parameter_value=value,
+            )
         )
+
+    if parameter_filters:
+        furniture = furniture.distinct()
 
     # Sorting
     sort = request.GET.get("sort", "")
@@ -106,14 +113,34 @@ def sub_categories_details(
     # Prepare filter options
     filter_options = {}
     for param in sub_category.allowed_params.all():
-        values = (
+        base_values = set(
             FurnitureParameter.objects.filter(
-                furniture__sub_category=sub_category, parameter__key=param.key
+                furniture__sub_category=sub_category,
+                parameter__key=param.key,
             )
+            .exclude(value__isnull=True)
+            .exclude(value__exact="")
             .values_list("value", flat=True)
             .distinct()
         )
-        filter_options[param.key] = {"label": param.label, "values": sorted(values)}
+
+        variant_values = set(
+            FurnitureSizeVariant.objects.filter(
+                furniture__sub_category=sub_category,
+                parameter__key=param.key,
+            )
+            .exclude(parameter_value__isnull=True)
+            .exclude(parameter_value__exact="")
+            .values_list("parameter_value", flat=True)
+            .distinct()
+        )
+
+        combined_values = sorted((base_values | variant_values))
+
+        filter_options[param.key] = {
+            "label": param.label,
+            "values": combined_values,
+        }
 
     # Get price range for the category
     price_range = furniture.aggregate(
