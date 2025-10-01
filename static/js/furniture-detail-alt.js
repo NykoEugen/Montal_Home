@@ -116,6 +116,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const origEl = document.getElementById('alt-original-price');
     const sizeChips = document.querySelectorAll('.size-chip');
     const variantChips = document.querySelectorAll('.variant-chip');
+    const stockLabel = document.getElementById('alt-stock-label');
+    const stockLabelClassMap = {
+        in_stock: ['bg-green-100', 'text-green-700'],
+        on_order: ['bg-orange-100', 'text-orange-700']
+    };
     
     const parameterCells = new Map();
     document.querySelectorAll('[data-param-key]').forEach(cell => {
@@ -172,6 +177,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const base = cell.getAttribute('data-base') || '';
             cell.textContent = value || base;
         }
+    }
+
+    function updateStockLabel(status, labelText) {
+        if (!stockLabel) {
+            return;
+        }
+        const fallbackStatus = stockLabel.dataset.baseStatus || 'in_stock';
+        const fallbackText = stockLabel.dataset.baseText || '';
+        const targetStatus = status || fallbackStatus;
+        const targetText = labelText || fallbackText;
+
+        stockLabel.classList.remove('bg-green-100', 'text-green-700', 'bg-orange-100', 'text-orange-700');
+        const classes = stockLabelClassMap[targetStatus];
+        if (classes) {
+            stockLabel.classList.add(...classes);
+        }
+        stockLabel.textContent = targetText;
     }
 
     function recompute() {
@@ -237,6 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const imageUrl = b.getAttribute('data-image');
         const linkUrl = b.getAttribute('data-link');
         const variantId = b.getAttribute('data-id');
+        const nextStatus = b.getAttribute('data-stock-status');
+        const nextStatusLabel = b.getAttribute('data-stock-label');
         
         if (imageUrl && mainImg) {
             mainImg.src = imageUrl;
@@ -249,6 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (variantInput) {
             variantInput.value = variantId || '';
         }
+
+        updateStockLabel(nextStatus, nextStatusLabel);
         
         // If there's a link, you can handle it here
         if (linkUrl) {
@@ -326,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
         qty.addEventListener('input', recompute);
     }
 
+    if (stockLabel) {
+        updateStockLabel(stockLabel.dataset.defaultStatus, stockLabel.dataset.defaultText);
+    }
+
     // Auto-select base size if provided
     const buyCard = document.getElementById('buy-card');
     const baseIdAttr = buyCard ? buyCard.getAttribute('data-base-size-id') : '';
@@ -348,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (variantInput && variantId) {
                 variantInput.value = variantId;
             }
+            updateStockLabel(defaultVariant.getAttribute('data-stock-status'), defaultVariant.getAttribute('data-stock-label'));
         }
     }
 

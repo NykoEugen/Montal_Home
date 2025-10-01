@@ -435,6 +435,13 @@ class FurnitureVariantImage(models.Model):
         verbose_name="Назва варіанту",
         help_text="Назва варіанту (наприклад: 'Білий', 'Дуб світлий')"
     )
+    stock_status = models.CharField(
+        max_length=20,
+        choices=Furniture.STOCK_STATUS_CHOICES,
+        default='in_stock',
+        verbose_name="Статус наявності",
+        help_text="Використовується для відображення статусу при виборі цього варіанту",
+    )
     image = models.ImageField(
         upload_to="furniture/variants/",
         verbose_name="Зображення варіанту",
