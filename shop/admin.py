@@ -115,7 +115,7 @@ class FurnitureImageInline(ResilientInlineAdmin):
 class FurnitureVariantImageInline(ResilientInlineAdmin):
     model = FurnitureVariantImage
     extra = 1
-    fields = ('name', 'image', 'link', 'is_default', 'position')
+    fields = ('name', 'stock_status', 'image', 'link', 'is_default', 'position')
     readonly_fields = ('image_preview',)
     
     def image_preview(self, obj):

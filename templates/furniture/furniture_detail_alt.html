@@ -70,8 +70,13 @@
         <h1 class="text-2xl font-bold text-brown-800">{{ furniture.name }}</h1>
         <p class="text-sm text-brown-600 mt-1">{{ furniture.sub_category.name }} • Код: {{ furniture.article_code }}</p>
         <div class="mt-3">
-          <span class="px-3 py-1 rounded-full text-xs {% if furniture.stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">
-            {% if furniture.stock_status == 'in_stock' %}Є в наявності{% else %}Під замовлення{% endif %}
+          <span id="alt-stock-label"
+                class="px-3 py-1 rounded-full text-xs {% if initial_stock_status == 'in_stock' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}"
+                data-base-status="{{ furniture.stock_status }}"
+                data-base-text="{{ furniture.get_stock_status_display }}"
+                data-default-status="{{ initial_stock_status }}"
+                data-default-text="{{ initial_stock_label }}">
+            {{ initial_stock_label }}
           </span>
         </div>
 
@@ -94,6 +99,8 @@
                     data-id="{{ variant.id }}" 
                     data-image="{{ variant.image.url }}" 
                     data-name="{{ variant.name }}"
+                    data-stock-status="{{ variant.stock_status }}"
+                    data-stock-label="{{ variant.get_stock_status_display }}"
                     {% if variant.link %}data-link="{{ variant.link }}"{% endif %}>
               <img src="{{ variant.image.url }}" alt="{{ variant.name }}" class="w-6 h-6 object-cover rounded">
               <span>{{ variant.name }}</span>

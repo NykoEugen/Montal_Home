@@ -9,8 +9,19 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
     furniture = get_object_or_404(Furniture, slug=furniture_slug)
     raw_parameters = furniture.parameters.select_related("parameter").all()
     size_variants = furniture.get_size_variants()
-    variant_images = furniture.variant_images.all()
+    variant_images = list(furniture.variant_images.all())
     gallery_images = list(getattr(furniture, 'images').all()) if hasattr(furniture, 'images') else []
+
+    # Determine which stock status label to show by default
+    initial_stock_status = furniture.stock_status
+    initial_stock_label = furniture.get_stock_status_display()
+    if variant_images:
+        default_variant = next((variant for variant in variant_images if variant.is_default), None)
+        if default_variant is None:
+            default_variant = variant_images[0]
+        if default_variant and default_variant.stock_status:
+            initial_stock_status = default_variant.stock_status
+            initial_stock_label = default_variant.get_stock_status_display()
     
     # Debug: Print size variants info
     print(f"Debug: Furniture '{furniture.name}' has {len(size_variants)} size variants")
@@ -88,5 +99,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             "fabric_categories": fabric_categories,
             "base_dimensions": combined_dimensions,
             "base_size_variant_id": base_size_variant_id,
+            "initial_stock_status": initial_stock_status,
+            "initial_stock_label": initial_stock_label,
         },
     )
