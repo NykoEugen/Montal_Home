@@ -1,10 +1,116 @@
 // Alternative furniture detail page functionality
 document.addEventListener('DOMContentLoaded', () => {
     const mainImg = document.getElementById('alt-main-image');
-    document.querySelectorAll('.thumb-item').forEach(t => t.addEventListener('click', () => {
-        const url = t.getAttribute('data-full');
-        if (url) mainImg.src = url;
+    const thumbs = Array.from(document.querySelectorAll('.thumb-item'));
+    const galleryDots = Array.from(document.querySelectorAll('.gallery-dot'));
+    const prevBtn = document.querySelector('.gallery-nav-prev');
+    const nextBtn = document.querySelector('.gallery-nav-next');
+    const thumbScroller = document.querySelector('[data-thumb-scroller]');
+    const thumbPrev = document.querySelector('.thumb-nav-prev');
+    const thumbNext = document.querySelector('.thumb-nav-next');
+
+    function updateActiveThumb(index) {
+        thumbs.forEach((el, i) => {
+            if (i === index) {
+                el.classList.add('ring-2', 'ring-brown-800');
+            } else {
+                el.classList.remove('ring-2', 'ring-brown-800');
+            }
+        });
+    }
+
+    function updateDots(index) {
+        galleryDots.forEach((dot, i) => {
+            if (i === index) {
+                dot.classList.add('bg-brown-800');
+                dot.classList.remove('bg-white/80');
+            } else {
+                dot.classList.remove('bg-brown-800');
+                dot.classList.add('bg-white/80');
+            }
+        });
+    }
+
+    function setGalleryImage(index) {
+        if (!mainImg || !thumbs.length) {
+            return;
+        }
+        const maxIndex = thumbs.length - 1;
+        const clamped = Math.max(0, Math.min(index, maxIndex));
+        const thumb = thumbs[clamped];
+        const url = thumb?.getAttribute('data-full');
+        if (!url) {
+            return;
+        }
+        mainImg.src = url;
+        mainImg.setAttribute('data-current-index', String(clamped));
+        updateActiveThumb(clamped);
+        updateDots(clamped);
+        scrollThumbIntoView(clamped);
+    }
+
+    function clearGallerySelection() {
+        thumbs.forEach(el => el.classList.remove('ring-2', 'ring-brown-800'));
+        galleryDots.forEach(dot => {
+            dot.classList.remove('bg-brown-800');
+            dot.classList.add('bg-white/80');
+        });
+        if (mainImg) {
+            mainImg.setAttribute('data-current-index', '-1');
+        }
+    }
+
+    function scrollThumbIntoView(index) {
+        if (!thumbScroller || !thumbs.length) {
+            return;
+        }
+        const thumb = thumbs[index];
+        if (!thumb) {
+            return;
+        }
+        const scrollerRect = thumbScroller.getBoundingClientRect();
+        const thumbRect = thumb.getBoundingClientRect();
+        const padding = 8;
+        if (thumbRect.left < scrollerRect.left) {
+            thumbScroller.scrollBy({ left: thumbRect.left - scrollerRect.left - padding, behavior: 'smooth' });
+        } else if (thumbRect.right > scrollerRect.right) {
+            thumbScroller.scrollBy({ left: thumbRect.right - scrollerRect.right + padding, behavior: 'smooth' });
+        }
+    }
+
+    thumbs.forEach((t, index) => t.addEventListener('click', () => {
+        setGalleryImage(index);
     }));
+
+    if (thumbPrev && thumbScroller) {
+        thumbPrev.addEventListener('click', () => {
+            thumbScroller.scrollBy({ left: -(thumbScroller.clientWidth * 0.6), behavior: 'smooth' });
+        });
+    }
+
+    if (thumbNext && thumbScroller) {
+        thumbNext.addEventListener('click', () => {
+            thumbScroller.scrollBy({ left: thumbScroller.clientWidth * 0.6, behavior: 'smooth' });
+        });
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (!thumbs.length || !mainImg) return;
+            const current = parseInt(mainImg.getAttribute('data-current-index') || '0', 10);
+            const nextIndex = (current - 1 + thumbs.length) % thumbs.length;
+            setGalleryImage(nextIndex);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (!thumbs.length || !mainImg) return;
+            const current = parseInt(mainImg.getAttribute('data-current-index') || '0', 10);
+            const nextIndex = (current + 1) % thumbs.length;
+            setGalleryImage(nextIndex);
+        });
+    }
 
     const priceEl = document.getElementById('alt-main-price');
     const origEl = document.getElementById('alt-original-price');
@@ -134,8 +240,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (imageUrl && mainImg) {
             mainImg.src = imageUrl;
+            clearGallerySelection();
+            if (thumbScroller) {
+                thumbScroller.scrollTo({ left: 0, behavior: 'smooth' });
+            }
         }
-        
+
         if (variantInput) {
             variantInput.value = variantId || '';
         }
@@ -188,8 +298,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sizeInput) sizeInput.value = b.getAttribute('data-id') || '';
         const d = b.getAttribute('data-dimensions');
         if (dimCell && d) dimCell.textContent = d; else if (dimCell) dimCell.textContent = dimCell.getAttribute('data-base') || '';
+        if (mainImg) {
+            // Reset gallery highlighting when switching size variants with custom visuals
+            clearGallerySelection();
+        }
         recompute();
     }));
+
+    // Ensure initial state reflects first thumbnail when available
+    if (thumbs.length && mainImg) {
+        const startIndex = parseInt(mainImg.getAttribute('data-current-index') || '0', 10);
+        if (startIndex >= 0) {
+            updateActiveThumb(startIndex);
+            updateDots(startIndex);
+            scrollThumbIntoView(startIndex);
+        }
+    }
 
     if (fabricSelect) {
         fabricSelect.addEventListener('change', () => {
