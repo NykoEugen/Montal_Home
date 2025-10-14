@@ -139,9 +139,11 @@
         </nav>
         {% if messages %}
             {% for message in messages %}
-                <div class="bg-beige-100 border-l-4 border-brown-500 text-brown-700 p-4 mb-4 rounded" role="alert">
-                    {{ message }}
-                </div>
+                {% if message.extra_tags and 'user' in message.extra_tags %}
+                    <div class="bg-beige-100 border-l-4 border-brown-500 text-brown-700 p-4 mb-4 rounded" role="alert">
+                        {{ message }}
+                    </div>
+                {% endif %}
             {% endfor %}
         {% endif %}
         <main class="flex-grow">

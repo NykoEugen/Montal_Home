@@ -13,7 +13,9 @@
         </div>
         {% if messages %}
             {% for message in messages %}
-                <p class="text-red-500 text-sm mt-2">{{ message }}</p>
+                {% if message.extra_tags and 'user' in message.extra_tags %}
+                    <p class="text-red-500 text-sm mt-2">{{ message }}</p>
+                {% endif %}
             {% endfor %}
         {% endif %}
     </form>

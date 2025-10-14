@@ -390,7 +390,7 @@ def add_to_cart_from_detail(request: HttpRequest):
     
 
     if not furniture_id:
-        messages.error(request, "Furniture ID is required")
+        messages.error(request, "Furniture ID is required", extra_tags="user")
         return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
 
     try:
@@ -429,11 +429,11 @@ def add_to_cart_from_detail(request: HttpRequest):
         request.session["cart"] = cart
         request.session.modified = True
 
-        messages.success(request, f"{furniture.name} додано до кошика!")
+        messages.success(request, f"{furniture.name} додано до кошика!", extra_tags="user")
         return redirect('furniture:furniture_detail', furniture_slug=furniture.slug)
 
     except Exception as e:
-        messages.error(request, str(e))
+        messages.error(request, str(e), extra_tags="user")
         return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
 
 
@@ -453,7 +453,7 @@ def remove_from_cart(request: HttpRequest):
     furniture_id = request.POST.get("furniture_id")  # Keep for backward compatibility
     
     if not cart_key and not furniture_id:
-        messages.error(request, "Cart key or Furniture ID is required")
+        messages.error(request, "Cart key or Furniture ID is required", extra_tags="user")
         return redirect('shop:view_cart')
     
     try:
@@ -464,7 +464,7 @@ def remove_from_cart(request: HttpRequest):
             del cart[cart_key]
             request.session["cart"] = cart
             request.session.modified = True
-            messages.success(request, "Товар видалено з кошика!")
+            messages.success(request, "Товар видалено з кошика!", extra_tags="user")
         # Fallback to furniture_id for backward compatibility
         elif furniture_id:
             # Find and remove items with this furniture_id
@@ -474,11 +474,11 @@ def remove_from_cart(request: HttpRequest):
                     del cart[key]
                 request.session["cart"] = cart
                 request.session.modified = True
-                messages.success(request, "Товар видалено з кошика!")
+                messages.success(request, "Товар видалено з кошика!", extra_tags="user")
             else:
-                messages.error(request, "Товар не знайдено в кошику!")
+                messages.error(request, "Товар не знайдено в кошику!", extra_tags="user")
         else:
-            messages.error(request, "Товар не знайдено в кошику!")
+            messages.error(request, "Товар не знайдено в кошику!", extra_tags="user")
         
         # If cart is empty, redirect to home
         if not cart:
@@ -487,7 +487,7 @@ def remove_from_cart(request: HttpRequest):
         return redirect('shop:view_cart')
         
     except Exception as e:
-        messages.error(request, str(e))
+        messages.error(request, str(e), extra_tags="user")
         return redirect('shop:view_cart')
 
 
