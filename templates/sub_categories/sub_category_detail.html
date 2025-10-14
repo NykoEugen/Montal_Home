@@ -256,10 +256,10 @@
                                                 </svg>
                                             </div>
                                         {% endif %}
-
-                                        <div class="card-overlay">
-                                            <h2 class="card-overlay-title">{{ item.name }}</h2>
-                                            <div class="card-overlay-meta">
+                                        
+                                        <div class="card-overlay card-overlay--compact">
+                                            <div class="card-overlay-heading">
+                                                <h2 class="card-overlay-title">{{ item.name }}</h2>
                                                 <div class="card-overlay-price">
                                                     {% if item.is_promotional and item.promotional_price %}
                                                         <span class="card-price-current">{{ item.promotional_price|floatformat:0 }} грн</span>
@@ -268,15 +268,16 @@
                                                         <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
                                                     {% endif %}
                                                 </div>
-                                                <span class="card-overlay-cta">
-                                                    Переглянути
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
-                                                    </svg>
-                                                </span>
                                             </div>
+                                            <span class="card-overlay-cta card-overlay-cta--ghost">
+                                                Переглянути
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                            </span>
                                         </div>
                                     </div>
+
                                 </a>
                             </div>
                         {% endfor %}
