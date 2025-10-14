@@ -3,6 +3,19 @@ import re
 from django import forms
 
 
+DELIVERY_CHOICES = [
+    ("", "Оберіть спосіб доставки"),
+    ("local", "Локальна доставка"),
+    ("nova_poshta", "Нова Пошта"),
+]
+
+PAYMENT_CHOICES = [
+    ("", "Оберіть спосіб оплати"),
+    ("iban", "IBAN"),
+    ("liqupay", "LiquPay"),
+]
+
+
 class CheckoutForm(forms.Form):
     customer_name = forms.CharField(
         max_length=200,
@@ -52,10 +65,7 @@ class CheckoutForm(forms.Form):
 
     # Delivery type selection
     delivery_type = forms.ChoiceField(
-        choices=[
-            ("local", "Локальна доставка"),
-            ("nova_poshta", "Нова Пошта"),
-        ],
+        choices=DELIVERY_CHOICES,
         required=True,
         widget=forms.Select(
             attrs={
@@ -68,10 +78,7 @@ class CheckoutForm(forms.Form):
 
     # Payment type selection
     payment_type = forms.ChoiceField(
-        choices=[
-            ("iban", "IBAN"),
-            ("liqupay", "LiquPay"),
-        ],
+        choices=PAYMENT_CHOICES,
         required=True,
         widget=forms.Select(
             attrs={
