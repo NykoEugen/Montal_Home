@@ -31,6 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let currentIndex = parseInt(mainImg?.getAttribute('data-current-index') || '0', 10);
+    if (Number.isNaN(currentIndex)) {
+        currentIndex = 0;
+    }
+
     function setGalleryImage(index) {
         if (!mainImg || !thumbs.length) {
             return;
@@ -44,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         mainImg.src = url;
         mainImg.setAttribute('data-current-index', String(clamped));
+        currentIndex = clamped;
         updateActiveThumb(clamped);
         updateDots(clamped);
         scrollThumbIntoView(clamped);
@@ -58,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainImg) {
             mainImg.setAttribute('data-current-index', '-1');
         }
+        currentIndex = -1;
     }
 
     function scrollThumbIntoView(index) {
@@ -97,8 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
             if (!thumbs.length || !mainImg) return;
-            const current = parseInt(mainImg.getAttribute('data-current-index') || '0', 10);
-            const nextIndex = (current - 1 + thumbs.length) % thumbs.length;
+            const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+            const nextIndex = (baseIndex - 1 + thumbs.length) % thumbs.length;
             setGalleryImage(nextIndex);
         });
     }
@@ -106,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
             if (!thumbs.length || !mainImg) return;
-            const current = parseInt(mainImg.getAttribute('data-current-index') || '0', 10);
-            const nextIndex = (current + 1) % thumbs.length;
+            const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+            const nextIndex = (baseIndex + 1) % thumbs.length;
             setGalleryImage(nextIndex);
         });
     }
@@ -324,10 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sizeInput) sizeInput.value = b.getAttribute('data-id') || '';
         const d = b.getAttribute('data-dimensions');
         if (dimCell && d) dimCell.textContent = d; else if (dimCell) dimCell.textContent = dimCell.getAttribute('data-base') || '';
-        if (mainImg) {
-            // Reset gallery highlighting when switching size variants with custom visuals
-            clearGallerySelection();
-        }
         recompute();
     }));
 
