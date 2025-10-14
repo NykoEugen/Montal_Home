@@ -2,12 +2,59 @@
 document.addEventListener('DOMContentLoaded', () => {
     const mainImg = document.getElementById('alt-main-image');
     const thumbs = Array.from(document.querySelectorAll('.thumb-item'));
+    const mainImageWrapper = document.getElementById('alt-main-image-wrapper');
     const galleryDots = Array.from(document.querySelectorAll('.gallery-dot'));
     const prevBtn = document.querySelector('.gallery-nav-prev');
     const nextBtn = document.querySelector('.gallery-nav-next');
     const thumbScroller = document.querySelector('[data-thumb-scroller]');
     const thumbPrev = document.querySelector('.thumb-nav-prev');
     const thumbNext = document.querySelector('.thumb-nav-next');
+
+    function setWrapperAspect(width, height) {
+        if (!mainImageWrapper) {
+            return;
+        }
+
+        if (width && height && Number(width) > 0 && Number(height) > 0) {
+            mainImageWrapper.style.aspectRatio = `${width} / ${height}`;
+        } else {
+            mainImageWrapper.style.aspectRatio = '1 / 1';
+        }
+    }
+
+    function syncMainImageMetadata(source) {
+        if (!mainImg || !source) {
+            return;
+        }
+
+        const { width, height } = source.dataset || {};
+        if (width) {
+            mainImg.dataset.width = width;
+        }
+        if (height) {
+            mainImg.dataset.height = height;
+        }
+        setWrapperAspect(width, height);
+    }
+
+    function applyAspectFromLoadedImage() {
+        if (!mainImg) return;
+        const { naturalWidth, naturalHeight } = mainImg;
+        if (naturalWidth && naturalHeight) {
+            setWrapperAspect(naturalWidth, naturalHeight);
+        }
+    }
+
+    if (mainImg) {
+        if (mainImg.dataset && mainImg.dataset.width && mainImg.dataset.height) {
+            setWrapperAspect(mainImg.dataset.width, mainImg.dataset.height);
+        }
+        if (mainImg.complete) {
+            applyAspectFromLoadedImage();
+        }
+        mainImg.addEventListener('load', applyAspectFromLoadedImage);
+        mainImg.addEventListener('error', () => setWrapperAspect());
+    }
 
     function updateActiveThumb(index) {
         thumbs.forEach((el, i) => {
@@ -48,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         mainImg.src = url;
+        syncMainImageMetadata(thumb);
         mainImg.setAttribute('data-current-index', String(clamped));
         currentIndex = clamped;
         updateActiveThumb(clamped);
@@ -270,6 +318,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextStatusLabel = b.getAttribute('data-stock-label');
         
         if (imageUrl && mainImg) {
+            const variantWidth = b.getAttribute('data-image-width');
+            const variantHeight = b.getAttribute('data-image-height');
+            if (variantWidth) {
+                mainImg.dataset.width = variantWidth;
+            }
+            if (variantHeight) {
+                mainImg.dataset.height = variantHeight;
+            }
+            const matchingThumb = thumbs.find(t => t.getAttribute('data-full') === imageUrl);
+            if (matchingThumb) {
+                syncMainImageMetadata(matchingThumb);
+            } else {
+                setWrapperAspect(variantWidth, variantHeight);
+            }
             mainImg.src = imageUrl;
             clearGallerySelection();
             if (thumbScroller) {
@@ -341,6 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
             updateActiveThumb(startIndex);
             updateDots(startIndex);
             scrollThumbIntoView(startIndex);
+            const initialThumb = thumbs[startIndex];
+            if (initialThumb) {
+                syncMainImageMetadata(initialThumb);
+            }
         }
     }
 

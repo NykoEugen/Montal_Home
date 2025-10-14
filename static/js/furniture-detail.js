@@ -206,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Photo gallery navigation functionality
     const mainImg = document.getElementById('main-image');
+    const mainImageWrapper = document.getElementById('main-image-wrapper');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const dotIndicators = document.querySelectorAll('.dot-indicator');
@@ -214,6 +215,48 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentImageIndex = 0;
     let totalImages = thumbnails.length;
     
+    function setWrapperAspect(width, height) {
+        if (!mainImageWrapper) return;
+
+        if (width && height && Number(width) > 0 && Number(height) > 0) {
+            mainImageWrapper.style.aspectRatio = `${width} / ${height}`;
+        } else {
+            mainImageWrapper.style.aspectRatio = '1 / 1';
+        }
+    }
+
+    function syncMainImageMetadata(source) {
+        if (!mainImg || !source) return;
+
+        const { width, height } = source.dataset || {};
+        if (width) {
+            mainImg.dataset.width = width;
+        }
+        if (height) {
+            mainImg.dataset.height = height;
+        }
+        setWrapperAspect(width, height);
+    }
+
+    function applyAspectFromLoadedImage() {
+        if (!mainImg) return;
+        const { naturalWidth, naturalHeight } = mainImg;
+        if (naturalWidth && naturalHeight) {
+            setWrapperAspect(naturalWidth, naturalHeight);
+        }
+    }
+
+    if (mainImg) {
+        if (mainImg.dataset && mainImg.dataset.width && mainImg.dataset.height) {
+            setWrapperAspect(mainImg.dataset.width, mainImg.dataset.height);
+        }
+        if (mainImg.complete) {
+            applyAspectFromLoadedImage();
+        }
+        mainImg.addEventListener('load', applyAspectFromLoadedImage);
+        mainImg.addEventListener('error', () => setWrapperAspect());
+    }
+
     // Function to update the main image and indicators
     function updateMainImage(index) {
         if (thumbnails.length === 0) return;
@@ -224,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (mainImg && imageUrl) {
             mainImg.src = imageUrl;
+            syncMainImageMetadata(thumbnail);
         }
         
         // Update dot indicators
