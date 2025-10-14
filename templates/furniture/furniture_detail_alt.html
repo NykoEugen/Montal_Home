@@ -9,7 +9,7 @@
       <div class="w-full bg-white rounded-lg shadow p-4">
         <div class="relative">
           <img id="alt-main-image"
-               src="{% if furniture.image %}{{ furniture.image.url }}{% elif gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}"
+               src="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}"
                alt="{{ furniture.name }}"
                class="w-full h-[480px] object-cover rounded"
                data-current-index="0"

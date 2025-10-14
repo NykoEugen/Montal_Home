@@ -8,7 +8,7 @@
         <div class="md:w-1/2 w-full">
             <div class="bg-white rounded-lg shadow-lg p-4">
                 <div class="relative">
-                    <img id="main-image" src="{% if furniture.image %}{{ furniture.image.url }}{% elif gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
+                    <img id="main-image" src="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}" alt="{{ furniture.name }}" class="w-full h-80 object-cover rounded-lg shadow">
                     
                     <!-- Navigation buttons -->
                     {% if gallery_images and gallery_images|length > 1 %}

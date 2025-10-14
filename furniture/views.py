@@ -1,6 +1,8 @@
+from types import SimpleNamespace
+from typing import List, Set
+
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
-
 from fabric_category.models import FabricCategory
 from furniture.models import Furniture
 
@@ -10,7 +12,39 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
     raw_parameters = furniture.parameters.select_related("parameter").all()
     size_variants = furniture.get_size_variants()
     variant_images = list(furniture.variant_images.all())
-    gallery_images = list(getattr(furniture, 'images').all()) if hasattr(furniture, 'images') else []
+    extra_gallery_images = list(getattr(furniture, "images").all()) if hasattr(furniture, "images") else []
+
+    gallery_images: List[SimpleNamespace] = []
+    seen_urls: Set[str] = set()
+
+    def add_gallery_image(image_field, alt_text: str, is_primary: bool = False) -> None:
+        if not image_field:
+            return
+        try:
+            image_url = image_field.url
+        except Exception:
+            return
+        if image_url in seen_urls:
+            return
+        seen_urls.add(image_url)
+        gallery_images.append(
+            SimpleNamespace(
+                image=image_field,
+                alt_text=alt_text or furniture.name,
+                is_primary=is_primary,
+            )
+        )
+
+    add_gallery_image(getattr(furniture, "image", None), furniture.name, is_primary=True)
+
+    for img in extra_gallery_images:
+        add_gallery_image(getattr(img, "image", None), getattr(img, "alt_text", furniture.name))
+
+    if not gallery_images and variant_images:
+        # Ensure at least one image is available by falling back to default variant photo.
+        default_variant = next((variant for variant in variant_images if getattr(variant, "is_default", False)), None)
+        fallback_variant = default_variant or variant_images[0]
+        add_gallery_image(getattr(fallback_variant, "image", None), getattr(fallback_variant, "name", furniture.name), is_primary=True)
 
     # Determine which stock status label to show by default
     initial_stock_status = furniture.stock_status

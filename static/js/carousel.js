@@ -385,6 +385,14 @@ class PromotionalCarousel {
 
 // Initialize carousel when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    const carouselRoot = document.getElementById('promoCarousel');
+
+    // Skip initialization entirely if the page does not render the promo carousel.
+    if (!carouselRoot) {
+        console.debug('Promotional carousel skipped: root node not present on this page.');
+        return;
+    }
+
     console.log('DOM loaded, initializing promotional carousel...');
     
     // Try to initialize the carousel
