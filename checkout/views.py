@@ -18,7 +18,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             cart = request.session.get("cart", {})
             if not cart:
-                messages.error(request, "Кошик порожній!")
+                messages.error(request, "Кошик порожній!", extra_tags="user")
                 return redirect("shop:view_cart")
 
             try:
@@ -61,7 +61,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 form_data = form.cleaned_data
                 save_form_draft(request, form_data, 'checkout_form')
                 
-                messages.error(request, "Помилка при створенні замовлення. Ваші дані збережено як чернетку. Спробуйте ще раз.")
+                messages.error(
+                    request,
+                    "Помилка при створенні замовлення. Ваші дані збережено як чернетку. Спробуйте ще раз.",
+                    extra_tags="user",
+                )
                 return render(request, "checkout/checkout.html", {"form": form})
 
             # Process cart items with resilient database operations
@@ -128,14 +132,18 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 )
 
             request.session["cart"] = {}
-            messages.success(request, "Замовлення успішно оформлено!")
+            messages.success(request, "Замовлення успішно оформлено!", extra_tags="user")
             return redirect("shop:home")
     else:
         # Load draft data if available
         draft_data = load_form_draft(request, 'checkout_form')
         if draft_data:
             form = CheckoutForm(initial=draft_data)
-            messages.info(request, "Чернетка замовлення відновлена. Перевірте дані та збережіть.")
+            messages.info(
+                request,
+                "Чернетка замовлення відновлена. Перевірте дані та збережіть.",
+                extra_tags="user",
+            )
         else:
             form = CheckoutForm()
 
@@ -148,7 +156,9 @@ def order_history(request: HttpRequest) -> HttpResponse:
     if phone_number:
         if not re.match(r"^0[0-9]{9}$", phone_number):
             messages.error(
-                request, "Неправильно введений номер телефону! Формат: 0XXXXXXXXX"
+                request,
+                "Неправильно введений номер телефону! Формат: 0XXXXXXXXX",
+                extra_tags="user",
             )
         else:
             orders = (
@@ -158,7 +168,9 @@ def order_history(request: HttpRequest) -> HttpResponse:
             )
             if not orders.exists():
                 messages.info(
-                    request, "Замовлення не знайдено для цього номера телефону."
+                    request,
+                    "Замовлення не знайдено для цього номера телефону.",
+                    extra_tags="user",
                 )
             else:
                 for order in orders:

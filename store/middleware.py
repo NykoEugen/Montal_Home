@@ -144,7 +144,11 @@ class PostRequestResilienceMiddleware(MiddlewareMixin):
                     'draft_saved': True
                 }, status=503)
             else:
-                messages.error(request, "Connection lost. Your data has been saved. Please try again.")
+                messages.error(
+                    request,
+                    "Connection lost. Your data has been saved. Please try again.",
+                    extra_tags="user",
+                )
                 return None
         
         return None
