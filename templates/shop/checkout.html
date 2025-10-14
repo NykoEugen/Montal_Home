@@ -1,123 +1,260 @@
 {% extends 'shop/base.html' %}
 {% load static %}
+{% block extra_head %}
+<style>
+    nav[aria-label="Breadcrumb"] {
+        display: none;
+    }
+</style>
+{% endblock %}
 {% block content %}
-    <h1 class="text-3xl font-bold text-brown-800 mb-8">Оформлення замовлення</h1>
-    <div class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
-        <form method="post" id="checkout-form" novalidate>
-            {% csrf_token %}
-            {{ form.non_field_errors }}
+<div class="bg-gradient-to-br from-beige-100 via-white to-beige-100 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-brown-800">Оформлення замовлення</h1>
+            <p class="mt-3 text-brown-600 max-w-2xl mx-auto">Заповніть контактні дані, оберіть способи доставки та оплати. Ми оперативно зв&rsquo;яжемося з вами для підтвердження деталей.</p>
+        </div>
 
-            <!-- Customer Information -->
-            <div class="mb-6">
-                <h2 class="text-xl font-semibold text-brown-700 mb-4">Контактна інформація</h2>
-                {% for field in form %}
-                    {% if field.name in 'customer_name,customer_last_name,customer_phone_number,customer_email' %}
-                        {% if field.is_hidden %}
-                            {{ field }}
-                        {% else %}
-                            <div class="mb-4">
-                                {{ field.label_tag }}
-                                {{ field }}
-                                {% if field.errors %}
-                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+        <div class="flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-12">
+            <div class="flex items-center gap-3" data-step-wrapper="contact">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full step-indicator" data-step="contact">1</span>
+                <span class="text-brown-700 font-semibold step-label" data-step-label="contact">Контактні дані</span>
             </div>
+            <span class="hidden md:block h-px w-12 bg-beige-300"></span>
+            <div class="flex items-center gap-3" data-step-wrapper="delivery">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full step-indicator" data-step="delivery">2</span>
+                <span class="text-brown-700 font-semibold step-label" data-step-label="delivery">Доставка</span>
+            </div>
+            <span class="hidden md:block h-px w-12 bg-beige-300"></span>
+            <div class="flex items-center gap-3" data-step-wrapper="payment">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full step-indicator" data-step="payment">3</span>
+                <span class="text-brown-700 font-semibold step-label" data-step-label="payment">Оплата</span>
+            </div>
+            <span class="hidden md:block h-px w-12 bg-beige-300"></span>
+            <div class="flex items-center gap-3" data-step-wrapper="confirm">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full step-indicator" data-step="confirm">4</span>
+                <span class="text-brown-500 font-semibold step-label" data-step-label="confirm">Підтвердження</span>
+            </div>
+        </div>
 
-            <!-- Delivery Information -->
-            <div class="mb-6">
-                <h2 class="text-xl font-semibold text-brown-700 mb-4">Доставка</h2>
-                
-                <!-- Delivery Type -->
-                {% for field in form %}
-                    {% if field.name == 'delivery_type' %}
-                        <div class="mb-4">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                {% endfor %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow-xl rounded-2xl border border-beige-300">
+                    <form method="post" id="checkout-form" novalidate class="p-6 sm:p-8 space-y-10">
+                        {% csrf_token %}
 
-                <!-- Local Delivery Address -->
-                <div id="local-delivery-fields" class="hidden">
-                    {% for field in form %}
-                        {% if field.name == 'delivery_address' %}
-                            <div class="mb-4">
-                                {{ field.label_tag }}
-                                {{ field }}
-                                {% if field.errors %}
-                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                                {% endif %}
+                        {% if form.non_field_errors %}
+                            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                                <ul class="space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
                             </div>
                         {% endif %}
-                    {% endfor %}
-                </div>
 
-                <!-- Nova Poshta Fields -->
-                <div id="nova-poshta-fields" class="hidden">
-                    {% for field in form %}
-                        {% if field.name == 'delivery_city_label' %}
-                            <div class="mb-4 relative">
-                                {{ field.label_tag }}
-                                {{ field }}
-                                {% if field.errors %}
-                                    <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                                {% endif %}
-                                <ul id="city-suggestions" class="absolute bg-white border w-full hidden max-h-60 overflow-y-auto z-10" style="top: 100%; left: 0;"></ul>
+                        <!-- Customer Information -->
+                        <section data-step-section="contact">
+                            <div class="flex items-start justify-between gap-4 mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-semibold text-brown-700">Контактна інформація</h2>
+                                    <p class="text-sm text-brown-500 mt-1">Використовується для підтвердження замовлення та доставки.</p>
+                                </div>
+                                <i class="fas fa-user-circle text-brown-300 text-3xl hidden sm:block"></i>
                             </div>
-                        {% endif %}
-                    {% endfor %}
-                    {% for field in form %}
-                        {% if field.name == 'delivery_branch_label' %}
-                            {% if field.is_hidden %}
-                                {{ field }}
-                            {% else %}
-                                <div class="mb-4">
-                                    {{ field.label_tag }}
-                                    {{ field }}
-                                    {% if field.errors %}
-                                        <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
+                            <div class="grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.customer_name.label }}</label>
+                                    {{ form.customer_name }}
+                                    {% if form.customer_name.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.customer_name.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
                                     {% endif %}
                                 </div>
+                                <div>
+                                    <label for="{{ form.customer_last_name.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.customer_last_name.label }}</label>
+                                    {{ form.customer_last_name }}
+                                    {% if form.customer_last_name.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.customer_last_name.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label for="{{ form.customer_phone_number.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.customer_phone_number.label }}</label>
+                                    {{ form.customer_phone_number }}
+                                    {% if form.customer_phone_number.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.customer_phone_number.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label for="{{ form.customer_email.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.customer_email.label }}</label>
+                                    {{ form.customer_email }}
+                                    {% if form.customer_email.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.customer_email.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                    <p class="text-xs text-brown-400 mt-1">Необов&rsquo;язкове поле, але допоможе отримувати повідомлення про статус замовлення.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Delivery Information -->
+                        <section data-step-section="delivery">
+                            <div class="flex items-start justify-between gap-4 mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-semibold text-brown-700">Доставка</h2>
+                                    <p class="text-sm text-brown-500 mt-1">Оберіть зручний спосіб. Варіанти нижче оновляться автоматично.</p>
+                                </div>
+                                <i class="fas fa-truck text-brown-300 text-3xl hidden sm:block"></i>
+                            </div>
+
+                            <div class="grid gap-5 md:grid-cols-2">
+                                <div class="md:col-span-2">
+                                    <label for="{{ form.delivery_type.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.delivery_type.label }}</label>
+                                    {{ form.delivery_type }}
+                                    {% if form.delivery_type.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.delivery_type.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Local Delivery Address -->
+                            <div id="local-delivery-fields" class="mt-6 hidden">
+                                <label for="{{ form.delivery_address.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.delivery_address.label }}</label>
+                                {{ form.delivery_address }}
+                                {% if form.delivery_address.errors %}
+                                    <p class="text-red-500 text-sm mt-1">
+                                        {% for error in form.delivery_address.errors %}
+                                            {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </p>
+                                {% else %}
+                                    <p class="text-xs text-brown-400 mt-1">Вкажіть вулицю, будинок, під&rsquo;їзд, поверх та додаткові примітки для кур&rsquo;єра.</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Nova Poshta Fields -->
+                            <div id="nova-poshta-fields" class="mt-6 hidden space-y-5">
+                                <div class="relative">
+                                    <label for="{{ form.delivery_city_label.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.delivery_city_label.label }}</label>
+                                    {{ form.delivery_city_label }}
+                                    {% if form.delivery_city_label.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.delivery_city_label.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                    <ul id="city-suggestions" class="absolute left-0 right-0 top-full mt-2 bg-white border border-beige-300 rounded-xl shadow-lg hidden max-h-60 overflow-y-auto z-10"></ul>
+                                </div>
+                                <div>
+                                    <label for="{{ form.delivery_branch_label.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.delivery_branch_label.label }}</label>
+                                    {{ form.delivery_branch_label }}
+                                    {% if form.delivery_branch_label.errors %}
+                                        <p class="text-red-500 text-sm mt-1">
+                                            {% for error in form.delivery_branch_label.errors %}
+                                                {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Payment Information -->
+                        <section data-step-section="payment">
+                            <div class="flex items-start justify-between gap-4 mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-semibold text-brown-700">Оплата</h2>
+                                    <p class="text-sm text-brown-500 mt-1">Виберіть бажаний спосіб оплати. Ми надішлемо реквізити одразу після підтвердження.</p>
+                                </div>
+                                <i class="fas fa-credit-card text-brown-300 text-3xl hidden sm:block"></i>
+                            </div>
+                            <div class="md:w-2/3">
+                                <label for="{{ form.payment_type.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.payment_type.label }}</label>
+                                {{ form.payment_type }}
+                                {% if form.payment_type.errors %}
+                                    <p class="text-red-500 text-sm mt-1">
+                                        {% for error in form.payment_type.errors %}
+                                            {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </section>
+
+                        <!-- Hidden fields -->
+                        {% for field in form %}
+                            {% if field.is_hidden and field.name != 'delivery_branch_label' %}
+                                {{ field }}
                             {% endif %}
-                        {% endif %}
-                    {% endfor %}
+                        {% endfor %}
+
+                        <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-xl shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-500 transition">Підтвердити замовлення</button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Payment Information -->
-            <div class="mb-6">
-                <h2 class="text-xl font-semibold text-brown-700 mb-4">Оплата</h2>
-                {% for field in form %}
-                    {% if field.name == 'payment_type' %}
-                        <div class="mb-4">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ field.errors.as_text }}</p>
-                            {% endif %}
+            <aside class="space-y-6">
+                <div class="bg-white rounded-2xl border border-beige-300 shadow-lg p-6 space-y-5">
+                    <h3 class="text-xl font-semibold text-brown-700">Чому Montal Home?</h3>
+                    <div class="space-y-4 text-sm text-brown-600">
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-beige-200 text-brown-600">
+                                <i class="fas fa-truck"></i>
+                            </span>
+                            <p>Доставляємо по Україні з перевіреним партнером Нова Пошта або власною службою доставки.</p>
                         </div>
-                    {% endif %}
-                {% endfor %}
-            </div>
-
-            <!-- Hidden fields -->
-            {% for field in form %}
-                {% if field.is_hidden and field.name not in 'delivery_branch_label' %}
-                    {{ field }}
-                {% endif %}
-            {% endfor %}
-
-            <button type="submit" class="btn-grad w-full">Підтвердити замовлення</button>
-        </form>
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-beige-200 text-brown-600">
+                                <i class="fas fa-shield-halved"></i>
+                            </span>
+                            <p>Кожне замовлення проходить ручну перевірку менеджером перед відвантаженням.</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-beige-200 text-brown-600">
+                                <i class="fas fa-couch"></i>
+                            </span>
+                            <p>Ми пропонуємо меблі перевірених виробників з урахуванням ваших побажань та гарантуємо якісний сервіс.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-brown-800 rounded-2xl p-6 space-y-4 help-block">
+                    <h3 class="text-lg font-semibold">Потрібна допомога?</h3>
+                    <p class="text-sm">Зателефонуйте нашому менеджеру або напишіть у чат. Ми оперативно відповімо на всі запитання.</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-phone-alt"></i>
+                            <span>+380 67 841 62 72</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-clock"></i>
+                            <span>Щодня 09:00 &ndash; 19:00</span>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
     </div>
+</div>
 
-    <script src="{% static 'js/checkout-delivery.js' %}"></script>
-    <script src="{% static 'js/checkout.js' %}"></script>
+<script src="{% static 'js/checkout-delivery.js' %}"></script>
+<script src="{% static 'js/checkout.js' %}"></script>
 {% endblock %}
