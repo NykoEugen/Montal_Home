@@ -593,23 +593,120 @@ li.border-beige-200 {
     height: 224px; /* h-56 equivalent */
 }
 
-/* Legacy button styles - kept for backward compatibility */
-.btn-grad {
-    display: inline-block;
-    padding: 12px 24px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--brown-500), var(--brown-600));
-    color: white;
-    text-decoration: none;
+/* Liquid glass button styling shared across shop CTAs */
+.btn-glass,
+.btn-grad,
+a.btn-glass,
+a.btn-grad,
+button.btn-glass,
+button.btn-grad,
+input[type="submit"].btn-glass,
+input[type="submit"].btn-grad {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(172, 142, 102, 0.45);
+    background: linear-gradient(135deg, rgba(239, 239, 235, 0.65), rgba(209, 197, 189, 0.35));
+    color: var(--brown-700);
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(90, 65, 55, 0.2);
-    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 12px 26px -14px rgba(81, 59, 36, 0.45),
+        0 18px 40px -20px rgba(64, 49, 37, 0.42);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        opacity 0.25s ease;
+    cursor: pointer;
+    overflow: hidden;
 }
 
+.btn-glass::before,
+.btn-grad::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.05));
+    opacity: 0.85;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.btn-glass::after,
+.btn-grad::after {
+    content: "";
+    position: absolute;
+    height: 200%;
+    width: 70%;
+    top: -170%;
+    left: -10%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(239, 239, 235, 0));
+    transform: rotate(25deg);
+    pointer-events: none;
+    transition: transform 0.4s ease;
+}
+
+.btn-glass:hover,
 .btn-grad:hover {
-    background: linear-gradient(135deg, var(--brown-600), var(--brown-700));
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(90, 65, 55, 0.3);
+    border-color: rgba(161, 128, 90, 0.55);
+    background: linear-gradient(135deg, rgba(239, 239, 235, 0.75), rgba(209, 197, 189, 0.45));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        0 18px 40px -18px rgba(81, 59, 36, 0.5),
+        0 22px 48px -22px rgba(64, 49, 37, 0.48);
+    color: var(--brown-800);
+}
+
+.btn-glass:hover::before,
+.btn-grad:hover::before {
+    opacity: 1;
+}
+
+.btn-glass:hover::after,
+.btn-grad:hover::after {
+    transform: rotate(25deg) translateY(50%);
+}
+
+.btn-glass:focus-visible,
+.btn-grad:focus-visible {
+    outline: none;
+    border-color: rgba(161, 128, 90, 0.65);
+    box-shadow:
+        0 0 0 3px rgba(239, 239, 235, 0.6),
+        0 0 0 6px rgba(172, 142, 102, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.btn-glass:active,
+.btn-grad:active {
+    transform: translateY(0);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 10px 22px -16px rgba(81, 59, 36, 0.55);
+}
+
+.btn-glass:disabled,
+.btn-grad:disabled,
+.btn-glass[disabled],
+.btn-grad[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 8px 18px -18px rgba(81, 59, 36, 0.45);
 }
 
 /* Subcategory furniture card refresh */
