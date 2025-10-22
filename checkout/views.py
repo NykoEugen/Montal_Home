@@ -9,7 +9,8 @@ from furniture.models import Furniture, FurnitureCustomOption
 from store.connection_utils import resilient_database_operation, save_form_draft, load_form_draft, clear_form_draft
 
 from .forms import CheckoutForm
-from .models import Order, OrderItem
+from .models import Order, OrderItem, OrderStatusHistory
+from .services import notify_staff_about_new_order
 
 
 def checkout(request: HttpRequest) -> HttpResponse:
@@ -52,6 +53,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         return order
 
                 order = resilient_database_operation(create_order_operation)
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order.status,
+                    comment="Замовлення створено на сайті",
+                )
                 
                 # Clear any saved drafts after successful order creation
                 clear_form_draft(request, 'checkout_form')
@@ -161,6 +167,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 )
 
             request.session["cart"] = {}
+            notify_staff_about_new_order(order)
             messages.success(request, "Замовлення успішно оформлено!", extra_tags="user")
             return redirect("shop:home")
     else:

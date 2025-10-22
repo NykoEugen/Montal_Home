@@ -196,6 +196,21 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Email & notification settings
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@montal-home.local")
+ORDER_NOTIFICATION_RECIPIENTS = [
+    email.strip()
+    for email in os.getenv("ORDER_NOTIFICATION_RECIPIENTS", "").split(",")
+    if email.strip()
+]
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+PAYMENT_IBAN_DETAILS = os.getenv("PAYMENT_IBAN_DETAILS", "")
+
 # Security settings
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

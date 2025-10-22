@@ -1,9 +1,19 @@
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from furniture.models import Furniture
 
 
 class Order(models.Model):
+    class Status(models.TextChoices):
+        PROCESSING = "processing", "Обробляється"
+        AWAITING_PAYMENT = "awaiting_payment", "Очікує оплату"
+        CONFIRMED = "confirmed", "Підтверджено"
+        SHIPPING = "shipping", "Доставка"
+        COMPLETED = "completed", "Завершено"
+        CANCELED = "canceled", "Скасовано"
+
     DELIVERY_CHOICES = [
         ("local", "Локальна доставка"),
         ("nova_poshta", "Нова Пошта"),
@@ -45,6 +55,36 @@ class Order(models.Model):
         choices=PAYMENT_CHOICES,
         verbose_name="Тип оплати",
     )
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.PROCESSING,
+        verbose_name="Статус замовлення",
+    )
+    status_changed_at = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="Дата оновлення статусу",
+    )
+    staff_note = models.TextField(
+        blank=True,
+        verbose_name="Нотатка менеджера",
+        help_text="Внутрішні примітки щодо замовлення",
+    )
+    customer_message = models.TextField(
+        blank=True,
+        verbose_name="Повідомлення клієнту",
+        help_text="Додається до листа при надсиланні реквізитів",
+    )
+    payment_instructions_file = models.FileField(
+        upload_to="payments/instructions/",
+        blank=True,
+        null=True,
+        verbose_name="Файл з реквізитами для оплати",
+    )
+    payment_link = models.URLField(
+        blank=True,
+        verbose_name="Посилання на оплату",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     items = models.ManyToManyField(Furniture, through="OrderItem")
@@ -52,10 +92,11 @@ class Order(models.Model):
     class Meta:
         verbose_name = "Замовлення"
         verbose_name_plural = "Замовлення"
+        ordering = ["-created_at"]
 
     def __str__(self) -> str:
         return f"Order {self.id} by {self.customer_name} {self.customer_last_name}"
-    
+
     @property
     def total_savings(self):
         """Calculate total savings for the entire order."""
@@ -73,6 +114,23 @@ class Order(models.Model):
             else:
                 total += item.price * item.quantity
         return total
+
+    @property
+    def total_amount(self):
+        return sum(item.price * item.quantity for item in self.orderitem_set.all())
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous_status = (
+                Order.objects.filter(pk=self.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+            if previous_status != self.status:
+                self.status_changed_at = timezone.now()
+        else:
+            self.status_changed_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class OrderItem(models.Model):
@@ -170,3 +228,40 @@ class OrderItem(models.Model):
         if self.size_variant_is_promotional and self.size_variant_original_price:
             savings += (self.size_variant_original_price - self.price) * self.quantity
         return savings
+
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="status_history",
+        verbose_name="Замовлення",
+    )
+    status = models.CharField(
+        max_length=30,
+        choices=Order.Status.choices,
+        verbose_name="Статус",
+    )
+    comment = models.TextField(
+        blank=True,
+        verbose_name="Коментар менеджера",
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Менеджер",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата зміни",
+    )
+
+    class Meta:
+        verbose_name = "Історія статусу замовлення"
+        verbose_name_plural = "Історії статусів замовлення"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.order_id} -> {self.get_status_display()}"

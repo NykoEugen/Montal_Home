@@ -1,0 +1,22 @@
+Нове замовлення №{{ order.id }}
+Дата: {{ order.created_at|date:"d.m.Y H:i" }}
+Клієнт: {{ order.customer_name }} {{ order.customer_last_name }}
+Телефон: {{ order.customer_phone_number }}
+Email: {{ order.customer_email|default:"—" }}
+
+Доставка: {{ order.get_delivery_type_display }}
+Місто: {{ order.delivery_city }}
+Відділення: {{ order.delivery_branch|default:"—" }}
+Адреса: {{ order.delivery_address|default:"—" }}
+
+Оплата: {{ order.get_payment_type_display }}
+Сума замовлення: {{ order.total_amount }} грн
+
+Товари:
+{% for item in items %}
+- {{ item.furniture.name }} ×{{ item.quantity }} — {{ item.price }} грн
+{% empty %}
+- Немає даних про товари
+{% endfor %}
+
+Перейдіть до адмін-панелі, щоб перевірити наявність та оновити статус.

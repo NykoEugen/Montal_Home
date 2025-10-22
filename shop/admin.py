@@ -1,11 +1,12 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
 from django.forms import BaseInlineFormSet
 from django.core.exceptions import ValidationError
 
 from categories.models import Category
-from checkout.models import Order, OrderItem
+from checkout.models import Order, OrderItem, OrderStatusHistory
+from checkout.services import send_payment_request_to_customer
 from furniture.models import (
     Furniture,
     FurnitureCustomOption,
@@ -393,6 +394,15 @@ class OrderItemInline(ResilientInlineAdmin):
     get_total_price.short_description = "Загальна вартість"
 
 
+class OrderStatusHistoryInline(ResilientInlineAdmin):
+    model = OrderStatusHistory
+    extra = 0
+    readonly_fields = ["status", "comment", "changed_by", "created_at"]
+    can_delete = False
+    verbose_name = "Історія статусу"
+    verbose_name_plural = "Історія статусів"
+
+
 @admin.register(Order)
 class OrderAdmin(ResilientModelAdmin):
     list_display = [
@@ -400,6 +410,7 @@ class OrderAdmin(ResilientModelAdmin):
         "customer_name",
         "customer_last_name",
         "customer_phone_number",
+        "status",
         "delivery_type",
         "payment_type",
         "created_at",
@@ -407,15 +418,16 @@ class OrderAdmin(ResilientModelAdmin):
         "total_amount",
         "total_savings"
     ]
-    list_filter = ["delivery_type", "payment_type", "created_at"]
+    list_filter = ["delivery_type", "payment_type", "status", "created_at"]
     search_fields = [
         "customer_name",
         "customer_last_name",
         "customer_phone_number",
         "customer_email",
     ]
-    readonly_fields = ["created_at", "total_savings", "total_original_amount"]
-    inlines = [OrderItemInline]
+    readonly_fields = ["created_at", "total_savings", "total_original_amount", "status_changed_at"]
+    inlines = [OrderItemInline, OrderStatusHistoryInline]
+    actions = ["send_payment_request_action"]
     
     def total_items(self, obj):
         return sum(item.quantity for item in obj.orderitem_set.all())
@@ -449,8 +461,77 @@ class OrderAdmin(ResilientModelAdmin):
             },
         ),
         ("Оплата", {"fields": ("payment_type",)}),
+        (
+            "Статус замовлення",
+            {
+                "fields": (
+                    "status",
+                    "status_changed_at",
+                    "customer_message",
+                    "payment_instructions_file",
+                    "payment_link",
+                    "staff_note",
+                )
+            },
+        ),
         ("Системна інформація", {"fields": ("created_at", "total_savings", "total_original_amount"), "classes": ("collapse",)}),
     )
+
+    def save_model(self, request, obj, form, change):
+        previous_status = None
+        if change and obj.pk:
+            previous_status = (
+                Order.objects.filter(pk=obj.pk).values_list("status", flat=True).first()
+            )
+        super().save_model(request, obj, form, change)
+        current_comment = form.cleaned_data.get("customer_message", "") if form else ""
+        if previous_status != obj.status:
+            OrderStatusHistory.objects.create(
+                order=obj,
+                status=obj.status,
+                comment=current_comment,
+                changed_by=request.user if request.user.is_authenticated else None,
+            )
+            if obj.status == Order.Status.AWAITING_PAYMENT:
+                sent = send_payment_request_to_customer(obj, comment=current_comment)
+                if sent:
+                    self.message_user(
+                        request,
+                        "Лист із реквізитами надіслано клієнту.",
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        "Не вдалося надіслати лист клієнту. Перевірте email або налаштування SMTP.",
+                        level=messages.ERROR,
+                    )
+
+    @admin.action(description="Надіслати покупцю запит на оплату")
+    def send_payment_request_action(self, request, queryset):
+        success = 0
+        failures = 0
+        for order in queryset:
+            if order.status != Order.Status.AWAITING_PAYMENT:
+                order.status = Order.Status.AWAITING_PAYMENT
+                order.save()
+            if send_payment_request_to_customer(order):
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order.status,
+                    comment=order.customer_message,
+                    changed_by=request.user if request.user.is_authenticated else None,
+                )
+                success += 1
+            else:
+                failures += 1
+        if success:
+            self.message_user(request, f"Надіслано {success} запит(ів) на оплату.")
+        if failures:
+            self.message_user(
+                request,
+                f"Не вдалося надіслати {failures} запит(ів). Перевірте налаштування пошти.",
+                level=messages.WARNING,
+            )
 
 
 @admin.register(OrderItem)
