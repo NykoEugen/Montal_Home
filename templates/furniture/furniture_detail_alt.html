@@ -104,7 +104,7 @@
           <div class="flex flex-wrap gap-2" data-custom-option-group>
             {% for option in custom_options %}
             <button type="button"
-                    class="px-3 py-1 rounded-full border border-beige-200 bg-beige-100 text-brown-800 hover:bg-brown-100 transition custom-option-chip"
+                    class="chip custom-option-chip"
                     data-option-id="{{ option.id }}"
                     data-option-value="{{ option.value }}">
               {{ option.value }}
@@ -120,7 +120,7 @@
           <label class="block text-brown-700 font-medium mb-2">Варіанти</label>
           <div class="flex flex-wrap gap-2">
             {% for variant in variant_images %}
-            <button type="button" class="variant-chip flex items-center gap-2 px-3 py-2 border rounded text-sm hover:bg-beige-100{% if variant.is_default %} bg-beige-100 ring-2 ring-brown-800{% endif %}" 
+            <button type="button" class="chip variant-chip{% if variant.is_default %} chip--active{% endif %}" 
                     data-id="{{ variant.id }}" 
                     data-image="{{ variant.image.url }}" 
                     data-name="{{ variant.name }}"
@@ -142,7 +142,7 @@
           <label for="alt-size" class="block text-brown-700 font-medium mb-2">Розмір (ВхШхД)</label>
           <div class="grid grid-cols-2 gap-2">
             {% if base_dimensions and not base_size_variant_id %}
-            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" 
+            <button type="button" class="chip size-chip" 
                     data-id="base" 
                     data-price="{{ furniture.current_price }}" 
                     data-original-price="{{ furniture.price }}"
@@ -152,7 +152,7 @@
             </button>
             {% endif %}
             {% for variant in size_variants %}
-            <button type="button" class="size-chip px-3 py-2 border rounded text-sm hover:bg-beige-100" 
+            <button type="button" class="chip size-chip" 
                     data-id="{{ variant.id }}" 
                     data-price="{{ variant.current_price }}" 
                     data-original-price="{{ variant.price }}"
