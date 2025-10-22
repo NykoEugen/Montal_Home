@@ -22,49 +22,55 @@
 {% if furniture %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for item in furniture %}
-            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                {% if item.image %}
-                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-48 object-cover">
-                {% else %}
-                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
-                        <i class="fas fa-image text-4xl text-beige-400"></i>
-                    </div>
-                {% endif %}
-                
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold text-brown-800 mb-2 line-clamp-2">
-                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="hover:text-brown-600 transition">
-                            {{ item.name }}
-                        </a>
-                    </h3>
-                    
-                    <p class="text-sm text-brown-600 mb-2">
-                        {{ item.sub_category.category.name }} → {{ item.sub_category.name }}
-                    </p>
-                    
-                    <p class="text-sm text-brown-500 mb-3 line-clamp-2">
-                        {{ item.description|truncatewords:15 }}
-                    </p>
-                    
-                    <div class="flex justify-between items-center">
-                        <div class="text-lg font-bold text-brown-800">
-                            {% if item.is_promotional and item.promotional_price %}
-                                <span class="text-red-600">{{ item.promotional_price }} грн</span>
-                                <span class="text-sm text-gray-500 line-through ml-2">{{ item.price }} грн</span>
-                            {% else %}
-                                {{ item.price }} грн
+            <div class="furniture-card furniture-card--immersive bg-white rounded-2xl overflow-hidden group relative">
+                <a href="{% url 'furniture:furniture_detail' item.slug %}" class="card-full-link">
+                    <div class="card-media card-media--immersive">
+                        {% if item.is_promotional and item.promotional_price %}
+                            {% with item.discount_percentage as discount %}
+                            {% if discount %}
+                            <div class="promotional-badge">
+                                -{{ discount|floatformat:0 }}%
+                            </div>
                             {% endif %}
+                            {% endwith %}
+                        {% endif %}
+
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="card-media-img">
+                        {% else %}
+                            <div class="card-media-placeholder">
+                                <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-overlay card-overlay--compact">
+                            <div class="card-overlay-heading">
+                                <h3 class="card-overlay-title">{{ item.name }}</h3>
+                                {% if item.sub_category %}
+                                    <p class="text-xs text-white/80">
+                                        {{ item.sub_category.category.name }} → {{ item.sub_category.name }}
+                                    </p>
+                                {% endif %}
+                                <div class="card-overlay-price">
+                                    {% if item.is_promotional and item.promotional_price %}
+                                        <span class="card-price-current">{{ item.promotional_price|floatformat:0 }} грн</span>
+                                        <span class="card-price-old">{{ item.price|floatformat:0 }} грн</span>
+                                    {% else %}
+                                        <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="card-overlay-cta card-overlay-cta--ghost">
+                                Переглянути
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </span>
                         </div>
-                        
-                        <button 
-                            onclick="addToCart('{{ item.id }}', 'base', null, null)"
-                            class="bg-brown-600 hover:bg-brown-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-sm"
-                        >
-                            <i class="fas fa-cart-plus mr-1"></i>
-                            В кошик
-                        </button>
                     </div>
-                </div>
+                </a>
             </div>
         {% endfor %}
     </div>
