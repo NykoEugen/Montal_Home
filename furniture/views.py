@@ -121,6 +121,10 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             except Exception:
                 continue
 
+    custom_options = list(
+        furniture.custom_options.filter(is_active=True).order_by("position", "id")
+    )
+
     return render(
         request,
         template_name,
@@ -135,5 +139,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             "base_size_variant_id": base_size_variant_id,
             "initial_stock_status": initial_stock_status,
             "initial_stock_label": initial_stock_label,
+            "custom_option_name": furniture.custom_option_name,
+            "custom_options": custom_options,
         },
     )

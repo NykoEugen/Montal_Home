@@ -7,7 +7,87 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainPriceElement = document.getElementById('main-price');
     const originalPriceElement = document.getElementById('original-price');
     const qtyInput = document.getElementById('quantity');
+    const customOptionChips = Array.from(document.querySelectorAll('.custom-option-chip'));
+    const customOptionGroup = document.querySelector('[data-custom-option-group]');
+    const customOptionWarning = document.querySelector('[data-custom-option-warning]');
+    const selectedCustomOptionInput = document.getElementById('selected-custom-option');
+    const qbCustomOptionInput = document.getElementById('qb-custom-option');
     
+    const customOptionSelectedClasses = ['bg-brown-600', 'text-white', 'border-brown-600', 'shadow-sm'];
+    const customOptionDefaultClasses = ['bg-beige-100', 'text-brown-800', 'border-beige-200'];
+
+    function applyCustomOptionDefaultStyles(chip) {
+        customOptionSelectedClasses.forEach(cls => chip.classList.remove(cls));
+        customOptionDefaultClasses.forEach(cls => {
+            if (!chip.classList.contains(cls)) {
+                chip.classList.add(cls);
+            }
+        });
+    }
+
+    function applyCustomOptionSelectedStyles(chip) {
+        customOptionDefaultClasses.forEach(cls => chip.classList.remove(cls));
+        customOptionSelectedClasses.forEach(cls => chip.classList.add(cls));
+    }
+
+    function setCustomOptionSelection(chip) {
+        if (!customOptionChips.length) {
+            return;
+        }
+        customOptionChips.forEach(applyCustomOptionDefaultStyles);
+        if (!chip) {
+            if (selectedCustomOptionInput) selectedCustomOptionInput.value = '';
+            if (qbCustomOptionInput) qbCustomOptionInput.value = '';
+            return;
+        }
+        applyCustomOptionSelectedStyles(chip);
+        const optionId = chip.dataset.optionId || '';
+        if (selectedCustomOptionInput) {
+            selectedCustomOptionInput.value = optionId;
+        }
+        if (qbCustomOptionInput) {
+            qbCustomOptionInput.value = optionId;
+        }
+        if (customOptionWarning) {
+            customOptionWarning.classList.add('hidden');
+        }
+        if (customOptionGroup) {
+            customOptionGroup.classList.remove('ring-2', 'ring-red-300');
+        }
+    }
+
+    function hasCustomOptionSelected() {
+        if (!customOptionChips.length) {
+            return true;
+        }
+        const selectedValue =
+            (selectedCustomOptionInput && selectedCustomOptionInput.value) ||
+            (qbCustomOptionInput && qbCustomOptionInput.value) ||
+            '';
+        return Boolean(selectedValue);
+    }
+
+    function ensureCustomOptionSelection() {
+        const valid = hasCustomOptionSelected();
+        if (!valid) {
+            if (customOptionWarning) {
+                customOptionWarning.classList.remove('hidden');
+            }
+            if (customOptionGroup && !customOptionGroup.classList.contains('ring-2')) {
+                customOptionGroup.classList.add('ring-2', 'ring-red-300');
+            }
+            customOptionGroup?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return valid;
+    }
+
+    customOptionChips.forEach(chip => {
+        applyCustomOptionDefaultStyles(chip);
+        chip.addEventListener('click', () => {
+            setCustomOptionSelection(chip);
+        });
+    });
+
     // Get the base furniture price
     let basePrice = 0;
     let originalPrice = 0;
@@ -189,6 +269,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (addToCartForm) {
         addToCartForm.addEventListener('submit', function(e) {
+            if (!ensureCustomOptionSelection()) {
+                e.preventDefault();
+                return;
+            }
             // Let browser validation handle required fields
             
             // Update hidden fields with current selections
@@ -363,11 +447,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const qbSize = document.getElementById('qb-size-variant');
     const qbFabric = document.getElementById('qb-fabric-category');
     const qbVariantImage = document.getElementById('qb-variant-image');
+    const quickBuyForm = qbModal ? qbModal.querySelector('form') : null;
 
     function syncSelectionsToQuickBuy() {
         if (qbQty && qtyInput) qbQty.value = qtyInput.value || '1';
         if (qbSize && sizeSelect && sizeSelect.value) qbSize.value = sizeSelect.value;
         if (qbFabric && fabricSelect && fabricSelect.value) qbFabric.value = fabricSelect.value;
+        if (qbCustomOptionInput && selectedCustomOptionInput) {
+            qbCustomOptionInput.value = selectedCustomOptionInput.value;
+        }
     }
 
     if (qbBtn && qbModal && qbClose) {
@@ -384,6 +472,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target === qbModal) {
                 qbModal.classList.add('hidden');
                 qbModal.classList.remove('flex');
+            }
+        });
+    }
+
+    if (quickBuyForm) {
+        quickBuyForm.addEventListener('submit', (e) => {
+            if (!ensureCustomOptionSelection()) {
+                e.preventDefault();
+                alert('Оберіть варіант перед додаванням у кошик.');
+                if (qbModal) {
+                    qbModal.classList.add('hidden');
+                    qbModal.classList.remove('flex');
+                }
             }
         });
     }

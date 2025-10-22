@@ -4,6 +4,29 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+CREATE_MAPPING_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS price_parser_furniture_price_cell_mapping (
+    id BIGSERIAL PRIMARY KEY,
+    sheet_row INTEGER NOT NULL CHECK (sheet_row >= 0),
+    sheet_column VARCHAR(10) NOT NULL,
+    price_type VARCHAR(100) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    config_id BIGINT NOT NULL,
+    furniture_id BIGINT NOT NULL,
+    size_variant_id BIGINT NULL,
+    CONSTRAINT price_parser_furniture_price_cell_mapping_unique UNIQUE (furniture_id, config_id, sheet_row, sheet_column),
+    CONSTRAINT price_parser_furniture_price_cell_mapping_config_fk FOREIGN KEY (config_id)
+        REFERENCES price_parser_google_sheet_config (id) DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT price_parser_furniture_price_cell_mapping_furniture_fk FOREIGN KEY (furniture_id)
+        REFERENCES furniture (id) DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT price_parser_furniture_price_cell_mapping_size_variant_fk FOREIGN KEY (size_variant_id)
+        REFERENCES furniture_size_variants (id) DEFERRABLE INITIALLY DEFERRED
+);
+"""
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,97 +35,113 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="FurniturePriceCellMapping",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=CREATE_MAPPING_TABLE_SQL,
+                    reverse_sql="DROP TABLE IF EXISTS price_parser_furniture_price_cell_mapping CASCADE;",
                 ),
-                (
-                    "sheet_row",
-                    models.PositiveIntegerField(
-                        help_text="Номер рядка в Google таблиці (наприклад: 5)",
-                        verbose_name="Рядок в таблиці",
-                    ),
-                ),
-                (
-                    "sheet_column",
-                    models.CharField(
-                        help_text="Колонка в Google таблиці (наприклад: E, F, G)",
-                        max_length=10,
-                        verbose_name="Колонка в таблиці",
-                    ),
-                ),
-                (
-                    "price_type",
-                    models.CharField(
-                        help_text="Опис типу ціни (наприклад: 'Стільниця стандарт', 'HPL покриття')",
-                        max_length=100,
-                        verbose_name="Тип ціни",
-                    ),
-                ),
-                (
-                    "is_active",
-                    models.BooleanField(default=True, verbose_name="Активне"),
-                ),
-                (
-                    "created_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="Дата створення"
-                    ),
-                ),
-                (
-                    "updated_at",
-                    models.DateTimeField(auto_now=True, verbose_name="Дата оновлення"),
-                ),
-                (
-                    "config",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="price_cell_mappings",
-                        to="price_parser.googlesheetconfig",
-                        verbose_name="Конфігурація Google таблиці",
-                    ),
-                ),
-                (
-                    "furniture",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="price_cell_mappings",
-                        to="furniture.furniture",
-                        verbose_name="Меблі",
-                    ),
-                ),
-                (
-                    "size_variant",
-                    models.ForeignKey(
-                        blank=True,
-                        help_text="Розмірний варіант для цієї ціни (опціонально)",
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="price_cell_mappings",
-                        to="furniture.furnituresizevariant",
-                        verbose_name="Розмірний варіант",
-                    ),
+                migrations.RunSQL(
+                    sql="DROP TABLE IF EXISTS price_parser_furniture_price_mapping CASCADE;",
+                    reverse_sql=migrations.RunSQL.noop,
                 ),
             ],
-            options={
-                "verbose_name": "Зв'язок меблів з коміркою ціни",
-                "verbose_name_plural": "Зв'язки меблів з комірками цін",
-                "db_table": "price_parser_furniture_price_cell_mapping",
-                "ordering": ["furniture__name", "sheet_row", "sheet_column"],
-                "unique_together": {
-                    ("furniture", "config", "sheet_row", "sheet_column")
-                },
-            },
-        ),
-        migrations.DeleteModel(
-            name="FurniturePriceMapping",
+            state_operations=[
+                migrations.CreateModel(
+                    name="FurniturePriceCellMapping",
+                    fields=[
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        (
+                            "sheet_row",
+                            models.PositiveIntegerField(
+                                help_text="Номер рядка в Google таблиці (наприклад: 5)",
+                                verbose_name="Рядок в таблиці",
+                            ),
+                        ),
+                        (
+                            "sheet_column",
+                            models.CharField(
+                                help_text="Колонка в Google таблиці (наприклад: E, F, G)",
+                                max_length=10,
+                                verbose_name="Колонка в таблиці",
+                            ),
+                        ),
+                        (
+                            "price_type",
+                            models.CharField(
+                                help_text="Опис типу ціни (наприклад: 'Стільниця стандарт', 'HPL покриття')",
+                                max_length=100,
+                                verbose_name="Тип ціни",
+                            ),
+                        ),
+                        (
+                            "is_active",
+                            models.BooleanField(default=True, verbose_name="Активне"),
+                        ),
+                        (
+                            "created_at",
+                            models.DateTimeField(
+                                auto_now_add=True, verbose_name="Дата створення"
+                            ),
+                        ),
+                        (
+                            "updated_at",
+                            models.DateTimeField(
+                                auto_now=True, verbose_name="Дата оновлення"
+                            ),
+                        ),
+                        (
+                            "config",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="price_cell_mappings",
+                                to="price_parser.googlesheetconfig",
+                                verbose_name="Конфігурація Google таблиці",
+                            ),
+                        ),
+                        (
+                            "furniture",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="price_cell_mappings",
+                                to="furniture.furniture",
+                                verbose_name="Меблі",
+                            ),
+                        ),
+                        (
+                            "size_variant",
+                            models.ForeignKey(
+                                blank=True,
+                                help_text="Розмірний варіант для цієї ціни (опціонально)",
+                                null=True,
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="price_cell_mappings",
+                                to="furniture.furnituresizevariant",
+                                verbose_name="Розмірний варіант",
+                            ),
+                        ),
+                    ],
+                    options={
+                        "verbose_name": "Зв'язок меблів з коміркою ціни",
+                        "verbose_name_plural": "Зв'язки меблів з комірками цін",
+                        "db_table": "price_parser_furniture_price_cell_mapping",
+                        "ordering": ["furniture__name", "sheet_row", "sheet_column"],
+                        "unique_together": {
+                            ("furniture", "config", "sheet_row", "sheet_column")
+                        },
+                    },
+                ),
+                migrations.DeleteModel(
+                    name="FurniturePriceMapping",
+                ),
+            ],
         ),
     ]

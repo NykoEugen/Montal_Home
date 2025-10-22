@@ -1,12 +1,18 @@
-import json
-
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
+from django.forms import BaseInlineFormSet
+from django.core.exceptions import ValidationError
 
 from categories.models import Category
 from checkout.models import Order, OrderItem
-from furniture.models import Furniture, FurnitureSizeVariant, FurnitureImage, FurnitureVariantImage
+from furniture.models import (
+    Furniture,
+    FurnitureCustomOption,
+    FurnitureSizeVariant,
+    FurnitureImage,
+    FurnitureVariantImage,
+)
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 from store.admin_utils import ResilientModelAdmin, ResilientInlineAdmin
@@ -37,6 +43,33 @@ class FurnitureParameterInline(ResilientInlineAdmin):
 
     def get_formset(self, request, obj=None, **kwargs):
         # Зберігаємо об'єкт для доступу до sub_category
+        self.parent_object = obj
+        return super().get_formset(request, obj, **kwargs)
+
+
+class FurnitureCustomOptionInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if self.instance is None:
+            return
+        has_values = any(
+            form.cleaned_data.get("value") and not form.cleaned_data.get("DELETE", False)
+            for form in self.forms
+            if hasattr(form, "cleaned_data") and form.cleaned_data
+        )
+        if has_values and not getattr(self.instance, "custom_option_name", ""):
+            raise ValidationError("Вкажіть назву додаткового параметра перед додаванням варіантів.")
+
+
+class FurnitureCustomOptionInline(ResilientInlineAdmin):
+    model = FurnitureCustomOption
+    extra = 1
+    fields = ("value", "position", "is_active")
+    formset = FurnitureCustomOptionInlineFormSet
+    verbose_name = "Варіант параметра"
+    verbose_name_plural = "Варіанти параметра"
+
+    def get_formset(self, request, obj=None, **kwargs):
         self.parent_object = obj
         return super().get_formset(request, obj, **kwargs)
 
@@ -175,7 +208,7 @@ class FurnitureAdmin(ResilientModelAdmin):
     ]
     search_fields = ["name", "description", "article_code"]
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [FurnitureParameterInline, FurnitureSizeVariantInline, FurnitureVariantImageInline, FurnitureImageInline]
+    inlines = [FurnitureParameterInline, FurnitureCustomOptionInline, FurnitureSizeVariantInline, FurnitureVariantImageInline, FurnitureImageInline]
     actions = ['set_sale_end_date', 'clear_sale_end_date', 'make_promotional', 'remove_promotional', 'cleanup_expired_promotions', 'clear_size_variant_promotions']
     
     def available_sizes(self, obj):
@@ -220,6 +253,11 @@ class FurnitureAdmin(ResilientModelAdmin):
         }),
         ('Тканина', {
             'fields': ('selected_fabric_brand', 'fabric_value'),
+            'classes': ('collapse',)
+        }),
+        ('Додатковий параметр', {
+            'fields': ('custom_option_name',),
+            'description': 'Задайте універсальний параметр. Варіанти додаються нижче у списку.',
             'classes': ('collapse',)
         }),
         ('Системна інформація', {
@@ -283,8 +321,26 @@ class FurnitureAdmin(ResilientModelAdmin):
 class OrderItemInline(ResilientInlineAdmin):
     model = OrderItem
     extra = 0
-    fields = ["furniture", "variant_info", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
-    readonly_fields = ["furniture", "variant_info", "size_variant_info", "fabric_info", "price", "quantity", "get_total_price"]
+    fields = [
+        "furniture",
+        "variant_info",
+        "size_variant_info",
+        "fabric_info",
+        "custom_option_info",
+        "price",
+        "quantity",
+        "get_total_price",
+    ]
+    readonly_fields = [
+        "furniture",
+        "variant_info",
+        "size_variant_info",
+        "fabric_info",
+        "custom_option_info",
+        "price",
+        "quantity",
+        "get_total_price",
+    ]
 
     def variant_info(self, obj):
         if obj.variant_image_id:
@@ -321,6 +377,13 @@ class OrderItemInline(ResilientInlineAdmin):
         return "Стандартна тканина"
     
     fabric_info.short_description = "Тканина"
+
+    def custom_option_info(self, obj):
+        if obj.custom_option_value:
+            label = obj.custom_option_name or "Параметр"
+            return f"{label}: {obj.custom_option_value}"
+        return "Не вибрано"
+    custom_option_info.short_description = "Додатковий параметр"
 
     def get_total_price(self, obj):
         if obj.price is not None:
@@ -393,15 +456,33 @@ class OrderAdmin(ResilientModelAdmin):
 @admin.register(OrderItem)
 class OrderItemAdmin(ResilientModelAdmin):
     list_display = [
-        "order", "furniture", "quantity", "price_display", 
-        "is_promotional", "size_variant_info", "fabric_info", "total_price", "savings_amount"
+        "order",
+        "furniture",
+        "quantity",
+        "price_display",
+        "is_promotional",
+        "size_variant_info",
+        "fabric_info",
+        "custom_option_display",
+        "total_price",
+        "savings_amount",
     ]
     list_filter = ["is_promotional", "size_variant_is_promotional", "order__created_at"]
     search_fields = ["order__customer_name", "furniture__name"]
     readonly_fields = [
-        "price", "original_price", "is_promotional", "price_display", "savings_amount",
-        "size_variant_id", "size_variant_original_price", "size_variant_is_promotional",
-        "fabric_category_id", "variant_image_id"
+        "price",
+        "original_price",
+        "is_promotional",
+        "price_display",
+        "savings_amount",
+        "size_variant_id",
+        "size_variant_original_price",
+        "size_variant_is_promotional",
+        "fabric_category_id",
+        "variant_image_id",
+        "custom_option",
+        "custom_option_name",
+        "custom_option_value",
     ]
     
     fieldsets = (
@@ -414,9 +495,18 @@ class OrderItemAdmin(ResilientModelAdmin):
         ('Size Variant Information', {
             'fields': ('size_variant_id', 'size_variant_original_price', 'size_variant_is_promotional')
         }),
-        ('Additional Information', {
-            'fields': ('fabric_category_id', 'variant_image_id')
-        }),
+        (
+            'Additional Information',
+            {
+                'fields': (
+                    'fabric_category_id',
+                    'variant_image_id',
+                    'custom_option_name',
+                    'custom_option_value',
+                    'custom_option',
+                )
+            },
+        ),
     )
 
     def total_price(self, obj):
@@ -464,6 +554,14 @@ class OrderItemAdmin(ResilientModelAdmin):
         return "Стандартна тканина"
     
     fabric_info.short_description = "Тканина та ціна"
+
+    def custom_option_display(self, obj):
+        if obj.custom_option_value:
+            label = obj.custom_option_name or "Параметр"
+            return f"{label}: {obj.custom_option_value}"
+        return "—"
+
+    custom_option_display.short_description = "Додатковий параметр"
 
 
 @admin.register(FurnitureSizeVariant)

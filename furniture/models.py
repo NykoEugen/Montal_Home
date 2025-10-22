@@ -94,6 +94,12 @@ class Furniture(models.Model):
         verbose_name="Коефіцієнт тканини",
         help_text="Множник для розрахунку вартості тканини"
     )
+    custom_option_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Назва додаткового параметра",
+        help_text="Назва параметра для власних варіантів вибору (наприклад, 'Комплектація')."
+    )
 
     @property
     def discount_percentage(self):
@@ -102,6 +108,14 @@ class Furniture(models.Model):
             discount = ((self.price - self.promotional_price) / self.price) * 100
             return int(discount)
         return 0
+
+    def get_custom_option_values(self):
+        """Return list of active custom option values ordered by position."""
+        return list(
+            self.custom_options.filter(is_active=True)
+            .order_by("position", "id")
+            .values_list("value", flat=True)
+        )
 
     @property
     def current_price(self):
@@ -252,6 +266,41 @@ class Furniture(models.Model):
         
         prices = [float(variant.price) for variant in variants]
         return min(prices), max(prices)
+
+
+class FurnitureCustomOption(models.Model):
+    """Custom selectable option for furniture."""
+
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name="custom_options",
+        verbose_name="Меблі",
+    )
+    value = models.CharField(
+        max_length=200,
+        verbose_name="Значення",
+        help_text="Варіант вибору для додаткового параметра.",
+    )
+    position = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Позиція",
+        help_text="Порядок відображення варіантів.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активний",
+        help_text="Приховати варіант без видалення.",
+    )
+
+    class Meta:
+        db_table = "furniture_custom_options"
+        verbose_name = "Варіант додаткового параметра"
+        verbose_name_plural = "Варіанти додаткового параметра"
+        ordering = ["position", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name}: {self.value}"
 
 
 class FurnitureSizeVariant(models.Model):
