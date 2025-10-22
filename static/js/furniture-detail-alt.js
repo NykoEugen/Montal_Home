@@ -13,21 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const customOptionGroup = document.querySelector('[data-custom-option-group]');
     const customOptionWarning = document.querySelector('[data-custom-option-warning]');
     const customOptionInput = document.getElementById('alt-custom-option-input');
-    const customOptionSelectedClasses = ['bg-brown-600', 'text-white', 'border-brown-600', 'shadow-sm'];
-    const customOptionDefaultClasses = ['bg-beige-100', 'text-brown-800', 'border-beige-200'];
+    const CHIP_ACTIVE_CLASS = 'chip--active';
 
     function applyCustomOptionDefaultStyles(chip) {
-        customOptionSelectedClasses.forEach(cls => chip.classList.remove(cls));
-        customOptionDefaultClasses.forEach(cls => {
-            if (!chip.classList.contains(cls)) {
-                chip.classList.add(cls);
-            }
-        });
+        chip.classList.remove(CHIP_ACTIVE_CLASS);
     }
 
     function applyCustomOptionSelectedStyles(chip) {
-        customOptionDefaultClasses.forEach(cls => chip.classList.remove(cls));
-        customOptionSelectedClasses.forEach(cls => chip.classList.add(cls));
+        chip.classList.add(CHIP_ACTIVE_CLASS);
     }
 
     function setCustomOptionSelection(chip) {
@@ -327,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let originalTotal = selectedPrice;
         
         // Get selected size chip info for promotional pricing
-        const selectedSizeChip = document.querySelector('.size-chip.bg-beige-100');
+        const selectedSizeChip = document.querySelector(`.size-chip.${CHIP_ACTIVE_CLASS}`);
         const isOnSale = selectedSizeChip ? selectedSizeChip.getAttribute('data-is-on-sale') === 'true' : false;
         const originalSizePrice = selectedSizeChip ? parseFloat(selectedSizeChip.getAttribute('data-original-price') || '0') : 0;
         
@@ -388,8 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Variant chip functionality
     variantChips.forEach(b => b.addEventListener('click', () => {
-        variantChips.forEach(x => x.classList.remove('bg-beige-100','ring-2','ring-brown-800'));
-        b.classList.add('bg-beige-100','ring-2','ring-brown-800');
+        variantChips.forEach(x => x.classList.remove(CHIP_ACTIVE_CLASS));
+        b.classList.add(CHIP_ACTIVE_CLASS);
         const imageUrl = b.getAttribute('data-image');
         const linkUrl = b.getAttribute('data-link');
         const variantId = b.getAttribute('data-id');
@@ -432,8 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     sizeChips.forEach(b => b.addEventListener('click', () => {
-        sizeChips.forEach(x => x.classList.remove('bg-beige-100','ring-2','ring-brown-800'));
-        b.classList.add('bg-beige-100','ring-2','ring-brown-800');
+        sizeChips.forEach(x => x.classList.remove(CHIP_ACTIVE_CLASS));
+        b.classList.add(CHIP_ACTIVE_CLASS);
         
         const currentPrice = parseFloat(b.getAttribute('data-price') || '0');
         const originalPrice = parseFloat(b.getAttribute('data-original-price') || '0');
@@ -520,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-select default variant if available
     if (variantChips.length) {
-        const defaultVariant = Array.from(variantChips).find(b => b.classList.contains('bg-beige-100'));
+        const defaultVariant = Array.from(variantChips).find(b => b.classList.contains(CHIP_ACTIVE_CLASS));
         if (defaultVariant) {
             const variantId = defaultVariant.getAttribute('data-id');
             if (variantInput && variantId) {

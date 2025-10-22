@@ -13,21 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedCustomOptionInput = document.getElementById('selected-custom-option');
     const qbCustomOptionInput = document.getElementById('qb-custom-option');
     
-    const customOptionSelectedClasses = ['bg-brown-600', 'text-white', 'border-brown-600', 'shadow-sm'];
-    const customOptionDefaultClasses = ['bg-beige-100', 'text-brown-800', 'border-beige-200'];
+    const CHIP_ACTIVE_CLASS = 'chip--active';
 
     function applyCustomOptionDefaultStyles(chip) {
-        customOptionSelectedClasses.forEach(cls => chip.classList.remove(cls));
-        customOptionDefaultClasses.forEach(cls => {
-            if (!chip.classList.contains(cls)) {
-                chip.classList.add(cls);
-            }
-        });
+        chip.classList.remove(CHIP_ACTIVE_CLASS);
     }
 
     function applyCustomOptionSelectedStyles(chip) {
-        customOptionDefaultClasses.forEach(cls => chip.classList.remove(cls));
-        customOptionSelectedClasses.forEach(cls => chip.classList.add(cls));
+        chip.classList.add(CHIP_ACTIVE_CLASS);
     }
 
     function setCustomOptionSelection(chip) {
