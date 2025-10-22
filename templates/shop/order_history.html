@@ -69,6 +69,11 @@
                                                 {% endfor %}
                                             </small>
                                         {% endif %}
+                                        {% if item.custom_option_value %}
+                                            <br><small class="text-brown-500">
+                                                {{ item.custom_option_name|default:"Параметр" }}: {{ item.custom_option_value }}
+                                            </small>
+                                        {% endif %}
                                     </td>
                                     <td class="py-3 px-4">
                                         <span class="text-brown-600">{{ item.price|floatformat:2 }} грн</span>

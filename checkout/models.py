@@ -121,6 +121,24 @@ class OrderItem(models.Model):
         blank=True, 
         verbose_name="ID варіанту зображення"
     )
+    custom_option = models.ForeignKey(
+        "furniture.FurnitureCustomOption",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_items",
+        verbose_name="Обраний варіант параметра",
+    )
+    custom_option_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Назва додаткового параметра",
+    )
+    custom_option_value = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Значення додаткового параметра",
+    )
 
     class Meta:
         verbose_name = "Елемент замовлення"

@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
 
-from furniture.models import Furniture
+from furniture.models import Furniture, FurnitureCustomOption
 from store.connection_utils import resilient_database_operation, save_form_draft, load_form_draft, clear_form_draft
 
 from .forms import CheckoutForm
@@ -82,6 +82,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     size_variant_id = item_data.get('size_variant_id')
                     fabric_category_id = item_data.get('fabric_category_id')
                     variant_image_id = item_data.get('variant_image_id')
+                    custom_option_id = item_data.get('custom_option_id')
+                    custom_option_value_session = item_data.get('custom_option_value')
                 else:
                     # Legacy format - just quantity
                     quantity = item_data
@@ -117,6 +119,30 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     except FabricCategory.DoesNotExist:
                         pass
                 
+                custom_option_obj = None
+                custom_option_value_final = ""
+                custom_option_name = ""
+                if furniture.custom_option_name:
+                    custom_option_name = furniture.custom_option_name
+
+                if custom_option_id:
+                    try:
+                        option_id_int = int(custom_option_id)
+                        custom_option_candidate = FurnitureCustomOption.objects.get(id=option_id_int)
+                        if custom_option_candidate.furniture_id == furniture.id:
+                            custom_option_obj = custom_option_candidate
+                            custom_option_value_final = custom_option_candidate.value
+                        else:
+                            custom_option_obj = None
+                    except (ValueError, FurnitureCustomOption.DoesNotExist):
+                        custom_option_obj = None
+
+                if not custom_option_value_final and custom_option_value_session:
+                    custom_option_value_final = str(custom_option_value_session)
+
+                if not custom_option_value_final:
+                    custom_option_name = ""
+
                 OrderItem.objects.create(
                     order=order,
                     furniture=furniture,
@@ -129,6 +155,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     size_variant_id=None if size_variant_id == 'base' else size_variant_id,
                     fabric_category_id=fabric_category_id,
                     variant_image_id=variant_image_id,
+                    custom_option=custom_option_obj,
+                    custom_option_name=custom_option_name,
+                    custom_option_value=custom_option_value_final,
                 )
 
             request.session["cart"] = {}
@@ -164,7 +193,7 @@ def order_history(request: HttpRequest) -> HttpResponse:
             orders = (
                 Order.objects.filter(customer_phone_number=phone_number)
                 .order_by("-created_at")
-                .prefetch_related("orderitem_set__furniture")
+                .prefetch_related("orderitem_set__furniture", "orderitem_set__custom_option")
             )
             if not orders.exists():
                 messages.info(

@@ -9,6 +9,76 @@ document.addEventListener('DOMContentLoaded', () => {
     const thumbScroller = document.querySelector('[data-thumb-scroller]');
     const thumbPrev = document.querySelector('.thumb-nav-prev');
     const thumbNext = document.querySelector('.thumb-nav-next');
+    const customOptionChips = Array.from(document.querySelectorAll('.custom-option-chip'));
+    const customOptionGroup = document.querySelector('[data-custom-option-group]');
+    const customOptionWarning = document.querySelector('[data-custom-option-warning]');
+    const customOptionInput = document.getElementById('alt-custom-option-input');
+    const customOptionSelectedClasses = ['bg-brown-600', 'text-white', 'border-brown-600', 'shadow-sm'];
+    const customOptionDefaultClasses = ['bg-beige-100', 'text-brown-800', 'border-beige-200'];
+
+    function applyCustomOptionDefaultStyles(chip) {
+        customOptionSelectedClasses.forEach(cls => chip.classList.remove(cls));
+        customOptionDefaultClasses.forEach(cls => {
+            if (!chip.classList.contains(cls)) {
+                chip.classList.add(cls);
+            }
+        });
+    }
+
+    function applyCustomOptionSelectedStyles(chip) {
+        customOptionDefaultClasses.forEach(cls => chip.classList.remove(cls));
+        customOptionSelectedClasses.forEach(cls => chip.classList.add(cls));
+    }
+
+    function setCustomOptionSelection(chip) {
+        if (!customOptionChips.length) {
+            return;
+        }
+        customOptionChips.forEach(applyCustomOptionDefaultStyles);
+        if (!chip) {
+            if (customOptionInput) {
+                customOptionInput.value = '';
+            }
+            return;
+        }
+        applyCustomOptionSelectedStyles(chip);
+        const optionId = chip.dataset.optionId || '';
+        if (customOptionInput) {
+            customOptionInput.value = optionId;
+        }
+        if (customOptionWarning) {
+            customOptionWarning.classList.add('hidden');
+        }
+        if (customOptionGroup) {
+            customOptionGroup.classList.remove('ring-2', 'ring-red-300');
+        }
+    }
+
+    function hasCustomOptionSelected() {
+        if (!customOptionChips.length) {
+            return true;
+        }
+        return Boolean(customOptionInput && customOptionInput.value);
+    }
+
+    function ensureCustomOptionSelection() {
+        const valid = hasCustomOptionSelected();
+        if (!valid) {
+            if (customOptionWarning) {
+                customOptionWarning.classList.remove('hidden');
+            }
+            if (customOptionGroup && !customOptionGroup.classList.contains('ring-2')) {
+                customOptionGroup.classList.add('ring-2', 'ring-red-300');
+            }
+            customOptionGroup?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return valid;
+    }
+
+    customOptionChips.forEach(chip => {
+        applyCustomOptionDefaultStyles(chip);
+        chip.addEventListener('click', () => setCustomOptionSelection(chip));
+    });
 
     function setWrapperAspect(width, height) {
         if (!mainImageWrapper) {
@@ -195,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = document.getElementById('alt-qty');
     const qtyInput = document.getElementById('alt-qty-input');
     const fabricValue = parseFloat((fabricSelect?.parentElement?.getAttribute('data-fabric-value')) || '1');
+    const addToCartForm = document.querySelector('form[action*="add_to_cart_from_detail"]');
 
     let basePrice = 0; 
     let selectedPrice = 0;
@@ -305,6 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+    }
+
+    if (addToCartForm) {
+        addToCartForm.addEventListener('submit', (e) => {
+            if (!ensureCustomOptionSelection()) {
+                e.preventDefault();
+            }
+        });
     }
 
     // Variant chip functionality

@@ -75,6 +75,23 @@
                     {% endif %}
                 </div>
 
+                {% if custom_option_name and custom_options %}
+                <div class="mb-5">
+                    <p class="text-sm font-semibold text-brown-700 mb-2">{{ custom_option_name }}</p>
+                    <div class="flex flex-wrap gap-2" data-custom-option-group>
+                        {% for option in custom_options %}
+                            <button type="button"
+                                    class="px-3 py-1 rounded-full border border-beige-200 bg-beige-100 text-brown-800 hover:bg-brown-100 transition custom-option-chip"
+                                    data-option-id="{{ option.id }}"
+                                    data-option-value="{{ option.value }}">
+                                {{ option.value }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                    <p class="text-sm text-red-600 mt-2 hidden" data-custom-option-warning>Оберіть варіант перед додаванням у кошик.</p>
+                </div>
+                {% endif %}
+
                 {% if size_variants %}
                     <div class="mb-4">
                         <label for="size-variant" class="block text-brown-700 font-medium mb-2">Оберіть розмір:</label>
@@ -120,6 +137,7 @@
                         <input type="hidden" name="size_variant_id" id="selected-size-variant">
                         <input type="hidden" name="fabric_category_id" id="selected-fabric-category">
                         <input type="hidden" name="variant_image_id" id="selected-variant-image">
+                        <input type="hidden" name="custom_option_id" id="selected-custom-option">
                         <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brown-400 transition"><i class="fa fa-cart-plus mr-2"></i> Купити</button>
                     </form>
                     <button type="button" id="quick-buy-btn" class="w-full py-3 text-lg font-semibold rounded-lg border border-brown-300 text-brown-800 hover:bg-beige-100">Швидка покупка</button>
@@ -182,6 +200,7 @@
                 <input type="hidden" name="size_variant_id" id="qb-size-variant">
                 <input type="hidden" name="fabric_category_id" id="qb-fabric-category">
                 <input type="hidden" name="variant_image_id" id="qb-variant-image">
+                <input type="hidden" name="custom_option_id" id="qb-custom-option">
                 <div class="mb-4">
                     <label class="block text-brown-700 mb-2" for="qb-quantity">Кількість</label>
                     <input id="qb-quantity" name="quantity" type="number" min="1" value="1" class="w-28 p-2 border border-brown-300 rounded-lg">
