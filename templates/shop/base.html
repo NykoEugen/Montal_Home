@@ -1,4 +1,4 @@
-{% load static %}
+{% load static seasonal_tags %}
 
 <!DOCTYPE html>
 <html lang="uk">
@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="{% static 'css/carousel.css' %}">
     <link rel="stylesheet" href="{% static 'css/chat-button.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% block seasonal_css %}
+      {% include "seasonal/loader.html" with section="css" %}
+    {% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-beige-100 font-sans min-h-screen flex flex-col">
@@ -119,6 +122,10 @@
             </div>
         </nav>
     </header>
+
+    {% block seasonal_header %}
+      {% render_seasonal "header" %}
+    {% endblock %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
         <nav class="text-sm text-brown-500 mb-4" aria-label="Breadcrumb">
             <ol class="list-none p-0 inline-flex">
@@ -148,6 +155,9 @@
             {% endfor %}
         {% endif %}
         <main class="flex-grow">
+            {% block seasonal_sidebar %}
+              {% render_seasonal "sidebar" %}
+            {% endblock %}
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -189,6 +199,10 @@
         </div>
     </div>
     
+    {% block seasonal_footer %}
+      {% render_seasonal "footer" %}
+    {% endblock %}
+
     <footer class="bg-brown-800 text-white py-12 mt-8">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -254,6 +268,9 @@
     <script src="{% static 'js/checkout.js' %}"></script>
     <script src="{% static 'js/chat-button.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
+    {% block seasonal_js %}
+      {% include "seasonal/loader.html" with section="js" %}
+    {% endblock %}
     <script>
         // Mobile menu toggle
         const menuBtn = document.getElementById('mobile-menu-button');

@@ -1,0 +1,2 @@
+"Seasonal campaign management app."
+

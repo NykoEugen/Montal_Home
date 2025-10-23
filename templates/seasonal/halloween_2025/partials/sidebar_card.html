@@ -1,0 +1,13 @@
+{% load static %}
+<aside class="seasonal-halloween seasonal-halloween__card" data-seasonal-pack="{{ campaign.slug|default:'halloween-2025' }}">
+  <img src="{{ spiderweb_image_url }}" class="seasonal-halloween__spiderweb" alt="" data-seasonal-animated />
+  <header>
+    <h3>Halloween vibes</h3>
+    <p>{{ halloween_discount_badge }} • тематичні комплекти та подарункові бокси</p>
+  </header>
+  <a href="/decor/halloween/" class="seasonal-halloween__cta">
+    <span>Переглянути підбірку</span>
+    <span aria-hidden="true">&#8594;</span>
+  </a>
+  <button type="button" class="seasonal-halloween__close seasonal-optout" aria-label="Закрити сезонну пропозицію">×</button>
+</aside>

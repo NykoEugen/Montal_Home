@@ -1,0 +1,10 @@
+{% load static %}
+<div class="seasonal-halloween seasonal-halloween__badge" data-seasonal-pack="{{ campaign.slug|default:'halloween-2025' }}">
+  <img src="{{ spiderweb_image_url }}" class="seasonal-halloween__spiderweb" alt="" data-seasonal-animated />
+  <span class="seasonal-halloween__pumpkin" aria-hidden="true" data-seasonal-animated></span>
+  <div>
+    <p class="seasonal-halloween__badge-text">{{ halloween_discount_badge }}</p>
+    <p>Лови моторошну знижку перед Днем усіх святих.</p>
+  </div>
+  <button type="button" class="seasonal-halloween__close seasonal-optout" aria-label="Закрити сезонну пропозицію">×</button>
+</div>

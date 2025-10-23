@@ -1,0 +1,17 @@
+{% load static %}
+{% with section=section|default:"css" assets=seasonal_assets %}
+  {% if section == "css" %}
+    {% if assets and assets.css %}
+      {% for href in assets.css %}
+        <link rel="preload" href="{% static href %}" as="style">
+        <link rel="stylesheet" href="{% static href %}">
+      {% endfor %}
+    {% endif %}
+  {% elif section == "js" %}
+    {% if assets and assets.js %}
+      {% for src in assets.js %}
+        <script src="{% static src %}" defer></script>
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+{% endwith %}

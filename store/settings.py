@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "delivery.apps.DeliveryConfig",
     "fabric_category.apps.FabricCategoryConfig",
     "price_parser.apps.PriceParserConfig",
+    "seasonal.apps.SeasonalConfig",
 ]
 
 MIDDLEWARE = [
@@ -91,6 +92,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "shop.context_processors.cart_count",
                 "shop.context_processors.breadcrumbs",
+                "seasonal.context_processors.active_packs",
             ],
         },
     },
