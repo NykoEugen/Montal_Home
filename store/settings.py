@@ -67,7 +67,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "store.middleware.WWWRedirectMiddleware",  # Redirect bare domain to www
+    "store.middleware.RedirectToWWW",  # Redirect bare domain to www
     "store.middleware.ConnectionResilienceMiddleware",  # Connection resilience
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
