@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const qbCustomOptionInput = document.getElementById('qb-custom-option');
     
     const CHIP_ACTIVE_CLASS = 'chip--active';
+    let selectedOptionPrice = 0;
 
     function applyCustomOptionDefaultStyles(chip) {
         chip.classList.remove(CHIP_ACTIVE_CLASS);
@@ -29,12 +30,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         customOptionChips.forEach(applyCustomOptionDefaultStyles);
         if (!chip) {
+            selectedOptionPrice = 0;
             if (selectedCustomOptionInput) selectedCustomOptionInput.value = '';
             if (qbCustomOptionInput) qbCustomOptionInput.value = '';
+            updateTotalPrice();
             return;
         }
         applyCustomOptionSelectedStyles(chip);
         const optionId = chip.dataset.optionId || '';
+        selectedOptionPrice = parseFloat(chip.dataset.optionPrice || '0') || 0;
         if (selectedCustomOptionInput) {
             selectedCustomOptionInput.value = optionId;
         }
@@ -47,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (customOptionGroup) {
             customOptionGroup.classList.remove('ring-2', 'ring-red-300');
         }
+        updateTotalPrice();
     }
 
     function hasCustomOptionSelected() {
@@ -80,6 +85,14 @@ document.addEventListener('DOMContentLoaded', function() {
             setCustomOptionSelection(chip);
         });
     });
+
+    const initialOptionId = selectedCustomOptionInput ? selectedCustomOptionInput.value : '';
+    if (initialOptionId) {
+        const initialChip = customOptionChips.find(chip => chip.dataset.optionId === initialOptionId);
+        if (initialChip) {
+            setCustomOptionSelection(initialChip);
+        }
+    }
 
     // Get the base furniture price
     let basePrice = 0;
@@ -118,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Debug logging
         console.log('updateTotalPrice:', {
             selectedSizePrice,
+            selectedOptionPrice,
             isOnSale,
             originalSizePrice,
             selectedOption: selectedOption ? selectedOption.text : 'none'
@@ -127,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isOnSale && originalSizePrice > 0) {
             originalTotalPrice = originalSizePrice;
         }
+
+        totalPrice += selectedOptionPrice;
+        originalTotalPrice += selectedOptionPrice;
         
         // Add fabric cost if fabric is selected
         if (fabricSelect && fabricSelect.value) {
@@ -154,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Final prices:', {
             totalPrice,
             originalTotalPrice,
+            selectedOptionPrice,
             isOnSale,
             shouldShowPromo: isOnSale && originalTotalPrice > totalPrice
         });
@@ -481,4 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    updateTotalPrice();
 });

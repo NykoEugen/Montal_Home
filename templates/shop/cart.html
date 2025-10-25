@@ -59,6 +59,9 @@
                                         {% if item.custom_option_value %}
                                             <div class="text-sm text-brown-500">
                                                 {{ item.custom_option_name|default:"Параметр" }}: {{ item.custom_option_value }}
+                                                {% if item.custom_option_price %}
+                                                    <span>(+{{ item.custom_option_price|floatformat:0 }} грн)</span>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
