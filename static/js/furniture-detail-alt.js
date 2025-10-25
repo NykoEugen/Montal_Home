@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const customOptionWarning = document.querySelector('[data-custom-option-warning]');
     const customOptionInput = document.getElementById('alt-custom-option-input');
     const CHIP_ACTIVE_CLASS = 'chip--active';
+    let selectedOptionPrice = 0;
 
     function applyCustomOptionDefaultStyles(chip) {
         chip.classList.remove(CHIP_ACTIVE_CLASS);
@@ -29,13 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         customOptionChips.forEach(applyCustomOptionDefaultStyles);
         if (!chip) {
+            selectedOptionPrice = 0;
             if (customOptionInput) {
                 customOptionInput.value = '';
             }
+            recompute();
             return;
         }
         applyCustomOptionSelectedStyles(chip);
         const optionId = chip.dataset.optionId || '';
+        selectedOptionPrice = parseFloat(chip.dataset.optionPrice || '0') || 0;
         if (customOptionInput) {
             customOptionInput.value = optionId;
         }
@@ -45,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customOptionGroup) {
             customOptionGroup.classList.remove('ring-2', 'ring-red-300');
         }
+        recompute();
     }
 
     function hasCustomOptionSelected() {
@@ -72,6 +77,14 @@ document.addEventListener('DOMContentLoaded', () => {
         applyCustomOptionDefaultStyles(chip);
         chip.addEventListener('click', () => setCustomOptionSelection(chip));
     });
+
+    const initialAltOptionId = customOptionInput ? customOptionInput.value : '';
+    if (initialAltOptionId) {
+        const initialAltChip = customOptionChips.find(chip => chip.dataset.optionId === initialAltOptionId);
+        if (initialAltChip) {
+            setCustomOptionSelection(initialAltChip);
+        }
+    }
 
     function setWrapperAspect(width, height) {
         if (!mainImageWrapper) {
@@ -328,6 +341,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isOnSale && originalSizePrice > 0) {
             originalTotal = originalSizePrice;
         }
+
+        total += selectedOptionPrice;
+        originalTotal += selectedOptionPrice;
         
         if (fabricSelect && fabricSelect.value && fabricExtra && fabricExtraPrice) {
             const calculatedPrice = parseFloat(fabricSelect.options[fabricSelect.selectedIndex].getAttribute('data-calculated-price') || '0');
@@ -378,6 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    recompute();
 
     // Variant chip functionality
     variantChips.forEach(b => b.addEventListener('click', () => {

@@ -112,8 +112,12 @@
             <button type="button"
                     class="chip custom-option-chip"
                     data-option-id="{{ option.id }}"
-                    data-option-value="{{ option.value }}">
+                    data-option-value="{{ option.value }}"
+                    data-option-price="{{ option.price_delta|default_if_none:0 }}">
               {{ option.value }}
+              {% if option.price_delta %}
+              <span class="text-xs text-brown-600">(+{{ option.price_delta|floatformat:0 }} грн)</span>
+              {% endif %}
             </button>
             {% endfor %}
           </div>

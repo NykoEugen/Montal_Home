@@ -64,7 +64,7 @@ class FurnitureCustomOptionInlineFormSet(BaseInlineFormSet):
 class FurnitureCustomOptionInline(ResilientInlineAdmin):
     model = FurnitureCustomOption
     extra = 1
-    fields = ("value", "position", "is_active")
+    fields = ("value", "price_delta", "position", "is_active")
     formset = FurnitureCustomOptionInlineFormSet
     verbose_name = "Варіант параметра"
     verbose_name_plural = "Варіанти параметра"
@@ -381,7 +381,15 @@ class OrderItemInline(ResilientInlineAdmin):
     def custom_option_info(self, obj):
         if obj.custom_option_value:
             label = obj.custom_option_name or "Параметр"
-            return f"{label}: {obj.custom_option_value}"
+            price_part = ""
+            if getattr(obj, "custom_option_price", None):
+                try:
+                    price_value = float(obj.custom_option_price)
+                    if price_value:
+                        price_part = f" (+{price_value:g} грн)"
+                except (TypeError, ValueError):
+                    pass
+            return f"{label}: {obj.custom_option_value}{price_part}"
         return "Не вибрано"
     custom_option_info.short_description = "Додатковий параметр"
 
@@ -483,6 +491,7 @@ class OrderItemAdmin(ResilientModelAdmin):
         "custom_option",
         "custom_option_name",
         "custom_option_value",
+        "custom_option_price",
     ]
     
     fieldsets = (
@@ -503,6 +512,7 @@ class OrderItemAdmin(ResilientModelAdmin):
                     'variant_image_id',
                     'custom_option_name',
                     'custom_option_value',
+                    'custom_option_price',
                     'custom_option',
                 )
             },
@@ -558,7 +568,15 @@ class OrderItemAdmin(ResilientModelAdmin):
     def custom_option_display(self, obj):
         if obj.custom_option_value:
             label = obj.custom_option_name or "Параметр"
-            return f"{label}: {obj.custom_option_value}"
+            price_part = ""
+            if getattr(obj, "custom_option_price", None):
+                try:
+                    price_value = float(obj.custom_option_price)
+                    if price_value:
+                        price_part = f" (+{price_value:g} грн)"
+                except (TypeError, ValueError):
+                    pass
+            return f"{label}: {obj.custom_option_value}{price_part}"
         return "—"
 
     custom_option_display.short_description = "Додатковий параметр"

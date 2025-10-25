@@ -282,6 +282,13 @@ class FurnitureCustomOption(models.Model):
         verbose_name="Значення",
         help_text="Варіант вибору для додаткового параметра.",
     )
+    price_delta = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Надбавка до ціни",
+        help_text="Сума, що додається до базової ціни при виборі цього варіанту.",
+    )
     position = models.PositiveIntegerField(
         default=0,
         verbose_name="Позиція",

@@ -162,6 +162,8 @@ class CartView(TemplateView):
                 variant_image_id = item_data.get('variant_image_id')
                 custom_option_id = item_data.get('custom_option_id')
                 custom_option_value = item_data.get('custom_option_value')
+                custom_option_price_raw = item_data.get('custom_option_price')
+                custom_option_name_stored = item_data.get('custom_option_name')
             else:
                 # Legacy format - just quantity
                 quantity = item_data
@@ -170,6 +172,8 @@ class CartView(TemplateView):
                 variant_image_id = None
                 custom_option_id = None
                 custom_option_value = None
+                custom_option_price_raw = None
+                custom_option_name_stored = None
             
             # Calculate item price and get size variant
             size_variant = None
@@ -178,9 +182,9 @@ class CartView(TemplateView):
                     size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
                     item_price = float(size_variant.current_price)
                 except (FurnitureSizeVariant.DoesNotExist, ValueError):
-                    item_price = furniture.current_price
+                    item_price = float(furniture.current_price)
             else:
-                item_price = furniture.current_price
+                item_price = float(furniture.current_price)
             
             # Add fabric cost if fabric is selected
             if fabric_category_id:
@@ -194,6 +198,13 @@ class CartView(TemplateView):
             
             custom_option = None
             custom_option_value_resolved = ''
+            custom_option_name_resolved = custom_option_name_stored or ''
+            custom_option_price = 0.0
+            if custom_option_price_raw not in (None, ''):
+                try:
+                    custom_option_price = float(custom_option_price_raw)
+                except (TypeError, ValueError):
+                    custom_option_price = 0.0
             if custom_option_id:
                 try:
                     option_id_int = int(custom_option_id)
@@ -202,11 +213,21 @@ class CartView(TemplateView):
                     custom_option = None
                 if custom_option:
                     custom_option_value_resolved = custom_option.value
+                    custom_option_name_resolved = furniture.custom_option_name
+                    if custom_option_price_raw in (None, ''):
+                        try:
+                            custom_option_price = float(custom_option.price_delta)
+                        except (TypeError, ValueError):
+                            custom_option_price = 0.0
                 elif custom_option_value:
                     custom_option_value_resolved = str(custom_option_value)
             elif custom_option_value:
                 custom_option_value_resolved = str(custom_option_value)
 
+            if not custom_option_value_resolved:
+                custom_option_name_resolved = ""
+
+            item_price += custom_option_price
             total_price += item_price * quantity
             cart_items.append(
                 {
@@ -219,7 +240,8 @@ class CartView(TemplateView):
                     "variant_image_id": variant_image_id,
                     "custom_option_id": custom_option.id if custom_option else custom_option_id,
                     "custom_option_value": custom_option_value_resolved,
-                    "custom_option_name": furniture.custom_option_name if custom_option_value_resolved else "",
+                    "custom_option_name": custom_option_name_resolved or (furniture.custom_option_name if custom_option_value_resolved else ""),
+                    "custom_option_price": custom_option_price,
                     "total_price": item_price * quantity,
                     "cart_key": cart_key,  # Add cart key for removal functionality
                 }
@@ -412,6 +434,34 @@ class CartActionView(View):
             cart = request.session.get("cart", {})
 
             if action == "add":
+                custom_option_id = request.POST.get("custom_option_id")
+                custom_option_value = None
+                custom_option_price = 0.0
+                custom_option_name = furniture.custom_option_name
+
+                active_options = furniture.custom_options.filter(is_active=True)
+                selected_option = None
+                if active_options.exists():
+                    if not custom_option_id:
+                        return JsonResponse({"message": "Оберіть варіант перед додаванням у кошик."}, status=400)
+                    try:
+                        selected_option = active_options.get(id=int(custom_option_id))
+                    except (ValueError, FurnitureCustomOption.DoesNotExist):
+                        return JsonResponse({"message": "Обраний варіант недійсний."}, status=400)
+                elif custom_option_id:
+                    try:
+                        selected_option = furniture.custom_options.get(id=int(custom_option_id))
+                    except (ValueError, FurnitureCustomOption.DoesNotExist):
+                        selected_option = None
+
+                if selected_option:
+                    custom_option_value = selected_option.value
+                    custom_option_name = furniture.custom_option_name
+                    try:
+                        custom_option_price = float(selected_option.price_delta)
+                    except (TypeError, ValueError):
+                        custom_option_price = 0.0
+
                 # Create a unique key for this cart item that includes variant information
                 cart_key_parts = [furniture_id]
                 if size_variant_id:
@@ -420,12 +470,15 @@ class CartActionView(View):
                     cart_key_parts.append(f"fabric_{fabric_category_id}")
                 if variant_image_id:
                     cart_key_parts.append(f"variant_{variant_image_id}")
+                if selected_option:
+                    cart_key_parts.append(f"custom_{selected_option.id}")
                 
                 cart_key = "_".join(cart_key_parts)
                 
+                existing_item = cart.get(cart_key, {}) if isinstance(cart.get(cart_key), dict) else {}
                 # Create cart item data
                 cart_item_data = {
-                    'quantity': cart.get(cart_key, {}).get('quantity', 0) + 1
+                    'quantity': existing_item.get('quantity', 0) + 1
                 }
                 
                 # Add size variant if provided
@@ -439,7 +492,13 @@ class CartActionView(View):
                 # Add variant image if provided
                 if variant_image_id:
                     cart_item_data['variant_image_id'] = variant_image_id
-                
+
+                if selected_option:
+                    cart_item_data['custom_option_id'] = str(selected_option.id)
+                    cart_item_data['custom_option_value'] = custom_option_value
+                    cart_item_data['custom_option_price'] = custom_option_price
+                    cart_item_data['custom_option_name'] = custom_option_name
+
                 cart[cart_key] = cart_item_data
                 message = f"{furniture.name} додано до кошика!"
             elif action == "remove":
@@ -508,6 +567,9 @@ def add_to_cart_from_detail(request: HttpRequest):
 
         active_options = furniture.custom_options.filter(is_active=True)
         selected_option = None
+        custom_option_value = None
+        custom_option_name = furniture.custom_option_name
+        custom_option_price = 0.0
         if active_options.exists():
             if not custom_option_id:
                 messages.error(request, "Оберіть варіант перед додаванням у кошик.", extra_tags="user")
@@ -523,6 +585,14 @@ def add_to_cart_from_detail(request: HttpRequest):
                 selected_option = furniture.custom_options.get(id=int(custom_option_id))
             except (ValueError, FurnitureCustomOption.DoesNotExist):
                 selected_option = None
+
+        if selected_option:
+            custom_option_value = selected_option.value
+            custom_option_name = furniture.custom_option_name
+            try:
+                custom_option_price = float(selected_option.price_delta)
+            except (TypeError, ValueError):
+                custom_option_price = 0.0
 
         # Create a unique key for this cart item that includes variant information
         cart_key_parts = [furniture_id]
@@ -556,7 +626,9 @@ def add_to_cart_from_detail(request: HttpRequest):
         
         if selected_option:
             cart_item_data['custom_option_id'] = str(selected_option.id)
-            cart_item_data['custom_option_value'] = selected_option.value
+            cart_item_data['custom_option_value'] = custom_option_value
+            cart_item_data['custom_option_price'] = custom_option_price
+            cart_item_data['custom_option_name'] = custom_option_name
         
         cart[cart_key] = cart_item_data
         request.session["cart"] = cart

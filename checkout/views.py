@@ -76,7 +76,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     Furniture, id=int(furniture_id)
                 )
                 
-                # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
+                # Handle both old format (just quantity) and new format (dict with quantity and attributes)
                 if isinstance(item_data, dict):
                     quantity = item_data.get('quantity', 1)
                     size_variant_id = item_data.get('size_variant_id')
@@ -84,12 +84,16 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     variant_image_id = item_data.get('variant_image_id')
                     custom_option_id = item_data.get('custom_option_id')
                     custom_option_value_session = item_data.get('custom_option_value')
+                    custom_option_price_session = item_data.get('custom_option_price')
                 else:
                     # Legacy format - just quantity
                     quantity = item_data
                     size_variant_id = None
                     fabric_category_id = None
                     variant_image_id = None
+                    custom_option_id = None
+                    custom_option_value_session = None
+                    custom_option_price_session = None
                 
                 # Calculate price based on size variant and fabric
                 size_variant = None
@@ -121,9 +125,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 
                 custom_option_obj = None
                 custom_option_value_final = ""
-                custom_option_name = ""
-                if furniture.custom_option_name:
-                    custom_option_name = furniture.custom_option_name
+                custom_option_name = furniture.custom_option_name or ""
+                custom_option_price = 0.0
 
                 if custom_option_id:
                     try:
@@ -132,6 +135,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                         if custom_option_candidate.furniture_id == furniture.id:
                             custom_option_obj = custom_option_candidate
                             custom_option_value_final = custom_option_candidate.value
+                            custom_option_name = furniture.custom_option_name or ""
                         else:
                             custom_option_obj = None
                     except (ValueError, FurnitureCustomOption.DoesNotExist):
@@ -140,8 +144,22 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 if not custom_option_value_final and custom_option_value_session:
                     custom_option_value_final = str(custom_option_value_session)
 
+                if custom_option_price_session not in (None, ""):
+                    try:
+                        custom_option_price = float(custom_option_price_session)
+                    except (TypeError, ValueError):
+                        custom_option_price = 0.0
+                elif custom_option_obj:
+                    try:
+                        custom_option_price = float(custom_option_obj.price_delta)
+                    except (TypeError, ValueError):
+                        custom_option_price = 0.0
+
                 if not custom_option_value_final:
                     custom_option_name = ""
+                    custom_option_price = 0.0
+
+                price += custom_option_price
 
                 OrderItem.objects.create(
                     order=order,
@@ -158,6 +176,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option=custom_option_obj,
                     custom_option_name=custom_option_name,
                     custom_option_value=custom_option_value_final,
+                    custom_option_price=custom_option_price or None,
                 )
 
             request.session["cart"] = {}
