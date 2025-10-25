@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
     # Local apps
     "shop.apps.ShopConfig",
     "categories.apps.CategoriesConfig",
@@ -91,12 +92,18 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "shop.context_processors.cart_count",
                 "shop.context_processors.breadcrumbs",
+                "shop.context_processors.seo_defaults",
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "store.wsgi.application"
+
+# --- SEO / Site settings ---
+SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
+GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
 
 # Database

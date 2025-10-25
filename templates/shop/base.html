@@ -5,14 +5,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Montal Home — якісні меблі для вашого дому та офісу. Каталог, акції, контакти, історія замовлень.">
-    <title>{% block title %}Інтернет-магазин меблів{% endblock %}</title>
+    {% with page_title=meta_title|default:default_meta_title %}
+    <title>{% block title %}{{ page_title }}{% endblock %}</title>
+    <meta property="og:title" content="{{ og_title|default:page_title }}">
+    <meta name="twitter:title" content="{{ twitter_title|default:og_title|default:page_title }}">
+    {% endwith %}
+    {% with page_description=meta_description|default:default_meta_description %}
+    <meta name="description" content="{{ page_description }}">
+    <meta property="og:description" content="{{ og_description|default:page_description }}">
+    <meta name="twitter:description" content="{{ twitter_description|default:page_description }}">
+    {% endwith %}
+    <meta name="keywords" content="{{ meta_keywords|default:default_meta_keywords }}">
+    {% with canonical=canonical_url|default:default_canonical_url %}
+    <link rel="canonical" href="{{ canonical }}">
+    <meta property="og:url" content="{{ og_url|default:canonical }}">
+    {% endwith %}
+    {% with image_url=og_image|default:default_og_image %}
+    <meta property="og:image" content="{{ image_url }}">
+    <meta name="twitter:image" content="{{ twitter_image|default:image_url }}">
+    {% endwith %}
+    <meta property="og:type" content="{{ og_type|default:'website' }}">
+    <meta property="og:site_name" content="{{ seo_site_name }}">
+    <meta name="twitter:card" content="{{ twitter_card|default:'summary_large_image' }}">
+    {% if google_site_verification_token %}
+    <meta name="google-site-verification" content="{{ google_site_verification_token }}">
+    {% endif %}
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/carousel.css' %}">
     <link rel="stylesheet" href="{% static 'css/chat-button.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
+    {% block structured_data %}{% endblock %}
 </head>
 <body class="bg-beige-100 font-sans min-h-screen flex flex-col">
     <header>

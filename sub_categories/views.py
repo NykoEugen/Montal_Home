@@ -2,6 +2,8 @@ from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.db.models import Q, Min, Max
+from django.utils.html import strip_tags
+from django.utils.text import Truncator
 
 from furniture.models import Furniture, FurnitureSizeVariant
 from params.models import FurnitureParameter
@@ -11,7 +13,14 @@ from sub_categories.models import SubCategory
 def sub_categories_list(request: HttpRequest) -> HttpResponse:
     # Filter subcategories that have furniture items
     sub_categories = SubCategory.objects.filter(furniture__isnull=False).distinct()
-    context = {"sub_categories": sub_categories}
+    context = {
+        "sub_categories": sub_categories,
+        "meta_title": "Підкатегорії меблів — Montal Home",
+        "meta_description": (
+            "Перегляньте підкатегорії меблів Montal Home, щоб швидко знайти потрібні моделі та стилі."
+        ),
+        "meta_keywords": "підкатегорії меблів, меблі за стилем, Montal каталог",
+    }
     return render(request, "sub_categories/sub_categories_list.html", context)
 
 
@@ -148,6 +157,10 @@ def sub_categories_details(
         max_price=Max('price')
     )
 
+    def summarize(text: str, length: int = 160) -> str:
+        clean_text = strip_tags(text or "")
+        return Truncator(clean_text).chars(length, truncate="…")
+
     context = {
         "sub_category": sub_category,
         "page_obj": page_obj,
@@ -155,5 +168,11 @@ def sub_categories_details(
         "current_filters": parameter_filters,
         "current_sort": sort,
         "price_range": price_range,
+        "meta_title": f"{sub_category.name} — меблі Montal Home",
+        "meta_description": summarize(
+            f"Дивіться меблі у підкатегорії {sub_category.name} від Montal Home. "
+            "Фільтруйте товари за параметрами, наявністю та акціями."
+        ),
+        "meta_keywords": f"{sub_category.name} меблі, купити {sub_category.name.lower()} Montal, меблі онлайн",
     }
     return render(request, "sub_categories/sub_category_detail.html", context)

@@ -1,11 +1,13 @@
+import time
+
+from django.conf import settings
+from django.core.cache import cache
+from django.db import connection
+from django.http import HttpResponse, JsonResponse
+
 """
 Health check views for the store application.
 """
-
-from django.http import JsonResponse
-from django.db import connection
-from django.core.cache import cache
-import time
 
 
 def health_check(request):
@@ -55,3 +57,21 @@ def simple_health_check(request):
     Useful for basic load balancer health checks.
     """
     return JsonResponse({"status": "ok", "timestamp": time.time()})
+
+
+def robots_txt(request):
+    """
+    Return robots.txt directives for search engines.
+    """
+    site_url = getattr(settings, "SITE_BASE_URL", "https://montal.com.ua").rstrip("/")
+    host = getattr(settings, "SITE_DOMAIN", "montal.com.ua")
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /checkout/",
+        "Disallow: /price-parser/",
+        "Allow: /",
+        f"Sitemap: {site_url}/sitemap.xml",
+        f"Host: {host}",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
