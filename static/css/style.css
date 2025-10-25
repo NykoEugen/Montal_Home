@@ -290,9 +290,10 @@ li.border-beige-200 {
 }
 
 /* Enhanced Filters */
+/* Compact filter sidebar */
 .filter-section {
     border-bottom: 1px solid var(--beige-200);
-    padding-bottom: 1rem;
+    padding-bottom: 0.5rem;
 }
 
 .filter-section:last-child {
@@ -304,15 +305,15 @@ li.border-beige-200 {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding: 0.75rem 0;
+    padding: 0.4rem 0;
     transition: all 0.3s ease;
 }
 
 .filter-header:hover {
     background-color: var(--beige-100);
     border-radius: 0.5rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
 }
 
 .filter-header h3 {
@@ -322,15 +323,15 @@ li.border-beige-200 {
 }
 
 .filter-content {
-    padding: 0.75rem 0;
+    padding: 0.35rem 0;
     animation: slideDown 0.3s ease-out;
 }
 
 .filter-content label {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0;
+    gap: 0.4rem;
+    padding: 0.25rem 0;
     cursor: pointer;
     transition: all 0.2s ease;
     border-radius: 0.375rem;
@@ -338,7 +339,7 @@ li.border-beige-200 {
 
 .filter-content label:hover {
     background-color: var(--beige-100);
-    padding-left: 0.5rem;
+    padding-left: 0.25rem;
 }
 
 .filter-content input[type="radio"],
@@ -358,7 +359,7 @@ li.border-beige-200 {
 
 .filter-content input[type="number"] {
     width: 100%;
-    padding: 0.5rem;
+    padding: 0.4rem;
     border: 1px solid var(--beige-300);
     border-radius: 0.5rem;
     font-size: 0.875rem;
