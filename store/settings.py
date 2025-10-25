@@ -36,7 +36,6 @@ except KeyError:
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-CANONICAL_WWW_DOMAIN = os.getenv("CANONICAL_WWW_DOMAIN", "www.montal.com.ua")
 INTERNAL_IPS = ["127.0.0.1"]
 
 
@@ -67,7 +66,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "store.middleware.WWWRedirectMiddleware",  # Redirect bare domain to www
     "store.middleware.ConnectionResilienceMiddleware",  # Connection resilience
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
