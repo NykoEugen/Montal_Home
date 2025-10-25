@@ -100,9 +100,9 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             length_i = int(float(length))
         except ValueError:
             height_i, width_i, length_i = height, width, length
-        combined_dimensions = f"{height_i}x{width_i}x{length_i} см"
+        combined_dimensions = f"{length_i}x{width_i}x{height_i} см"
         # Insert dimensions at the beginning with requested label
-        parameters.insert(0, VirtualParameter('dimensions', 'Розмір (ВхШхД)', combined_dimensions, combined_dimensions))
+        parameters.insert(0, VirtualParameter('dimensions', 'Розмір (ДхШхВ)', combined_dimensions, combined_dimensions))
     else:
         combined_dimensions = ""
 

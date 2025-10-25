@@ -149,7 +149,7 @@
 
         {% if size_variants %}
         <div class="mt-4">
-          <label for="alt-size" class="block text-brown-700 font-medium mb-2">Розмір (ВхШхД)</label>
+          <label for="alt-size" class="block text-brown-700 font-medium mb-2">Розмір (ДхШхВ)</label>
           <div class="grid grid-cols-2 gap-2">
             {% if base_dimensions and not base_size_variant_id %}
             <button type="button" class="chip size-chip" 
@@ -206,7 +206,7 @@
           <input type="hidden" name="variant_image_id" id="alt-variant-input">
           <input type="hidden" name="quantity" id="alt-qty-input" value="1">
           <input type="hidden" name="custom_option_id" id="alt-custom-option-input">
-          <button type="submit" class="btn-grad w-full py-3 text-lg font-semibold rounded">Додати в кошик</button>
+          <button type="submit" class="btn-grad px-5 py-2 text-base font-semibold rounded place-self-start max-w-fit">Додати в кошик</button>
           <!-- <a href="?v=1" class="w-full py-3 text-lg font-semibold rounded border text-center border-brown-300 text-brown-800 hover:bg-beige-100">Основна версія</a> -->
         </form>
       </div>
