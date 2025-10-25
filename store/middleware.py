@@ -21,25 +21,29 @@ from .connection_utils import (
 logger = logging.getLogger('store.connection')
 
 
-from django.shortcuts import redirect
+class WWWRedirectMiddleware(MiddlewareMixin):
+    """
+    Redirect requests arriving on the bare domain to the www subdomain.
+    """
 
-class RedirectToWWW:
-    """Redirect all non-www requests to www."""
+    def __init__(self, get_response=None):
+        super().__init__(get_response)
+        self.www_domain = getattr(settings, "CANONICAL_WWW_DOMAIN", "www.montal.com.ua")
+        # Determine the bare domain counterpart for quick comparisons.
+        self.root_domain = self.www_domain[4:] if self.www_domain.startswith("www.") else self.www_domain
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    def process_request(self, request):
+        """Issue a permanent redirect when the request targets the bare domain."""
+        if getattr(settings, "DEBUG", False):
+            return None
 
-    def __call__(self, request):
-        host = request.get_host()
+        host = request.get_host().split(":")[0].lower()
+        if host != self.root_domain:
+            return None
 
-        # Якщо користувач зайшов на montal.com.ua без www
-        if host == "montal.com.ua":
-            new_url = request.build_absolute_uri().replace(
-                "://montal.com.ua", "://www.montal.com.ua"
-            )
-            return redirect(new_url, permanent=True)
-
-        return self.get_response(request)
+        scheme = "https" if request.is_secure() else "http"
+        redirect_url = f"{scheme}://{self.www_domain}{request.get_full_path()}"
+        return HttpResponsePermanentRedirect(redirect_url)
 
 
 class ConnectionResilienceMiddleware(MiddlewareMixin):
