@@ -1,6 +1,12 @@
 {% extends 'shop/base.html' %}
 {% load static %}
 {% csrf_token %}
+{% block structured_data %}
+    {{ block.super }}
+    {% if product_schema %}
+    <script type="application/ld+json">{{ product_schema|safe }}</script>
+    {% endif %}
+{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="flex flex-col md:flex-row gap-8 items-start">

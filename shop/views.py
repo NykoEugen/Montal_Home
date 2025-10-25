@@ -1,5 +1,6 @@
-from collections import defaultdict
 import random
+import json
+from collections import defaultdict
 
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -8,12 +9,15 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.html import strip_tags
+from django.utils.text import Truncator
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import DetailView, ListView, TemplateView
 from django.urls import reverse
+from django.templatetags.static import static
 
 from categories.models import Category
 from delivery.views import search_city
@@ -80,6 +84,13 @@ class HomeView(ListView):
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": self._get_promotional_furniture(),
+                "meta_title": "Montal Home — інтернет-магазин меблів та декору",
+                "meta_description": (
+                    "Обирайте стильні та якісні меблі для дому й офісу у Montal Home. "
+                    "Акційні пропозиції, зручні фільтри та доставка по всій Україні."
+                ),
+                "meta_keywords": "меблі Montal, купити меблі онлайн, українські меблі, декор для дому",
+                "og_type": "website",
             }
         )
         return context
@@ -118,6 +129,12 @@ class HomeView(ListView):
                     items_by_category.pop(key, None)
 
         return shuffled_items
+
+
+def _summarize(text: str, length: int = 160) -> str:
+    """Trim HTML-heavy text down to a sensible length for meta descriptions."""
+    clean_text = strip_tags(text or "")
+    return Truncator(clean_text).chars(length, truncate="…")
 
 
 class CartView(TemplateView):
@@ -218,6 +235,12 @@ class CartView(TemplateView):
                 "cart_items": cart_items,
                 "total_price": total_price,
                 "fabric_categories": fabric_categories,
+                "meta_title": "Кошик — Montal Home",
+                "meta_description": (
+                    "Перегляньте товари у кошику Montal Home та завершіть оформлення замовлення. "
+                    "Зручна оплата, доставка по Україні."
+                ),
+                "meta_keywords": "кошик, замовлення меблів, купити меблі онлайн",
             }
         )
         return context
@@ -241,6 +264,16 @@ class PromotionsView(TemplateView):
         context["promotional_items"] = list(
             fetch_active_promotional_furniture().order_by("-created_at")
         )
+        context.update(
+            {
+                "meta_title": "Акції та знижки на меблі — Montal Home",
+                "meta_description": (
+                    "Знайдіть вигідні пропозиції на меблі в Montal Home. "
+                    "Регулярні акції, сезонні знижки та спеціальні комплекти."
+                ),
+                "meta_keywords": "знижки на меблі, акції Montal, меблі зі знижкою",
+            }
+        )
         return context
 
 
@@ -248,30 +281,66 @@ class WhereToBuyView(TemplateView):
     """Where to buy page."""
 
     template_name = "shop/where_to_buy.html"
+    extra_context = {
+        "meta_title": "Де купити меблі Montal Home",
+        "meta_description": (
+            "Адреси салонів та партнерів Montal Home по Україні. "
+            "Обирайте зручний формат покупки меблів — онлайн або офлайн."
+        ),
+        "meta_keywords": "де купити меблі Montal, салони меблів Україна",
+    }
 
 
 class ContactsView(TemplateView):
     """Contacts page."""
 
     template_name = "shop/contacts.html"
+    extra_context = {
+        "meta_title": "Контакти Montal Home",
+        "meta_description": (
+            "Зв’яжіться з командою Montal Home: телефон, email, графік роботи та адреси шоурумів."
+        ),
+        "meta_keywords": "контакти Montal Home, телефон Montal, меблевий магазин контакти",
+    }
 
 
 class WarrantyView(TemplateView):
     """Warranty page."""
 
     template_name = "shop/warranty.html"
+    extra_context = {
+        "meta_title": "Гарантія та сервіс — Montal Home",
+        "meta_description": (
+            "Дізнайтеся про гарантію, умови обслуговування та обміну меблів у Montal Home."
+        ),
+        "meta_keywords": "гарантія на меблі, сервіс Montal, обмін меблів",
+    }
 
 
 class DeliveryPaymentView(TemplateView):
     """Delivery and payment page."""
 
     template_name = "shop/delivery_payment.html"
+    extra_context = {
+        "meta_title": "Доставка та оплата — Montal Home",
+        "meta_description": (
+            "Умови доставки та оплати меблів у Montal Home: кур’єр, самовивіз, онлайн-оплата."
+        ),
+        "meta_keywords": "доставка меблів, оплата меблів, Montal доставка",
+    }
 
 
 class OfferView(TemplateView):
     """Offer page."""
 
     template_name = "shop/offer.html"
+    extra_context = {
+        "meta_title": "Публічна оферта Montal Home",
+        "meta_description": (
+            "Ознайомтеся з умовами покупки меблів у Montal Home у публічній оферті."
+        ),
+        "meta_keywords": "публічна оферта меблі, Montal оферта",
+    }
 
 
 class SearchView(ListView):
@@ -301,9 +370,24 @@ class SearchView(ListView):
     def get_context_data(self, **kwargs):
         """Add additional context data."""
         context = super().get_context_data(**kwargs)
+        search_query = self.request.GET.get("q", "").strip()
+        if search_query:
+            title = f'Пошук "{search_query}" — Montal Home'
+            description = _summarize(
+                f'Результати пошуку "{search_query}" у каталозі меблів Montal Home. '
+                "Знайдіть потрібні меблі за назвою, кодом або описом."
+            )
+        else:
+            title = "Пошук меблів — Montal Home"
+            description = (
+                "Скористайтеся пошуком по каталогу Montal Home, щоб швидко знайти потрібні меблі."
+            )
         context.update({
-            "search_query": self.request.GET.get("q", "").strip(),
+            "search_query": search_query,
             "categories": Category.objects.all(),
+            "meta_title": title,
+            "meta_description": description,
+            "meta_keywords": "пошук меблів, знайти меблі, каталог меблів Montal",
         })
         return context
 

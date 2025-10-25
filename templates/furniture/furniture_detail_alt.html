@@ -1,6 +1,12 @@
 {% extends 'shop/base.html' %}
 {% load cart_filters %}
 {% load static %}
+{% block structured_data %}
+  {{ block.super }}
+  {% if product_schema %}
+  <script type="application/ld+json">{{ product_schema|safe }}</script>
+  {% endif %}
+{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">

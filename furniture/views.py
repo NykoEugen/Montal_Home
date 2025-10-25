@@ -1,8 +1,14 @@
+import json
 from types import SimpleNamespace
 from typing import List, Set
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.templatetags.static import static
+from django.urls import reverse
+from django.utils.html import strip_tags
+from django.utils.text import Truncator
 from fabric_category.models import FabricCategory
 from furniture.models import Furniture
 
@@ -125,21 +131,101 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
         furniture.custom_options.filter(is_active=True).order_by("position", "id")
     )
 
-    return render(
-        request,
-        template_name,
-        {
-            "furniture": furniture,
-            "parameters": parameters,
-            "size_variants": size_variants,
-            "variant_images": variant_images,
-            "gallery_images": gallery_images,
-            "fabric_categories": fabric_categories,
-            "base_dimensions": combined_dimensions,
-            "base_size_variant_id": base_size_variant_id,
-            "initial_stock_status": initial_stock_status,
-            "initial_stock_label": initial_stock_label,
-            "custom_option_name": furniture.custom_option_name,
-            "custom_options": custom_options,
-        },
+    absolute_images: list[str] = []
+    for gallery_image in gallery_images:
+        image_field = getattr(gallery_image, "image", None)
+        if not image_field:
+            continue
+        try:
+            absolute_images.append(request.build_absolute_uri(image_field.url))
+        except Exception:
+            continue
+
+    default_image_url = request.build_absolute_uri(static("images/logo.jpg"))
+    if not absolute_images:
+        absolute_images.append(default_image_url)
+
+    product_url = request.build_absolute_uri(
+        reverse("furniture:furniture_detail", kwargs={"furniture_slug": furniture.slug})
     )
+    description_text = Truncator(strip_tags(furniture.description or furniture.name)).chars(
+        160, truncate="…"
+    )
+    keywords = [
+        furniture.name,
+        getattr(furniture.sub_category, "name", None),
+        getattr(getattr(furniture.sub_category, "category", None), "name", None),
+        "меблі Montal Home",
+    ]
+    meta_keywords = ", ".join([word for word in keywords if word])
+
+    availability_map = {
+        "in_stock": "https://schema.org/InStock",
+        "on_order": "https://schema.org/PreOrder",
+    }
+    offer_price = (
+        furniture.promotional_price
+        if furniture.is_promotional and furniture.promotional_price
+        else furniture.price
+    )
+    price_value = format(offer_price, ".2f")
+    offers_data = {
+        "@type": "Offer",
+        "url": product_url,
+        "priceCurrency": "UAH",
+        "price": price_value,
+        "availability": availability_map.get(initial_stock_status, "https://schema.org/InStock"),
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": {
+            "@type": "Organization",
+            "name": "Montal Home",
+            "url": getattr(settings, "SITE_BASE_URL", "https://montal.com.ua"),
+        },
+    }
+    if furniture.sale_end_date:
+        offers_data["priceValidUntil"] = furniture.sale_end_date.date().isoformat()
+
+    brand_name = getattr(
+        getattr(furniture.sub_category, "category", None), "name", "Montal Home"
+    )
+    product_schema = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "@id": f"{product_url}#product",
+        "name": furniture.name,
+        "description": strip_tags(furniture.description or furniture.name),
+        "sku": furniture.article_code,
+        "image": absolute_images,
+        "brand": {
+            "@type": "Brand",
+            "name": brand_name,
+        },
+        "category": getattr(furniture.sub_category, "name", ""),
+        "offers": offers_data,
+    }
+
+    context = {
+        "furniture": furniture,
+        "parameters": parameters,
+        "size_variants": size_variants,
+        "variant_images": variant_images,
+        "gallery_images": gallery_images,
+        "fabric_categories": fabric_categories,
+        "base_dimensions": combined_dimensions,
+        "base_size_variant_id": base_size_variant_id,
+        "initial_stock_status": initial_stock_status,
+        "initial_stock_label": initial_stock_label,
+        "custom_option_name": furniture.custom_option_name,
+        "custom_options": custom_options,
+        "meta_title": f"{furniture.name} — купити у Montal Home",
+        "meta_description": description_text,
+        "meta_keywords": meta_keywords,
+        "og_image": absolute_images[0],
+        "og_type": "product",
+        "twitter_card": "summary_large_image",
+        "canonical_url": product_url,
+        "og_url": product_url,
+        "product_schema": json.dumps(product_schema, ensure_ascii=False),
+    }
+
+    return render(request, template_name, context)

@@ -18,9 +18,11 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from . import views
 from .admin_utils import admin_connection_status_view, admin_retry_failed_operations_view
+from .sitemaps import SITEMAPS
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -28,6 +30,8 @@ urlpatterns = [
     path("admin/retry-operations/", admin_retry_failed_operations_view, name="admin_retry_operations"),
     path("health/", views.health_check, name="health_check"),
     path("health/simple/", views.simple_health_check, name="simple_health_check"),
+    path("robots.txt", views.robots_txt, name="robots_txt"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     path("", include("shop.urls", namespace="shop")),
     path("catalogue/", include("categories.urls")),
     path("furniture/", include("furniture.urls")),

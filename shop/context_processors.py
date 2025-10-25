@@ -1,4 +1,8 @@
+from urllib.parse import urljoin
+
+from django.conf import settings
 from django.http import HttpRequest
+from django.templatetags.static import static
 from django.urls import resolve
 
 from categories.models import Category
@@ -96,3 +100,46 @@ def breadcrumbs(request):
         breadcrumbs.append({"name": "Історія замовлень", "url": "/order-history/"})
 
     return {"breadcrumbs": breadcrumbs}
+
+
+def seo_defaults(request: HttpRequest) -> dict:
+    """
+    Provide SEO-related defaults so templates can render consistent meta tags.
+    Individual views can override any of these values via the context.
+    """
+    site_domain = getattr(settings, "SITE_DOMAIN", "montal.com.ua")
+    site_base_url = getattr(settings, "SITE_BASE_URL", f"https://{site_domain}")
+
+    if request:
+        base_url = request.build_absolute_uri("/")
+        absolute_static = request.build_absolute_uri(static("images/logo.jpg"))
+        current_url = request.build_absolute_uri(request.path)
+    else:
+        base_url = site_base_url
+        absolute_static = urljoin(site_base_url, static("images/logo.jpg"))
+        current_url = site_base_url
+
+    canonical_url = current_url.split("?")[0]
+
+    default_title = "Montal Home — Інтернет-магазин меблів та декору в Україні"
+    default_description = (
+        "Montal Home пропонує меблі для дому та офісу: дивани, крісла, столи, шафи та інше. "
+        "Якісний сервіс, вигідні ціни та доставка по всій Україні."
+    )
+    default_keywords = "меблі, інтернет-магазин меблів, купити меблі Україна, Montal Home"
+
+    google_verification = getattr(settings, "GOOGLE_SITE_VERIFICATION", "")
+
+    return {
+        "default_meta_title": default_title,
+        "default_meta_description": default_description,
+        "default_meta_keywords": default_keywords,
+        "default_canonical_url": canonical_url,
+        "default_og_title": default_title,
+        "default_og_description": default_description,
+        "default_og_image": absolute_static,
+        "seo_site_name": "Montal Home",
+        "seo_site_domain": site_domain,
+        "seo_site_url": base_url.rstrip("/"),
+        "google_site_verification_token": google_verification,
+    }
