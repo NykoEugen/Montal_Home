@@ -437,9 +437,9 @@ class FurnitureSizeVariant(models.Model):
     def dimensions(self) -> str:
         """Get formatted dimensions string."""
         if self.is_foldable and self.unfolded_length:
-            return f"{int(self.height)}x{int(self.width)}x{int(self.length)}-{int(self.unfolded_length)} см"
+            return f"{int(self.length)}x{int(self.width)}x{int(self.height)}-{int(self.unfolded_length)} см"
         else:
-            return f"{int(self.height)}x{int(self.width)}x{int(self.length)} см"
+            return f"{int(self.length)}x{int(self.width)}x{int(self.height)} см"
 
     @property
     def current_price(self):
