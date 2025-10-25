@@ -5,7 +5,7 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
         <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <div class="w-10 h-10 bg-gradient-to-r from-brown-500 to-brown-600 rounded-full flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
@@ -22,8 +22,8 @@
         <div class="flex flex-col lg:flex-row gap-8">
             <!-- Filters Sidebar -->
             <div class="lg:w-1/4">
-                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-4">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-3 sticky top-4">
+                    <div class="flex items-center justify-between mb-3">
                         <button id="filtersToggle" class="flex items-center gap-2 text-xl font-bold text-brown-800 hover:text-brown-600 transition-colors">
                             <span>Фільтри</span>
                             <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -38,7 +38,7 @@
                     <div id="filtersContent" class="filters-content">
                     <form method="get" id="filterForm">
                         <!-- Price Range Filter -->
-                        <div class="filter-section mb-6">
+                        <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">Діапазон цін</h3>
                                 <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -46,7 +46,7 @@
                                 </svg>
                             </div>
                             <div class="filter-content">
-                                <div class="space-y-3">
+                                <div class="space-y-1">
                                     <div class="flex gap-2">
                                         <input type="number" name="min_price" placeholder="Від" 
                                                value="{{ request.GET.min_price|default:'' }}"
@@ -63,7 +63,7 @@
                         </div>
 
                         <!-- Stock Status Filter -->
-                        <div class="filter-section mb-6">
+                        <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">Наявність</h3>
                                 <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -71,15 +71,15 @@
                                 </svg>
                             </div>
                             <div class="filter-content">
-                                <div class="space-y-2">
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="space-y-1">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" name="stock_status" value="in_stock" 
                                                {% if 'in_stock' in request.GET|getlist:'stock_status' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 rounded focus:ring-brown-500">
                                         <span class="text-brown-700">На складі</span>
                                         <span class="ml-auto text-xs text-brown-500 bg-green-100 px-2 py-1 rounded-full">✓</span>
                                     </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" name="stock_status" value="on_order" 
                                                {% if 'on_order' in request.GET|getlist:'stock_status' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 rounded focus:ring-brown-500">
@@ -91,7 +91,7 @@
                         </div>
 
                         <!-- Promotional Items Filter -->
-                        <div class="filter-section mb-6">
+                        <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">Акційні товари</h3>
                                 <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -99,7 +99,7 @@
                                 </svg>
                             </div>
                             <div class="filter-content">
-                                <label class="flex items-center gap-3 cursor-pointer">
+                                <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" name="promotional_only" value="true" 
                                            {% if request.GET.promotional_only %}checked{% endif %}
                                            class="w-4 h-4 text-red-600 border-beige-300 rounded focus:ring-red-500">
@@ -110,7 +110,7 @@
                         </div>
 
                         <!-- Sorting -->
-                        <div class="filter-section mb-6">
+                        <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">Сортування</h3>
                                 <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -118,32 +118,32 @@
                                 </svg>
                             </div>
                             <div class="filter-content">
-                                <div class="space-y-2">
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="space-y-1">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="sort" value="" 
                                                {% if not current_sort %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">За замовчуванням</span>
                                     </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="sort" value="price_asc" 
                                                {% if current_sort == 'price_asc' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">Від дешевого до дорогого</span>
                                     </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="sort" value="price_desc" 
                                                {% if current_sort == 'price_desc' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">Від дорогого до дешевого</span>
                                     </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="sort" value="name_asc" 
                                                {% if current_sort == 'name_asc' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">За назвою А-Я</span>
                                     </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="sort" value="name_desc" 
                                                {% if current_sort == 'name_desc' %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
@@ -155,7 +155,7 @@
 
                         <!-- Parameter Filters -->
                         {% for key, param in filter_options.items %}
-                        <div class="filter-section mb-6">
+                        <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">{{ param.label }}</h3>
                                 <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
@@ -163,15 +163,15 @@
                                 </svg>
                             </div>
                             <div class="filter-content">
-                                <div class="space-y-2 max-h-48 overflow-y-auto">
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="space-y-0.5 max-h-48 overflow-y-auto">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="param_{{ key }}" value="" 
                                                {% if not request.GET|get_item:'param_'|add:key %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">Усі</span>
                                     </label>
                                     {% for value in param.values %}
-                                    <label class="flex items-center gap-3 cursor-pointer">
+                                    <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="param_{{ key }}" value="{{ value }}"
                                                {% if request.GET|get_item:'param_'|add:key == value %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
@@ -184,7 +184,7 @@
                         {% endfor %}
 
                         <!-- Filter Actions -->
-                        <div class="space-y-3 pt-4 border-t border-beige-200">
+                        <div class="space-y-1 pt-2 border-t border-beige-200">
                             <button type="submit" class="btn-grad w-full text-base">
                                 Застосувати фільтри
                             </button>
