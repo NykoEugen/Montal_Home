@@ -49,9 +49,14 @@
             <a href="{{ list_url }}" class="inline-flex items-center px-4 py-2 border border-beige-300 rounded-md text-brown-600 hover:bg-beige-100">
                 <i class="fa-solid fa-chevron-left mr-2"></i> Назад
             </a>
-            <button type="submit" class="inline-flex items-center px-5 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
-                <i class="fa-solid fa-floppy-disk mr-2"></i> Зберегти зміни
-            </button>
+            <div class="flex items-center gap-3">
+                <button type="submit" name="save_continue" value="1" class="inline-flex items-center px-5 py-2 border border-black text-black rounded-md hover:bg-black hover:text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                    <i class="fa-solid fa-arrows-rotate mr-2"></i> Зберегти й продовжити
+                </button>
+                <button type="submit" class="inline-flex items-center px-5 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Зберегти зміни
+                </button>
+            </div>
         </div>
     </form>
 </div>

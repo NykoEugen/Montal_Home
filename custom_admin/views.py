@@ -12,6 +12,8 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DeleteView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
@@ -203,9 +205,10 @@ class SectionFormMixin(SectionMixin):
         return [self.section_templates.get(self.section.slug, self.template_name)]
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, _("Зміни успішно збережено."))
-        return response
+        with transaction.atomic():
+            self.object = form.save()
+        self._after_object_saved()
+        return self._redirect_after_save()
 
     def form_invalid(self, form):
         messages.error(self.request, _("Будь ласка, виправте помилки у формі."))
@@ -213,6 +216,23 @@ class SectionFormMixin(SectionMixin):
 
     def get_success_url(self):
         return reverse("custom_admin:list", args=[self.section.slug])
+
+    def _after_object_saved(self):
+        obj = getattr(self, "object", None)
+        if not obj:
+            return
+        label = getattr(obj, "name", None) or getattr(obj, "title", None) or str(obj)
+        edit_url = reverse("custom_admin:edit", args=[self.section.slug, obj.pk])
+        message = mark_safe(
+            f'Зміни успішно збережено для '
+            f'<a href="{edit_url}" class="text-brown-700 underline hover:text-brown-900">{escape(label)}</a>.'
+        )
+        messages.success(self.request, message)
+
+    def _redirect_after_save(self):
+        if "save_continue" in self.request.POST:
+            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=self.object.pk)
+        return redirect(self.get_success_url())
 
 
 class SectionCreateView(SectionFormMixin, CreateView):
@@ -318,11 +338,12 @@ class SectionUpdateView(SectionFormMixin, UpdateView):
 
     def _formsets_valid(self, form, formsets):
         with transaction.atomic():
-            response = super().form_valid(form)
+            self.object = form.save()
             for formset in formsets.values():
                 formset.instance = self.object
                 formset.save()
-        return response
+        self._after_object_saved()
+        return self._redirect_after_save()
 
     def _formsets_invalid(self, form, formsets):
         self._formsets_cache = formsets
