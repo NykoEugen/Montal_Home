@@ -16,6 +16,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import DeleteView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
+from sub_categories.models import SubCategory
+
 from .forms import (
     FurnitureCustomOptionFormSet,
     FurnitureImageFormSet,
@@ -140,6 +142,18 @@ class SectionListView(SectionMixin, ListView):
                     except FieldError:
                         continue
             queryset = queryset.filter(q_object)
+
+        if self.section.slug == "furniture":
+            sub_category_id = self.request.GET.get("sub_category")
+            if sub_category_id:
+                try:
+                    queryset = queryset.filter(sub_category_id=int(sub_category_id))
+                except (TypeError, ValueError):
+                    pass
+
+            stock_status = self.request.GET.get("stock_status")
+            if stock_status:
+                queryset = queryset.filter(stock_status=stock_status)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -162,6 +176,16 @@ class SectionListView(SectionMixin, ListView):
         context["search_query"] = self.request.GET.get("q", "")
         context["show_actions"] = self.section.allow_edit or self.section.allow_delete
         context["column_span"] = len(self.section.list_display) + (1 if context["show_actions"] else 0)
+        querydict = self.request.GET.copy()
+        querydict.pop("page", None)
+        context["current_query_string"] = querydict.urlencode()
+        if self.section.slug == "furniture":
+            context["filter_options"] = {
+                "sub_categories": SubCategory.objects.order_by("name"),
+                "selected_sub_category": self.request.GET.get("sub_category", ""),
+                "stock_choices": getattr(self.section.model, "STOCK_STATUS_CHOICES", []),
+                "selected_stock_status": self.request.GET.get("stock_status", ""),
+            }
         return context
 
 

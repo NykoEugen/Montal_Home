@@ -18,14 +18,49 @@
     {% endif %}
 </div>
 
-{% if section.search_fields %}
-    <form method="get" class="mb-5">
-        <label for="search" class="sr-only">Пошук</label>
-        <div class="relative">
-            <input type="search" id="search" name="q" value="{{ search_query }}" placeholder="Пошук..." class="w-full border border-beige-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent text-brown-800">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-brown-400">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </span>
+{% if section.search_fields or filter_options %}
+    <form method="get" class="mb-5 bg-white border border-beige-300 rounded-lg shadow-sm p-4 space-y-4">
+        <div class="grid gap-4 md:grid-cols-{{ filter_options|default_if_none:''|yesno:'4,4' }}">
+            {% if section.search_fields %}
+                <div class="md:col-span-{% if filter_options %}2{% else %}4{% endif %}">
+                    <label for="search" class="sr-only">Пошук</label>
+                    <div class="relative">
+                        <input type="search" id="search" name="q" value="{{ search_query }}" placeholder="Пошук..." class="w-full border border-beige-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent text-brown-800">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-brown-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if filter_options %}
+                <div>
+                    <label for="sub_category" class="block text-sm font-medium text-brown-700">Підкатегорія</label>
+                    <select id="sub_category" name="sub_category" class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                        <option value="">Всі</option>
+                        {% for sub in filter_options.sub_categories %}
+                            <option value="{{ sub.id }}" {% if filter_options.selected_sub_category|default:'' == sub.id|stringformat:'s' %}selected{% endif %}>{{ sub.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="stock_status" class="block text-sm font-medium text-brown-700">Статус наявності</label>
+                    <select id="stock_status" name="stock_status" class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                        <option value="">Всі</option>
+                        {% for value,label in filter_options.stock_choices %}
+                            <option value="{{ value }}" {% if filter_options.selected_stock_status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                <i class="fa-solid fa-filter mr-2"></i> Застосувати
+            </button>
+            <a href="{% url 'custom_admin:list' section.slug %}" class="inline-flex items-center px-4 py-2 border border-beige-300 text-brown-600 rounded-md hover:bg-beige-100">
+                <i class="fa-solid fa-rotate-left mr-2"></i> Скинути
+            </a>
         </div>
     </form>
 {% endif %}
@@ -91,10 +126,10 @@
             <span>Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
             <div class="space-x-2">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1 border border-beige-300 rounded-md hover:bg-beige-100">Попередня</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_query_string %}&{{ current_query_string }}{% endif %}" class="px-3 py-1 border border-beige-300 rounded-md hover:bg-beige-100">Попередня</a>
                 {% endif %}
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1 border border-beige-300 rounded-md hover:bg-beige-100">Наступна</a>
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_query_string %}&{{ current_query_string }}{% endif %}" class="px-3 py-1 border border-beige-300 rounded-md hover:bg-beige-100">Наступна</a>
                 {% endif %}
             </div>
         </div>
