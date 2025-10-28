@@ -1,0 +1,43 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вхід · Montal Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="bg-beige-100 min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-beige-300 p-8 space-y-6">
+        <div class="text-center space-y-2">
+            <img src="{% static 'images/logo.jpg' %}" alt="Montal Home" class="mx-auto h-16 object-contain">
+            <h1 class="text-2xl font-semibold text-brown-800">Панель адміністратора</h1>
+            <p class="text-brown-500 text-sm">Використайте обліковий запис співробітника для доступу.</p>
+        </div>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-100 border border-red-300 px-3 py-2 text-sm text-red-700">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+            <div class="space-y-2">
+                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-brown-700">Логін</label>
+                {{ form.username }}
+            </div>
+            <div class="space-y-2">
+                <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-brown-700">Пароль</label>
+                {{ form.password }}
+            </div>
+            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 transition focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Увійти
+            </button>
+        </form>
+        <p class="text-center text-xs text-brown-400">
+            Доступ доступний лише співробітникам зі статусом staff. Якщо виникли труднощі — зверніться до технічної підтримки.
+        </p>
+    </div>
+</body>
+</html>

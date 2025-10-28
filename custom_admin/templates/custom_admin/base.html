@@ -1,0 +1,68 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Custom Admin{% endblock %} · Montal Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-beige-100 text-brown-800 min-h-screen">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'custom_admin:dashboard' %}" class="text-2xl font-semibold text-brown-800">
+                        Montal Home · Адміністрування
+                    </a>
+                    <span class="hidden md:inline-block text-sm text-brown-500">Своя панель управління у стилі сайту</span>
+                </div>
+                <div class="flex items-center space-x-4 text-sm">
+                    <span class="flex items-center space-x-2">
+                        <i class="fa-solid fa-user-shield text-brown-500"></i>
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </span>
+                    <a href="{% url 'custom_admin:logout' %}" class="inline-flex items-center px-3 py-1.5 bg-brown-600 text-white rounded-md hover:bg-brown-700 transition focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Вихід
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <nav class="bg-beige-200 border-b border-beige-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-3">
+                <a href="{% url 'custom_admin:dashboard' %}" class="nav-link text-brown-700 hover:text-brown-900 font-medium">
+                    <i class="fa-solid fa-chart-line mr-2"></i>Дашборд
+                </a>
+                {% if sections %}
+                    {% for nav_section in sections %}
+                        <a href="{% url 'custom_admin:list' nav_section.slug %}" class="nav-link text-brown-600 hover:text-brown-900">
+                            {% if nav_section.icon %}<i class="fa-solid {{ nav_section.icon }} mr-2"></i>{% endif %}
+                            {{ nav_section.get_title }}
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </nav>
+
+        <main class="flex-1">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                {% if messages %}
+                    <div class="space-y-4">
+                        {% for message in messages %}
+                            <div class="rounded-lg border border-beige-300 bg-white/80 px-4 py-3 text-sm {% if message.tags == 'success' %}border-green-400 text-green-700{% elif message.tags == 'error' %}border-red-400 text-red-700{% else %}text-brown-700{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

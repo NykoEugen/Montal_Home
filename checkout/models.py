@@ -55,12 +55,12 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"Order {self.id} by {self.customer_name} {self.customer_last_name}"
-    
+
     @property
     def total_savings(self):
         """Calculate total savings for the entire order."""
         return sum(item.savings_amount for item in self.orderitem_set.all())
-    
+
     @property
     def total_original_amount(self):
         """Calculate total original amount before any discounts."""
@@ -73,6 +73,11 @@ class Order(models.Model):
             else:
                 total += item.price * item.quantity
         return total
+
+    @property
+    def customer_full_name(self) -> str:
+        """Convenience accessor for displaying the full customer name."""
+        return f"{self.customer_name} {self.customer_last_name}".strip()
 
 
 class OrderItem(models.Model):

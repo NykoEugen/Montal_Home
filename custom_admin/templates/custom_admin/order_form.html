@@ -1,0 +1,166 @@
+{% extends "custom_admin/base.html" %}
+{% load custom_admin_tags %}
+
+{% block title %}{{ section.get_title }} · Замовлення #{{ object.id }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-semibold text-brown-900">Редагування замовлення #{{ object.id }}</h1>
+            <p class="text-sm text-brown-500 mt-2">Оновіть контактні дані, доставку, оплату та товари у замовленні.</p>
+        </div>
+        <div class="bg-beige-100 border border-beige-300 rounded-lg px-4 py-3 text-sm text-brown-700 space-y-1">
+            <p><span class="font-medium">Створено:</span> {{ object.created_at }}</p>
+            <p><span class="font-medium">Кількість товарів:</span> {{ object.orderitem_set.count }}</p>
+        </div>
+    </div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-4">
+            <h2 class="text-xl font-semibold text-brown-900">Контактна інформація</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                {% for field in form %}
+                    <div class="space-y-1">
+                        {% if field.is_hidden %}
+                            {{ field }}
+                        {% else %}
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                                {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="text-xs text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% include "custom_admin/partials/formset_card.html" with title="Елементи замовлення" description="Керуйте складом та цінами товарів" formset=order_item_formset empty_label="Додайте позицію" image_preview=False show_id=False %}
+
+        <div class="flex items-center justify-between pt-4 border-t border-beige-200">
+            <a href="{{ list_url }}" class="inline-flex items-center px-4 py-2 border border-beige-300 rounded-md text-brown-600 hover:bg-beige-100">
+                <i class="fa-solid fa-chevron-left mr-2"></i> Назад
+            </a>
+            <button type="submit" class="inline-flex items-center px-5 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> Зберегти зміни
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const toArray = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+        const updateCount = (prefix) => {
+            const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+            const count = totalInput ? parseInt(totalInput.value, 10) : 0;
+            toArray(`.formset-count[data-formset-prefix="${prefix}"]`).forEach((el) => {
+                el.textContent = count;
+            });
+        };
+
+        const ensurePlaceholder = (container) => {
+            if (!container.querySelector(".formset-item") && !container.querySelector(".formset-empty-placeholder")) {
+                const placeholder = document.createElement("p");
+                placeholder.className = "text-sm text-brown-400 formset-empty-placeholder";
+                placeholder.textContent = "Поки що немає записів.";
+                container.appendChild(placeholder);
+            }
+        };
+
+        const reindexForms = (prefix) => {
+            const container = document.querySelector(`.formset-items[data-formset-prefix="${prefix}"]`);
+            if (!container) return;
+            const items = toArray(".formset-item", container);
+            const nameRegex = new RegExp(`${prefix}-(\\d+)-`);
+            const idRegex = new RegExp(`id_${prefix}-(\\d+)-`);
+
+            items.forEach((item, index) => {
+                toArray(`[name^="${prefix}-"]`, item).forEach((element) => {
+                    const name = element.getAttribute("name");
+                    if (name) element.setAttribute("name", name.replace(nameRegex, `${prefix}-${index}-`));
+                });
+                toArray(`[id^="id_${prefix}-"]`, item).forEach((element) => {
+                    const id = element.getAttribute("id");
+                    if (id) element.setAttribute("id", id.replace(idRegex, `id_${prefix}-${index}-`));
+                });
+                toArray(`label[for^="id_${prefix}-"]`, item).forEach((label) => {
+                    const forAttr = label.getAttribute("for");
+                    if (forAttr) label.setAttribute("for", forAttr.replace(idRegex, `id_${prefix}-${index}-`));
+                });
+            });
+
+            const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+            if (totalInput) {
+                totalInput.value = items.length;
+            }
+            updateCount(prefix);
+            ensurePlaceholder(container);
+        };
+
+        const attachRemoveHandler = (button, prefix) => {
+            button.addEventListener("click", () => {
+                const item = button.closest(".formset-item");
+                if (!item) return;
+                const container = item.parentElement;
+                item.remove();
+                if (container) {
+                    reindexForms(prefix);
+                }
+            });
+        };
+
+        const addForm = (prefix) => {
+            const template = document.getElementById(`${prefix}-empty-form-template`);
+            const container = document.querySelector(`.formset-items[data-formset-prefix="${prefix}"]`);
+            const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+            if (!template || !container || !totalInput) return;
+
+            const placeholder = container.querySelector(".formset-empty-placeholder");
+            if (placeholder) placeholder.remove();
+
+            const newIndex = parseInt(totalInput.value, 10) || 0;
+            const html = template.innerHTML.replace(/__prefix__/g, newIndex);
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = html.trim();
+            const newItem = wrapper.firstElementChild;
+            if (!newItem) return;
+
+            container.appendChild(newItem);
+            totalInput.value = newIndex + 1;
+            updateCount(prefix);
+
+            const removeBtn = newItem.querySelector(".remove-formset-item");
+            if (removeBtn) {
+                attachRemoveHandler(removeBtn, prefix);
+            }
+        };
+
+        document.querySelectorAll(".formset-card").forEach((card) => {
+            const prefix = card.dataset.formsetPrefix;
+            if (!prefix) return;
+
+            const addButton = card.querySelector(".add-formset-item");
+            if (addButton) {
+                addButton.addEventListener("click", () => addForm(prefix));
+            }
+
+            card.querySelectorAll(".remove-formset-item").forEach((btn) => attachRemoveHandler(btn, prefix));
+
+            const container = card.querySelector(".formset-items");
+            if (container) {
+                ensurePlaceholder(container);
+            }
+        });
+    });
+</script>
+{% endblock %}

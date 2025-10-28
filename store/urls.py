@@ -28,6 +28,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("admin/connection-status/", admin_connection_status_view, name="admin_connection_status"),
     path("admin/retry-operations/", admin_retry_failed_operations_view, name="admin_retry_operations"),
+    path("custom_admin/", include(("custom_admin.urls", "custom_admin"), namespace="custom_admin")),
     path("health/", views.health_check, name="health_check"),
     path("health/simple/", views.simple_health_check, name="simple_health_check"),
     path("robots.txt", views.robots_txt, name="robots_txt"),
