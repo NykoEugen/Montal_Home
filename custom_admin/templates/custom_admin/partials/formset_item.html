@@ -1,0 +1,119 @@
+{% load custom_admin_tags %}
+{% with show_id=show_id|default:True %}
+<div class="border border-beige-200 rounded-lg p-4 bg-beige-50/50 formset-item" data-formset-prefix="{{ formset.prefix }}" data-new-form="{% if form.instance.pk %}false{% else %}true{% endif %}">
+    {% for hidden in form.hidden_fields %}
+        {{ hidden }}
+    {% endfor %}
+    <div class="flex items-center justify-between mb-4">
+        <span class="text-sm font-medium text-brown-600">
+            {% if form.instance.pk %}
+                {% if show_id %}
+                    <a href="{% url 'custom_admin:edit' section.slug form.instance.pk %}" class="text-brown-700 hover:text-brown-900 underline">
+                        ID {{ form.instance.pk }}
+                    </a>
+                {% else %}
+                    {% if section.slug == 'order-items' %}
+                        {{ form.instance.furniture }} (x{{ form.instance.quantity }})
+                    {% elif section.slug == 'parameters' %}
+                        {{ form.instance.parameter }} — {{ form.instance.value }}
+                    {% else %}
+                        {{ form.instance }}
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                {{ empty_label }}
+            {% endif %}
+        </span>
+        {% if formset.can_delete %}
+            {% if form.instance.pk %}
+                <label class="inline-flex items-center space-x-2 text-sm text-red-600">
+                    {{ form.DELETE }}
+                    <span>Видалити</span>
+                </label>
+            {% else %}
+                <button type="button" class="remove-formset-item inline-flex items-center px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition" data-formset-prefix="{{ formset.prefix }}">
+                    <i class="fa-solid fa-xmark mr-1"></i> Прибрати
+                </button>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% if image_preview and form.instance.pk and form.instance.image and form.instance.image.name %}
+        <div class="mb-4">
+            <p class="text-xs uppercase text-brown-400 mb-2">Поточне зображення</p>
+            <img src="{{ form.instance.image.url }}" alt="" class="h-32 rounded-lg object-cover shadow-sm border border-beige-200">
+        </div>
+    {% endif %}
+    {% if formset.prefix == 'order_items' %}
+        {% with basic_fields='furniture,quantity,price,original_price,is_promotional' %}
+            <div class="space-y-6 w-full">
+                <div class="space-y-3">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-brown-500">Основна інформація</h3>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        {% for field in form.visible_fields %}
+                            {% if field.name != 'DELETE' and field.name|in_list:basic_fields %}
+                                <div class="space-y-1 {% if field|widget_type == 'Textarea' %}md:col-span-2{% endif %}">
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                                        {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                                    </label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                                    {% endif %}
+                                    {% for error in field.errors %}
+                                        <p class="text-xs text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-brown-500">Додаткові параметри</h3>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        {% for field in form.visible_fields %}
+                            {% if field.name != 'DELETE' and not field.name|in_list:basic_fields %}
+                                <div class="space-y-1 {% if field|widget_type == 'Textarea' %}md:col-span-2{% endif %}">
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                                        {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                                    </label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                                    {% endif %}
+                                    {% for error in field.errors %}
+                                        <p class="text-xs text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endwith %}
+    {% else %}
+        <div class="grid gap-3 md:grid-cols-2 w-full">
+            {% for field in form.visible_fields %}
+                {% if field.name != 'DELETE' %}
+                    <div class="space-y-1 {% if field|widget_type == 'Textarea' %}md:col-span-2{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                            {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <p class="text-xs text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if form.non_field_errors %}
+        <div class="mt-3 text-xs text-red-600">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+</div>
+{% endwith %}

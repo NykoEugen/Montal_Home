@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sitemaps",
     # Local apps
+    "custom_admin.apps.CustomAdminConfig",
     "shop.apps.ShopConfig",
     "categories.apps.CategoriesConfig",
     "furniture.apps.FurnitureConfig",
@@ -160,6 +161,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+# Authentication redirects
+LOGIN_URL = "custom_admin:login"
+LOGIN_REDIRECT_URL = "custom_admin:dashboard"
 
 
 # Internationalization

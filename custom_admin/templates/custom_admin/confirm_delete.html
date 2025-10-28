@@ -1,0 +1,23 @@
+{% extends "custom_admin/base.html" %}
+
+{% block title %}Підтвердження видалення{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+    <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-4">
+        <h1 class="text-2xl font-semibold text-brown-900">Видалити обʼєкт?</h1>
+        <p class="text-sm text-brown-600">
+            Ви збираєтеся видалити <strong>{{ object }}</strong> з розділу «{{ section.get_title }}». Це необоротна операція.
+        </p>
+        <form method="post" class="flex items-center justify-end space-x-3">
+            {% csrf_token %}
+            <a href="{{ list_url }}" class="inline-flex items-center px-4 py-2 border border-beige-300 rounded-md text-brown-600 hover:bg-beige-100">
+                Скасувати
+            </a>
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                <i class="fa-solid fa-trash mr-2"></i> Видалити
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

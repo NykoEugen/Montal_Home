@@ -1,0 +1,45 @@
+{% extends "custom_admin/base.html" %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-3xl font-semibold text-brown-900">Доброго дня, {{ request.user.first_name|default:request.user.username }}!</h1>
+        <p class="text-sm text-brown-500 mt-2">
+            Тут ви можете керувати довідниками та каталогом Montal Home у власній панелі.
+        </p>
+    </div>
+
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {% for item in stats %}
+            <a href="{{ item.url }}" class="block bg-white border border-beige-300 rounded-2xl shadow-sm px-5 py-6 hover:border-brown-400 hover:-translate-y-1 transition transform">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-brown-500 uppercase tracking-wide">{{ item.section.get_title }}</p>
+                        <p class="mt-3 text-3xl font-semibold text-brown-900">{{ item.count }}</p>
+                    </div>
+                    {% if item.section.icon %}
+                        <span class="text-4xl text-brown-300">
+                            <i class="fa-solid {{ item.section.icon }}"></i>
+                        </span>
+                    {% endif %}
+                </div>
+                {% if item.section.description %}
+                    <p class="mt-4 text-sm text-brown-500">{{ item.section.description }}</p>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-brown-900 mb-4">Швидкі інструкції</h2>
+        <ul class="space-y-3 text-sm text-brown-600 list-disc list-inside">
+            <li>Розділ «Категорії» — формує головне меню каталогу.</li>
+            <li>«Підкатегорії» дозволяють деталізувати товари та привʼязати параметри.</li>
+            <li>Через «Параметри» керуйте характеристиками, які відображаються на сторінці товару.</li>
+            <li>Розділи «Тканини» відповідають за бренди та цінові групи матеріалів.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

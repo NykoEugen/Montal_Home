@@ -1,0 +1,263 @@
+{% extends "custom_admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ section.get_title }} · {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <h1 class="text-3xl font-semibold text-brown-900">Редагування меблів — {{ object.name }}</h1>
+        <p class="text-sm text-brown-500 mt-2">На цій сторінці можна оновити всі характеристики товару, варіанти, опції та галерею.</p>
+    </div>
+    <div class="bg-white border border-beige-300 rounded-xl shadow-sm">
+        <nav class="flex flex-wrap border-b border-beige-200 bg-beige-50 rounded-t-xl">
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="basic">
+                Основна інформація
+            </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="fabric">
+                Бренд тканини
+            </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="parameters">
+                Параметри
+            </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="sizes">
+                Розмірні варіанти
+            </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="variant-images">
+                Варіанти зображень
+            </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="gallery">
+                Галерея товару
+            </button>
+        </nav>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="space-y-8">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 tab-panel" data-tab-panel="basic">
+            <h2 class="text-xl font-semibold text-brown-900 mb-4">Основна інформація</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                {% for field in form %}
+                    {% if field.name != 'selected_fabric_brand' and field.name != 'fabric_value' and field.name != 'custom_option_name' %}
+                        <div class="space-y-1 {% if field.name == 'description' %}md:col-span-2{% endif %}">
+                            {% if field.is_hidden %}
+                                {{ field }}
+                            {% else %}
+                                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                                    {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <p class="text-xs text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 tab-panel hidden" data-tab-panel="fabric">
+            <h2 class="text-xl font-semibold text-brown-900 mb-4">Бренд тканини</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                {% for field in form %}
+                    {% if field.name == 'selected_fabric_brand' or field.name == 'fabric_value' %}
+                        <div class="space-y-1">
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                                {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="text-xs text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-6 tab-panel hidden" data-tab-panel="parameters">
+            <div>
+                <h2 class="text-xl font-semibold text-brown-900 mb-4">Параметри товару</h2>
+                <p class="text-sm text-brown-500 mb-4">
+                    Заповніть значення параметрів, дозволених підкатегорією. Доступний список автоматично обмежений відповідними характеристиками.
+                </p>
+                {% include "custom_admin/partials/formset_card.html" with title="Параметри" description="Значення характеристик товару" formset=parameter_formset empty_label="Додайте параметр" image_preview=False show_id=False %}
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-1">
+                    <h3 class="text-lg font-semibold text-brown-900">Універсальний параметр</h3>
+                    <label for="{{ form.custom_option_name.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.custom_option_name.label }}
+                    </label>
+                    {{ form.custom_option_name }}
+                    {% if form.custom_option_name.help_text %}
+                        <p class="text-xs text-brown-400">{{ form.custom_option_name.help_text }}</p>
+                    {% endif %}
+                    {% for error in form.custom_option_name.errors %}
+                        <p class="text-xs text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% include "custom_admin/partials/formset_card.html" with title="Додаткові опції" description="Кастомні варіанти для універсального параметра" formset=custom_option_formset empty_label="Додайте опцію" image_preview=False %}
+            </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab-panel="sizes">
+            {% include "custom_admin/partials/formset_card.html" with title="Розмірні варіанти" description="Розміри, ціни та акції" formset=size_variant_formset empty_label="Додайте розмір" image_preview=False %}
+        </div>
+
+        <div class="tab-panel hidden" data-tab-panel="variant-images">
+            {% include "custom_admin/partials/formset_card.html" with title="Варіанти зображень" description="Привʼязані фото для варіантів" formset=variant_image_formset empty_label="Додайте варіант зображення" image_preview=True %}
+        </div>
+
+        <div class="tab-panel hidden" data-tab-panel="gallery">
+            {% include "custom_admin/partials/formset_card.html" with title="Галерея товару" description="Додаткові фото для сторінки товару" formset=image_formset empty_label="Додайте фото" image_preview=True show_id=False %}
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-beige-200">
+            <a href="{{ list_url }}" class="inline-flex items-center px-4 py-2 border border-beige-300 rounded-md text-brown-600 hover:bg-beige-100">
+                <i class="fa-solid fa-chevron-left mr-2"></i> Назад
+            </a>
+            <button type="submit" class="inline-flex items-center px-5 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> Зберегти всі зміни
+            </button>
+        </div>
+    </form>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const toArray = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+            const activateTab = (target) => {
+                toArray(".tab-trigger").forEach((btn) => {
+                    const isActive = btn.dataset.tabTarget === target;
+                    btn.dataset.active = isActive;
+                });
+                toArray(".tab-panel").forEach((panel) => {
+                    if (panel.dataset.tabPanel === target) {
+                        panel.classList.remove("hidden");
+                    } else {
+                        panel.classList.add("hidden");
+                    }
+                });
+            };
+
+            const updateCount = (prefix) => {
+                const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+                const count = totalInput ? parseInt(totalInput.value, 10) : 0;
+                toArray(`.formset-count[data-formset-prefix="${prefix}"]`).forEach((el) => {
+                    el.textContent = count;
+                });
+            };
+
+            const ensurePlaceholder = (container) => {
+                if (!container.querySelector(".formset-item") && !container.querySelector(".formset-empty-placeholder")) {
+                    const placeholder = document.createElement("p");
+                    placeholder.className = "text-sm text-brown-400 formset-empty-placeholder";
+                    placeholder.textContent = "Поки що немає записів.";
+                    container.appendChild(placeholder);
+                }
+            };
+
+            const reindexForms = (prefix) => {
+                const container = document.querySelector(`.formset-items[data-formset-prefix="${prefix}"]`);
+                if (!container) return;
+                const items = toArray(".formset-item", container);
+                const nameRegex = new RegExp(`${prefix}-(\\d+)-`);
+                const idRegex = new RegExp(`id_${prefix}-(\\d+)-`);
+
+                items.forEach((item, index) => {
+                    toArray(`[name^="${prefix}-"]`, item).forEach((element) => {
+                        const name = element.getAttribute("name");
+                        if (name) element.setAttribute("name", name.replace(nameRegex, `${prefix}-${index}-`));
+                    });
+                    toArray(`[id^="id_${prefix}-"]`, item).forEach((element) => {
+                        const id = element.getAttribute("id");
+                        if (id) element.setAttribute("id", id.replace(idRegex, `id_${prefix}-${index}-`));
+                    });
+                    toArray(`label[for^="id_${prefix}-"]`, item).forEach((label) => {
+                        const forAttr = label.getAttribute("for");
+                        if (forAttr) label.setAttribute("for", forAttr.replace(idRegex, `id_${prefix}-${index}-`));
+                    });
+                });
+
+                const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+                if (totalInput) {
+                    totalInput.value = items.length;
+                }
+                updateCount(prefix);
+                ensurePlaceholder(container);
+            };
+
+            const attachRemoveHandler = (button, prefix) => {
+                button.addEventListener("click", () => {
+                    const item = button.closest(".formset-item");
+                    if (!item) return;
+                    const container = item.parentElement;
+                    item.remove();
+                    if (container) {
+                        reindexForms(prefix);
+                    }
+                });
+            };
+
+            const addForm = (prefix) => {
+                const template = document.getElementById(`${prefix}-empty-form-template`);
+                const container = document.querySelector(`.formset-items[data-formset-prefix="${prefix}"]`);
+                const totalInput = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+                if (!template || !container || !totalInput) return;
+
+                const placeholder = container.querySelector(".formset-empty-placeholder");
+                if (placeholder) placeholder.remove();
+
+                const newIndex = parseInt(totalInput.value, 10) || 0;
+                const html = template.innerHTML.replace(/__prefix__/g, newIndex);
+                const wrapper = document.createElement("div");
+                wrapper.innerHTML = html.trim();
+                const newItem = wrapper.firstElementChild;
+                if (!newItem) return;
+
+                container.appendChild(newItem);
+                totalInput.value = newIndex + 1;
+                updateCount(prefix);
+
+                const removeBtn = newItem.querySelector(".remove-formset-item");
+                if (removeBtn) {
+                    attachRemoveHandler(removeBtn, prefix);
+                }
+            };
+
+            document.querySelectorAll(".formset-card").forEach((card) => {
+                const prefix = card.dataset.formsetPrefix;
+                if (!prefix) return;
+
+                const addButton = card.querySelector(".add-formset-item");
+                if (addButton) {
+                    addButton.addEventListener("click", () => addForm(prefix));
+                }
+
+                card.querySelectorAll(".remove-formset-item").forEach((btn) => attachRemoveHandler(btn, prefix));
+
+                // Ensure placeholder is present when there are no forms on load.
+                const container = card.querySelector(".formset-items");
+                if (container) {
+                    ensurePlaceholder(container);
+                }
+            });
+
+            const tabTriggers = toArray(".tab-trigger");
+            if (tabTriggers.length) {
+                tabTriggers.forEach((btn) => {
+                    btn.addEventListener("click", () => activateTab(btn.dataset.tabTarget));
+                });
+                activateTab(tabTriggers[0].dataset.tabTarget);
+            }
+        });
+    </script>
+</div>
+{% endblock %}
