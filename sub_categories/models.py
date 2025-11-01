@@ -17,7 +17,7 @@ class SubCategory(models.Model):
         verbose_name="Дозволені параметри",
     )
     image = models.ImageField(
-        upload_to="categories/", null=True, blank=True, verbose_name="Зображення"
+        upload_to="categories/", max_length=255, null=True, blank=True, verbose_name="Зображення"
     )
 
     class Meta:
