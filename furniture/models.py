@@ -71,7 +71,7 @@ class Furniture(models.Model):
         verbose_name="Опис", help_text="Детальний опис меблів"
     )
     image = models.ImageField(
-        upload_to="furniture/", null=True, blank=True, verbose_name="Зображення"
+        upload_to="furniture/", max_length=255, null=True, blank=True, verbose_name="Зображення"
     )
     created_at = models.DateTimeField(
         verbose_name="Дата створення",
@@ -500,6 +500,7 @@ class FurnitureVariantImage(models.Model):
     )
     image = models.ImageField(
         upload_to="furniture/variants/",
+        max_length=255,
         verbose_name="Зображення варіанту",
         help_text="Зображення меблів у цьому варіанті"
     )
@@ -548,6 +549,7 @@ class FurnitureImage(models.Model):
     )
     image = models.ImageField(
         upload_to="furniture/",
+        max_length=255,
         verbose_name="Зображення",
     )
     alt_text = models.CharField(

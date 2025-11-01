@@ -194,18 +194,47 @@ STATICFILES_DIRS = [ BASE_DIR / "static" ]
 # MEDIA_ROOT = BASE_DIR / "media"
 
 # --- Медіа в Cloudinary ---
-INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+# INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+# STORAGES = {
+#     "default": {  # усі FileField/ImageField -> йдуть сюди
+#         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+#     },
+#     "staticfiles": {  # статика віддається WhiteNoise
+#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+#     },
+# }
+# # DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+# # Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+
+# --- Медіа у Cloudflare R2 з віддачею через BunnyCDN ---
+INSTALLED_APPS += ["storages"]
+
+# 1) Базовий CDN-домен (твій CNAME на Bunny): https://cdn.example.com/
+MEDIA_URL = os.getenv("MEDIA_URL", "https://cdn.montal.com.ua/")
+
+
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")  # напр. https://<accountid>.r2.cloudflarestorage.com
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+
+# Для R2 region зазвичай "auto"
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
+
+# R2 добре працює з virtual-hosted style
+AWS_S3_ADDRESSING_STYLE = "virtual"
+
 STORAGES = {
-    "default": {  # усі FileField/ImageField -> йдуть сюди
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
     },
-    "staticfiles": {  # статика віддається WhiteNoise
+    "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-# DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# ------------------
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
