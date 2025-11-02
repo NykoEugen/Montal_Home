@@ -1,6 +1,7 @@
 {% extends 'shop/base.html' %}
 {% load static %}
 {% load cart_filters %}
+{% load responsive_images %}
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Кошик</h1>
     {% if cart_items %}
@@ -23,11 +24,23 @@
                                     {% if item.variant_image_id %}
                                         {% for variant in item.furniture.variant_images.all %}
                                             {% if variant.id|stringformat:"s" == item.variant_image_id|stringformat:"s" %}
-                                                <img src="{{ variant.image.url }}" alt="{{ variant.name }}" class="w-16 h-16 object-cover rounded">
+                                                <img
+                                                    src="{{ variant.image|image_variant:400 }}"
+                                                    srcset="{% responsive_srcset variant.image %}"
+                                                    sizes="{% responsive_sizes '(max-width: 768px) 64px, 96px' %}"
+                                                    alt="{{ variant.name }}"
+                                                    class="w-16 h-16 object-cover rounded"
+                                                >
                                             {% endif %}
                                         {% endfor %}
                                     {% elif item.furniture.image %}
-                                        <img src="{{ item.furniture.image.url }}" alt="{{ item.furniture.name }}" class="w-16 h-16 object-cover rounded">
+                                        <img
+                                            src="{{ item.furniture.image|image_variant:400 }}"
+                                            srcset="{% responsive_srcset item.furniture.image %}"
+                                            sizes="{% responsive_sizes '(max-width: 768px) 64px, 96px' %}"
+                                            alt="{{ item.furniture.name }}"
+                                            class="w-16 h-16 object-cover rounded"
+                                        >
                                     {% endif %}
                                     <div>
                                         <div class="font-medium">{{ item.furniture.name }}</div>

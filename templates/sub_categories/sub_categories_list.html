@@ -1,5 +1,6 @@
 {% extends 'shop/base.html' %}
 {% load static %}
+{% load responsive_images %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-brown-800 mb-8">Підкатегорії</h1>
@@ -8,7 +9,13 @@
                 <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="block">
                     <div class="category-card">
                         {% if sub_category.image %}
-                            <img src="{{ sub_category.image.url }}" alt="{{ sub_category.name }}" class="w-full h-48 object-cover">
+                            <img
+                                src="{{ sub_category.image|image_variant }}"
+                                srcset="{% responsive_srcset sub_category.image %}"
+                                sizes="{% responsive_sizes %}"
+                                alt="{{ sub_category.name }}"
+                                class="w-full h-48 object-cover"
+                            >
                         {% else %}
                             <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
                                 <span class="text-brown-500">Немає зображення</span>

@@ -167,10 +167,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const clamped = Math.max(0, Math.min(index, maxIndex));
         const thumb = thumbs[clamped];
         const url = thumb?.getAttribute('data-full');
+        const thumbSrcset = thumb?.getAttribute('data-srcset');
+        const thumbSizes = thumb?.getAttribute('data-sizes');
         if (!url) {
             return;
         }
         mainImg.src = url;
+        if (thumbSrcset) {
+            mainImg.setAttribute('srcset', thumbSrcset);
+        } else {
+            mainImg.removeAttribute('srcset');
+        }
+        if (thumbSizes) {
+            mainImg.setAttribute('sizes', thumbSizes);
+        } else {
+            mainImg.removeAttribute('sizes');
+        }
         syncMainImageMetadata(thumb);
         mainImg.setAttribute('data-current-index', String(clamped));
         currentIndex = clamped;
@@ -402,6 +414,8 @@ document.addEventListener('DOMContentLoaded', () => {
         variantChips.forEach(x => x.classList.remove(CHIP_ACTIVE_CLASS));
         b.classList.add(CHIP_ACTIVE_CLASS);
         const imageUrl = b.getAttribute('data-image');
+        const imageSrcset = b.getAttribute('data-srcset');
+        const imageSizes = b.getAttribute('data-sizes');
         const linkUrl = b.getAttribute('data-link');
         const variantId = b.getAttribute('data-id');
         const nextStatus = b.getAttribute('data-stock-status');
@@ -419,8 +433,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchingThumb = thumbs.find(t => t.getAttribute('data-full') === imageUrl);
             if (matchingThumb) {
                 syncMainImageMetadata(matchingThumb);
+                const thumbSrcset = matchingThumb.getAttribute('data-srcset');
+                const thumbSizes = matchingThumb.getAttribute('data-sizes');
+                if (thumbSrcset) {
+                    mainImg.setAttribute('srcset', thumbSrcset);
+                } else if (imageSrcset) {
+                    mainImg.setAttribute('srcset', imageSrcset);
+                } else {
+                    mainImg.removeAttribute('srcset');
+                }
+                if (thumbSizes) {
+                    mainImg.setAttribute('sizes', thumbSizes);
+                } else if (imageSizes) {
+                    mainImg.setAttribute('sizes', imageSizes);
+                } else {
+                    mainImg.removeAttribute('sizes');
+                }
             } else {
                 setWrapperAspect(variantWidth, variantHeight);
+                if (imageSrcset) {
+                    mainImg.setAttribute('srcset', imageSrcset);
+                } else {
+                    mainImg.removeAttribute('srcset');
+                }
+                if (imageSizes) {
+                    mainImg.setAttribute('sizes', imageSizes);
+                } else {
+                    mainImg.removeAttribute('sizes');
+                }
             }
             mainImg.src = imageUrl;
             clearGallerySelection();

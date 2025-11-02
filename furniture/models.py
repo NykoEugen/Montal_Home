@@ -3,6 +3,13 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
+from utils.image_variants import schedule_variant_generation_for_field
+from utils.media_paths import (
+    furniture_gallery_image_upload_to,
+    furniture_main_image_upload_to,
+    furniture_variant_image_upload_to,
+)
+
 from fabric_category.models import FabricBrand, FabricCategory
 from params.models import Parameter
 from sub_categories.models import SubCategory
@@ -71,7 +78,11 @@ class Furniture(models.Model):
         verbose_name="Опис", help_text="Детальний опис меблів"
     )
     image = models.ImageField(
-        upload_to="furniture/", max_length=255, null=True, blank=True, verbose_name="Зображення"
+        upload_to=furniture_main_image_upload_to,
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name="Зображення",
     )
     created_at = models.DateTimeField(
         verbose_name="Дата створення",
@@ -155,19 +166,34 @@ class Furniture(models.Model):
         """Auto-generate slug if not provided."""
         if not self.slug:
             self.slug = slugify(self.name)
-        
-        # Check if promotional status changed
-        if self.pk:  # Only for existing objects
+
+        old_instance = None
+        promotional_changed = False
+        old_image_name = None
+
+        if self.pk:
             try:
                 old_instance = Furniture.objects.get(pk=self.pk)
-                promotional_changed = old_instance.is_promotional != self.is_promotional
             except Furniture.DoesNotExist:
-                promotional_changed = False
+                old_instance = None
+
+        if old_instance:
+            promotional_changed = old_instance.is_promotional != self.is_promotional
+            if old_instance.image:
+                old_image_name = old_instance.image.name
         else:
             promotional_changed = False
-        
+
         super().save(*args, **kwargs)
-        
+
+        new_image_name = self.image.name if self.image else None
+        if new_image_name and new_image_name != old_image_name:
+            schedule_variant_generation_for_field(
+                self.image,
+                force=True,
+                assume_exists=False,
+            )
+
         # If promotional status was disabled, clear size variant promotional prices
         if promotional_changed and not self.is_promotional:
             self.size_variants.filter(promotional_price__isnull=False).update(promotional_price=None)
@@ -499,7 +525,7 @@ class FurnitureVariantImage(models.Model):
         help_text="Використовується для відображення статусу при виборі цього варіанту",
     )
     image = models.ImageField(
-        upload_to="furniture/variants/",
+        upload_to=furniture_variant_image_upload_to,
         max_length=255,
         verbose_name="Зображення варіанту",
         help_text="Зображення меблів у цьому варіанті"
@@ -531,12 +557,29 @@ class FurnitureVariantImage(models.Model):
 
     def save(self, *args, **kwargs):
         """Ensure only one default variant per furniture."""
+        old_image_name = None
+        if self.pk:
+            try:
+                old_instance = FurnitureVariantImage.objects.get(pk=self.pk)
+                if old_instance.image:
+                    old_image_name = old_instance.image.name
+            except FurnitureVariantImage.DoesNotExist:
+                old_image_name = None
+
         if self.is_default:
             # Set all other variants for this furniture to non-default
             FurnitureVariantImage.objects.filter(
                 furniture=self.furniture
             ).exclude(id=self.id).update(is_default=False)
         super().save(*args, **kwargs)
+
+        new_image_name = self.image.name if self.image else None
+        if new_image_name and new_image_name != old_image_name:
+            schedule_variant_generation_for_field(
+                self.image,
+                force=True,
+                assume_exists=False,
+            )
 
 
 class FurnitureImage(models.Model):
@@ -548,7 +591,7 @@ class FurnitureImage(models.Model):
         verbose_name="Меблі",
     )
     image = models.ImageField(
-        upload_to="furniture/",
+        upload_to=furniture_gallery_image_upload_to,
         max_length=255,
         verbose_name="Зображення",
     )
@@ -570,3 +613,23 @@ class FurnitureImage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.furniture.name} — image #{self.id}"
+
+    def save(self, *args, **kwargs):
+        old_image_name = None
+        if self.pk:
+            try:
+                old_instance = FurnitureImage.objects.get(pk=self.pk)
+                if old_instance.image:
+                    old_image_name = old_instance.image.name
+            except FurnitureImage.DoesNotExist:
+                old_image_name = None
+
+        super().save(*args, **kwargs)
+
+        new_image_name = self.image.name if self.image else None
+        if new_image_name and new_image_name != old_image_name:
+            schedule_variant_generation_for_field(
+                self.image,
+                force=True,
+                assume_exists=False,
+            )

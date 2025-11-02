@@ -1,6 +1,7 @@
 {% extends 'shop/base.html' %}
 {% load static %}
 {% load cart_filters %}
+{% load responsive_images %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
@@ -248,7 +249,13 @@
                                         {% endif %}
 
                                         {% if item.image %}
-                                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="card-media-img">
+                                            <img
+                                                src="{{ item.image|image_variant }}"
+                                                srcset="{% responsive_srcset item.image %}"
+                                                sizes="{% responsive_sizes %}"
+                                                alt="{{ item.name }}"
+                                                class="card-media-img"
+                                            >
                                         {% else %}
                                             <div class="card-media-placeholder">
                                                 <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
