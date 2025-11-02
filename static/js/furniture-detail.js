@@ -359,9 +359,21 @@ document.addEventListener('DOMContentLoaded', function() {
         currentImageIndex = index;
         const thumbnail = thumbnails[currentImageIndex];
         const imageUrl = thumbnail.getAttribute('data-full');
+        const srcset = thumbnail.getAttribute('data-srcset');
+        const sizes = thumbnail.getAttribute('data-sizes');
         
         if (mainImg && imageUrl) {
             mainImg.src = imageUrl;
+            if (srcset) {
+                mainImg.setAttribute('srcset', srcset);
+            } else {
+                mainImg.removeAttribute('srcset');
+            }
+            if (sizes) {
+                mainImg.setAttribute('sizes', sizes);
+            } else {
+                mainImg.removeAttribute('sizes');
+            }
             syncMainImageMetadata(thumbnail);
         }
         
