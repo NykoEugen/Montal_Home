@@ -463,7 +463,10 @@ class FurnitureSizeVariant(models.Model):
     def dimensions(self) -> str:
         """Get formatted dimensions string."""
         if self.is_foldable and self.unfolded_length:
-            return f"{int(self.length)}x{int(self.width)}x{int(self.height)}-{int(self.unfolded_length)} см"
+            folded_length = int(self.length)
+            unfolded_length = int(self.unfolded_length)
+            length_part = f"{folded_length}-{unfolded_length}"
+            return f"{length_part}x{int(self.width)}x{int(self.height)} см"
         else:
             return f"{int(self.length)}x{int(self.width)}x{int(self.height)} см"
 
