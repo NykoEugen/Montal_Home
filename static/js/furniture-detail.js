@@ -239,16 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (dimensionsValue) {
                 if (sizeDimensions) {
-                    // Parse the dimensions string (e.g., "120x60x80 см") and format as "висота*ширина*довжина"
-                    const dimensionsMatch = sizeDimensions.match(/(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
-                    if (dimensionsMatch) {
-                        const height = dimensionsMatch[1];
-                        const width = dimensionsMatch[2];
-                        const length = dimensionsMatch[3];
-                        dimensionsValue.textContent = `${height}x${width}x${length} см`;
-                    } else {
-                        dimensionsValue.textContent = sizeDimensions; // keep as-is
-                    }
+                    dimensionsValue.textContent = sizeDimensions;
                 } else {
                     // If no size selected, revert to base size (from server-rendered value)
                     dimensionsValue.textContent = dimensionsValue.getAttribute('data-base');
