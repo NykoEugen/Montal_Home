@@ -1,5 +1,6 @@
 {% extends 'shop/base.html' %}
 {% load static %}
+{% load responsive_images %}
 {% csrf_token %}
 {% block structured_data %}
     {{ block.super }}
@@ -15,12 +16,18 @@
             <div class="bg-white rounded-lg shadow-lg p-4">
                 <div class="relative">
                     <div id="main-image-wrapper" class="w-full bg-beige-100 rounded-lg shadow flex items-center justify-center overflow-hidden" style="aspect-ratio: 1 / 1;">
+                        {% with first_image=gallery_images.0.image %}
                         <img id="main-image"
-                             src="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}"
+                             {% if first_image %}
+                             src="{{ first_image|image_variant }}"
+                             srcset="{% responsive_srcset first_image %}"
+                             sizes="{% responsive_sizes '(max-width: 1024px) 100vw, 600px' %}"
+                             data-width="{{ first_image.width }}"
+                             data-height="{{ first_image.height }}"
+                             {% endif %}
                              alt="{{ furniture.name }}"
-                             class="w-full h-full object-contain"
-                             data-width="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.width }}{% endif %}"
-                             data-height="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.height }}{% endif %}">
+                             class="w-full h-full object-contain">
+                        {% endwith %}
                     </div>
                     
                     <!-- Navigation buttons -->
@@ -46,10 +53,12 @@
                 {% if gallery_images %}
                 <div class="mt-3 grid grid-cols-5 gap-2 max-md:flex max-md:overflow-x-auto">
                     {% for img in gallery_images %}
-                        <img src="{{ img.image.url }}"
+                        <img src="{{ img.image|image_variant:400 }}"
+                             srcset="{% responsive_srcset img.image %}"
+                             sizes="{% responsive_sizes '(max-width: 768px) 160px, 200px' %}"
                              alt="{{ img.alt_text|default:furniture.name }}"
                              class="w-full h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity duration-200"
-                             data-full="{{ img.image.url }}"
+                             data-full="{{ img.image|image_variant:1200 }}"
                              data-index="{{ forloop.counter0 }}"
                              data-width="{{ img.image.width }}"
                              data-height="{{ img.image.height }}">

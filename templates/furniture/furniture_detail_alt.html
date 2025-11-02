@@ -1,6 +1,7 @@
 {% extends 'shop/base.html' %}
 {% load cart_filters %}
 {% load static %}
+{% load responsive_images %}
 {% block structured_data %}
   {{ block.super }}
   {% if product_schema %}
@@ -17,14 +18,20 @@
           <div id="alt-main-image-wrapper"
                class="w-full bg-beige-100 rounded flex items-center justify-center overflow-hidden"
                style="aspect-ratio: 1 / 1;">
+            {% with first_image=gallery_images.0.image %}
             <img id="alt-main-image"
-                 src="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.url }}{% endif %}"
+                 {% if first_image %}
+                 src="{{ first_image|image_variant }}"
+                 srcset="{% responsive_srcset first_image %}"
+                 sizes="{% responsive_sizes '(max-width: 1024px) 100vw, 600px' %}"
+                 data-width="{{ first_image.width }}"
+                 data-height="{{ first_image.height }}"
+                 {% endif %}
                  alt="{{ furniture.name }}"
                  class="w-full h-full object-contain"
                  data-current-index="0"
-                 data-gallery-size="{% if gallery_images %}{{ gallery_images|length }}{% else %}0{% endif %}"
-                 data-width="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.width }}{% endif %}"
-                 data-height="{% if gallery_images and gallery_images.0.image %}{{ gallery_images.0.image.height }}{% endif %}">
+                 data-gallery-size="{% if gallery_images %}{{ gallery_images|length }}{% else %}0{% endif %}">
+            {% endwith %}
           </div>
           {% if gallery_images and gallery_images|length > 1 %}
           <button type="button"
@@ -63,10 +70,12 @@
           <div class="overflow-hidden px-10" data-thumb-scroller>
             <div class="flex gap-3" data-thumb-track>
               {% for img in gallery_images %}
-              <img src="{{ img.image.url }}"
+              <img src="{{ img.image|image_variant:400 }}"
+                   srcset="{% responsive_srcset img.image %}"
+                   sizes="{% responsive_sizes '(max-width: 1024px) 180px, 220px' %}"
                    alt="{{ img.alt_text|default:furniture.name }}"
                    class="w-24 h-24 md:w-28 md:h-28 object-cover rounded border cursor-pointer thumb-item {% if forloop.first %}ring-2 ring-brown-800{% endif %}"
-                   data-full="{{ img.image.url }}"
+                   data-full="{{ img.image|image_variant:1200 }}"
                    data-index="{{ forloop.counter0 }}"
                    data-width="{{ img.image.width }}"
                    data-height="{{ img.image.height }}">
@@ -132,14 +141,18 @@
             {% for variant in variant_images %}
             <button type="button" class="chip variant-chip{% if variant.is_default %} chip--active{% endif %}" 
                     data-id="{{ variant.id }}" 
-                    data-image="{{ variant.image.url }}" 
+                    data-image="{{ variant.image|image_variant:1200 }}" 
                     data-name="{{ variant.name }}"
                     data-stock-status="{{ variant.stock_status }}"
                     data-stock-label="{{ variant.get_stock_status_display }}"
                     data-image-width="{{ variant.image.width }}"
                     data-image-height="{{ variant.image.height }}"
                     {% if variant.link %}data-link="{{ variant.link }}"{% endif %}>
-              <img src="{{ variant.image.url }}" alt="{{ variant.name }}" class="w-6 h-6 object-cover rounded">
+              <img src="{{ variant.image|image_variant:400 }}"
+                   srcset="{% responsive_srcset variant.image %}"
+                   sizes="{% responsive_sizes '(max-width: 768px) 32px, 48px' %}"
+                   alt="{{ variant.name }}"
+                   class="w-6 h-6 object-cover rounded">
               <span>{{ variant.name }}</span>
             </button>
             {% endfor %}
