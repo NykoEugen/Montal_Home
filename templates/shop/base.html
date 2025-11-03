@@ -39,21 +39,25 @@
     {% block structured_data %}{% endblock %}
 </head>
 <body class="bg-beige-100 font-sans min-h-screen flex flex-col holiday-mode">
-    <div class="ny-garland" aria-hidden="true">
-        <div class="ny-bulb ny-bulb-red" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-green" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-amber" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-icy" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-red" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
-        <div class="ny-bulb ny-bulb-green" role="presentation"></div>
-    </div>
-    <header>
+    <button id="holiday-decor-toggle" class="holiday-toggle" type="button" aria-pressed="true" aria-label="Вимкнути святкові ефекти">
+        <span class="holiday-toggle__icon">❄️</span>
+        <span class="holiday-toggle__knob"></span>
+    </button>
+    <header class="holiday-header">
+        <div class="ny-garland" aria-hidden="true">
+            <div class="ny-bulb ny-bulb-red" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-green" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-amber" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-icy" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-red" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
+            <div class="ny-bulb ny-bulb-green" role="presentation"></div>
+        </div>
         <nav class="bg-white shadow-md" aria-label="Головна навігація">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">

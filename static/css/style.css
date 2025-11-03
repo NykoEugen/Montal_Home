@@ -16,6 +16,11 @@
     --green-500: #10b981;
 }
 
+html,
+body {
+    overflow-x: hidden;
+}
+
 body.holiday-mode {
     --beige-100: #f4f7ff;
     --beige-200: #dee8ff;
@@ -35,19 +40,28 @@ body.holiday-mode nav.bg-white {
     backdrop-filter: blur(10px);
 }
 
-.ny-garland {
+
+.holiday-header {
     position: relative;
-    top: 0;
+    padding-top: 28px;
+    overflow: visible;
+    z-index: 110;
+}
+
+.ny-garland {
+    position: absolute;
+    top: -16px;
     left: 0;
-    width: 100%;
-    height: 40px;
+    right: 0;
+    height: 48px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: clamp(10px, 2.5vw, 30px);
     padding: 4px clamp(12px, 4vw, 40px) 6px;
     pointer-events: none;
-    z-index: 20;
+    z-index: 120;
+    max-width: 100%;
 }
 
 .ny-garland::before {
@@ -178,6 +192,99 @@ body.holiday-mode nav.bg-white {
     margin-top: 12px;
 }
 
+.holiday-toggle {
+    position: fixed;
+    left: clamp(12px, 3vw, 28px);
+    bottom: clamp(12px, 4vh, 28px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    color: #1c2543;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(28, 36, 78, 0.22);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+    z-index: 25;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.holiday-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(28, 36, 78, 0.25);
+}
+
+.holiday-toggle__icon {
+    font-size: 16px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.holiday-toggle__knob {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background: rgba(63, 76, 153, 0.35);
+    border-radius: 999px;
+    transition: background 0.3s ease;
+}
+
+.holiday-toggle__knob::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #ffffff, #dfe5ff);
+    box-shadow: 0 2px 4px rgba(28, 36, 78, 0.25);
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.holiday-toggle--off {
+    background: rgba(255, 255, 255, 0.7);
+    color: #5c668d;
+}
+
+.holiday-toggle--off .holiday-toggle__knob {
+    background: rgba(146, 156, 191, 0.35);
+}
+
+.holiday-toggle--off .holiday-toggle__knob::after {
+    transform: translateX(16px);
+    background: linear-gradient(145deg, #f1f3f8, #cfd5e8);
+}
+
+.holiday-toggle--off .holiday-toggle__icon {
+    opacity: 0.55;
+    transform: scale(0.92);
+}
+
+.holiday-toggle:focus-visible {
+    outline: 2px solid rgba(99, 132, 230, 0.6);
+    outline-offset: 2px;
+}
+
+.holiday-toggle:active {
+    transform: translateY(0);
+    box-shadow: 0 12px 24px rgba(28, 36, 78, 0.22);
+}
+
+body.holiday-decor-disabled .ny-garland {
+    display: none;
+}
+body.holiday-decor-disabled .holiday-header {
+    padding-top: 0;
+}
+body.holiday-decor-disabled #holiday-snow-container {
+    display: none !important;
+}
+
 .ny-bulb:hover {
     animation: ny-bulb-bounce 0.35s ease-out;
     transform: translateY(0);
@@ -224,6 +331,12 @@ body.holiday-mode nav.bg-white {
     .ny-bulb::after {
         animation: none;
     }
+    .holiday-toggle {
+        transition: none;
+    }
+    .holiday-toggle__knob::after {
+        transition: none;
+    }
 }
 
 @keyframes shimmer {
@@ -265,6 +378,15 @@ body.holiday-mode nav.bg-white {
     100% {
         filter: brightness(0.85);
         opacity: 0.8;
+    }
+}
+
+@media (max-width: 768px) {
+    .holiday-toggle {
+        left: 16px;
+        bottom: 88px;
+        font-size: 13px;
+        padding: 6px 10px;
     }
 }
 #holiday-snow-container {
