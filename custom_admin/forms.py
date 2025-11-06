@@ -119,6 +119,12 @@ class FurnitureForm(StyledModelForm):
 
 
 class OrderForm(StyledModelForm):
+    invoice_pdf_url = forms.URLField(
+        label="Посилання на рахунок",
+        required=False,
+        disabled=True,
+    )
+
     class Meta:
         model = Order
         fields = [
@@ -131,10 +137,23 @@ class OrderForm(StyledModelForm):
             "delivery_branch",
             "delivery_address",
             "payment_type",
+            "is_confirmed",
+            "invoice_pdf_url",
         ]
         widgets = {
             "delivery_address": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "invoice_pdf_url" in self.fields:
+            self.fields["invoice_pdf_url"].widget = forms.HiddenInput()
+            self.fields["invoice_pdf_url"].initial = self.instance.invoice_pdf_url
+            self.fields["invoice_pdf_url"].help_text = ""
+
+    def clean_invoice_pdf_url(self):
+        # Preserve generated link even though the field is disabled.
+        return self.instance.invoice_pdf_url
 
 
 class OrderItemForm(StyledModelForm):

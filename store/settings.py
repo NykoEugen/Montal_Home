@@ -108,6 +108,18 @@ SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
 
+# --- Invoice configuration ---
+INVOICE_COMPANY_NAME = os.getenv("INVOICE_COMPANY_NAME", "ФОП Кивенко Анастасія Олегівна")
+INVOICE_COMPANY_ADDRESS = os.getenv("INVOICE_COMPANY_ADDRESS", "м. Дніпро, проспект Богдана Хмельницького, 31Д")
+INVOICE_COMPANY_PHONE = os.getenv("INVOICE_COMPANY_PHONE", "+380678416272")
+INVOICE_COMPANY_EMAIL = os.getenv("INVOICE_COMPANY_EMAIL", "info@montal.com.ua")
+INVOICE_IBAN = os.getenv("INVOICE_IBAN", "UA313000010000000000031300001")
+INVOICE_EDRPOU = os.getenv("INVOICE_EDRPOU", "678416272")
+INVOICE_FONT_PATH = os.getenv("INVOICE_FONT_PATH", "/System/Library/Fonts/Supplemental/Arial.ttf")
+INVOICE_LOGO_URL = os.getenv("INVOICE_LOGO_URL", "/Users/anastasia/cursor repo/Montal_Home/static/images/logo.jpg")
+INVOICE_PAYMENT_TERMS_DAYS = int(os.getenv("INVOICE_PAYMENT_TERMS_DAYS", "3"))
+
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 

@@ -135,6 +135,7 @@ def register_default_sections() -> None:
                 "created_at",
                 "delivery_type",
                 "payment_type",
+                "is_confirmed",
             ),
             list_display_labels=(
                 "ID",
@@ -143,6 +144,7 @@ def register_default_sections() -> None:
                 "Створено",
                 "Доставка",
                 "Оплата",
+                "Підтверджено",
             ),
             search_fields=(
                 "customer_name",

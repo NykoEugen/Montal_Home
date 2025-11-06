@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from furniture.models import Furniture
 
@@ -45,6 +46,27 @@ class Order(models.Model):
         verbose_name="Тип оплати",
     )
 
+    is_confirmed = models.BooleanField(
+        default=False,
+        verbose_name="Підтверджено",
+        help_text="Після підтвердження автоматично генерується рахунок-фактура.",
+    )
+    invoice_pdf_url = models.URLField(
+        max_length=500,
+        blank=True,
+        verbose_name="Посилання на рахунок",
+    )
+    invoice_pdf_path = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="Шлях до файлу рахунку",
+    )
+    invoice_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата генерації рахунку",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     items = models.ManyToManyField(Furniture, through="OrderItem")
 
@@ -77,6 +99,23 @@ class Order(models.Model):
     def customer_full_name(self) -> str:
         """Convenience accessor for displaying the full customer name."""
         return f"{self.customer_name} {self.customer_last_name}".strip()
+
+    @property
+    def total_amount(self):
+        """Total payable amount for the order."""
+        return sum(item.price * item.quantity for item in self.orderitem_set.all())
+
+    def mark_invoice_generated(self, pdf_path: str, pdf_url: str) -> None:
+        """Persist invoice metadata after successful generation."""
+        generated_at = timezone.now()
+        self.invoice_pdf_path = pdf_path
+        self.invoice_pdf_url = pdf_url
+        self.invoice_generated_at = generated_at
+        type(self).objects.filter(pk=self.pk).update(
+            invoice_pdf_path=pdf_path,
+            invoice_pdf_url=pdf_url,
+            invoice_generated_at=generated_at,
+        )
 
 
 class OrderItem(models.Model):
