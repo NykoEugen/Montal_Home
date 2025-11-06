@@ -2,156 +2,179 @@
 {% load static %}
 {% load cart_filters %}
 {% load responsive_images %}
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/home-transitions.css' %}">
+{% endblock %}
+{% block extra_body %}
+    {{ block.super }}
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Observer.min.js" defer></script>
+    <script src="{% static 'js/home-transitions.js' %}" defer></script>
+{% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
-    <!-- Карусель акційних пропозицій -->
-    {% if promotional_furniture %}
-        <div class="mb-16">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                        </svg>
+        <div class="home-transition-stack">
+            {% if promotional_furniture %}
+            <section class="home-transition-section" data-section="promotions">
+                <div class="home-transition-card home-transition-card--promo">
+                    <div class="flex items-center justify-between gap-4 home-transition-card__header">
+                        <div class="flex items-center gap-3">
+                            <div class="home-transition-icon bg-red-500 text-white">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-bold text-brown-800">Акційні пропозиції</h2>
+                        </div>
+                        <div class="hidden md:flex items-center gap-2 text-sm text-brown-600">
+                            <span>Обмежена кількість</span>
+                            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        </div>
                     </div>
-                    <h2 class="text-3xl font-bold text-brown-800">Акційні пропозиції</h2>
-                </div>
-                <div class="hidden md:flex items-center gap-2 text-sm text-brown-600">
-                    <span>Обмежена кількість</span>
-                    <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                </div>
-            </div>
-            
-            <div class="relative overflow-hidden carousel-wrapper rounded-2xl shadow-xl bg-white border border-beige-200">
-                <div id="promoCarousel" class="flex transition-transform duration-700 ease-out">
-                    {% for item in promotional_furniture %}
-                    <div class="carousel-item">
-                        <div class="furniture-card furniture-card--immersive bg-white rounded-2xl overflow-hidden group relative">
-                            <a href="{% url 'furniture:furniture_detail' item.slug %}" class="card-full-link">
-                                <div class="card-media card-media--immersive">
-                                    {% if item.best_discount_percentage %}
-                                        <div class="promotional-badge">
-                                            -{{ item.best_discount_percentage }}%
-                                        </div>
-                                    {% endif %}
-
-                                    {% if item.sale_end_date %}
-                                        <div class="absolute top-4 right-4 z-20">
-                                            <div class="bg-black/75 text-white px-3 py-1 rounded-lg text-xs font-mono shadow">
-                                                <span class="countdown-timer" data-end="{{ item.sale_end_date_iso }}">--:--:--</span>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-
-                                    {% if item.image %}
-                                        <img
-                                            src="{{ item.image|image_variant }}"
-                                            srcset="{% responsive_srcset item.image %}"
-                                            sizes="{% responsive_sizes %}"
-                                            alt="{{ item.name }}"
-                                            class="card-media-img"
-                                        >
-                                    {% else %}
-                                        <div class="card-media-placeholder">
-                                            <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                    {% endif %}
-
-                                    <div class="card-overlay card-overlay--compact">
-                                        <div class="card-overlay-heading">
-                                            <h3 class="card-overlay-title">{{ item.name }}</h3>
-                                            {% if item.sub_category %}
-                                                <p class="text-xs text-white/80">
-                                                    {{ item.sub_category.category.name }} → {{ item.sub_category.name }}
-                                                </p>
-                                            {% endif %}
-                                            <div class="card-overlay-price">
-                                                {% if item.best_promotional_price %}
-                                                    <span class="card-price-current">{{ item.best_promotional_price|floatformat:0 }} грн</span>
-                                                    {% if item.best_original_price %}
-                                                        <span class="card-price-old">{{ item.best_original_price|floatformat:0 }} грн</span>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
+                    <div class="home-transition-card__body">
+                        <div class="relative overflow-hidden carousel-wrapper rounded-2xl shadow-xl bg-white border border-beige-200">
+                            <div id="promoCarousel" class="flex transition-transform duration-700 ease-out">
+                                {% for item in promotional_furniture %}
+                                <div class="carousel-item">
+                                    <div class="furniture-card furniture-card--immersive bg-white rounded-2xl overflow-hidden group relative">
+                                        <a href="{% url 'furniture:furniture_detail' item.slug %}" class="card-full-link">
+                                            <div class="card-media card-media--immersive">
+                                                {% if item.best_discount_percentage %}
+                                                    <div class="promotional-badge">
+                                                        -{{ item.best_discount_percentage }}%
+                                                    </div>
                                                 {% endif %}
+                                                {% if item.sale_end_date %}
+                                                    <div class="absolute top-4 right-4 z-20">
+                                                        <div class="bg-black/75 text-white px-3 py-1 rounded-lg text-xs font-mono shadow">
+                                                            <span class="countdown-timer" data-end="{{ item.sale_end_date_iso }}">--:--:--</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                                {% if item.image %}
+                                                    <img
+                                                        src="{{ item.image|image_variant }}"
+                                                        srcset="{% responsive_srcset item.image %}"
+                                                        sizes="{% responsive_sizes %}"
+                                                        alt="{{ item.name }}"
+                                                        class="card-media-img"
+                                                    >
+                                                {% else %}
+                                                    <div class="card-media-placeholder">
+                                                        <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="card-overlay card-overlay--compact">
+                                                    <div class="card-overlay-heading">
+                                                        <h3 class="card-overlay-title">{{ item.name }}</h3>
+                                                        {% if item.sub_category %}
+                                                            <p class="text-xs text-white/80">
+                                                                {{ item.sub_category.category.name }} → {{ item.sub_category.name }}
+                                                            </p>
+                                                        {% endif %}
+                                                        <div class="card-overlay-price">
+                                                            {% if item.best_promotional_price %}
+                                                                <span class="card-price-current">{{ item.best_promotional_price|floatformat:0 }} грн</span>
+                                                                {% if item.best_original_price %}
+                                                                    <span class="card-price-old">{{ item.best_original_price|floatformat:0 }} грн</span>
+                                                                {% endif %}
+                                                            {% else %}
+                                                                <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <span class="card-overlay-cta card-overlay-cta--ghost">
+                                                        Переглянути
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+                                                        </svg>
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <span class="card-overlay-cta card-overlay-cta--ghost">
-                                            Переглянути
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
-                                            </svg>
-                                        </span>
+                                        </a>
                                     </div>
                                 </div>
-                            </a>
+                                {% endfor %}
+                            </div>
+                            <button id="prevButton" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-brown-800 p-3 rounded-full z-10 shadow-lg hover:bg-white hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300 transition-all duration-300" aria-label="Попередній">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button id="nextButton" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-brown-800 p-3 rounded-full z-10 shadow-lg hover:bg-white hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300 transition-all duration-300" aria-label="Наступний">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <div id="carousel-indicators" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2"></div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                <!-- Navigation Buttons -->
-                <button id="prevButton" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-brown-800 p-3 rounded-full z-10 shadow-lg hover:bg-white hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300 transition-all duration-300" aria-label="Попередній">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                </button>
-                <button id="nextButton" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-brown-800 p-3 rounded-full z-10 shadow-lg hover:bg-white hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300 transition-all duration-300" aria-label="Наступний">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </button>
-                
-                <!-- Progress Indicators -->
-                <div id="carousel-indicators" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                    <!-- Indicators will be generated by JavaScript based on slides -->
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-
-    <!-- Блок "Про компанію" -->
-    <div class="mb-12 bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center gap-6">
-        <div class="md:w-1/2 w-full">
-            <img src="{% static 'images/about.jpg' %}" alt="Про компанію" class="w-full h-64 object-cover rounded-lg shadow">
-        </div>
-        <div class="md:w-1/2 w-full md:pl-6 mt-4 md:mt-0">
-            <h2 class="text-2xl font-bold text-brown-800 mb-4">Про компанію</h2>
-            <p class="text-brown-600">
-                Ми – провідний меблевий магазин, що пропонує якісні та стильні меблі для вашого дому.
-                Наша місія – створювати затишок у кожному домі завдяки широкому асортименту та доступним цінам.
-                Понад 10 років ми допомагаємо клієнтам втілювати їхні мрії про ідеальний інтер’єр.
-            </p>
-        </div>
-    </div>
-
-    <!-- Категорії -->
-    <h2 class="text-2xl font-bold text-brown-800 mb-4">Категорії</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {% for category in categories %}
-            <a href="{% url 'categories:category_detail' category.slug %}" class="block focus:outline-none focus:ring-2 focus:ring-brown-400 rounded-lg">
-                <div class="category-card rounded-lg shadow hover:shadow-lg transition bg-beige-50">
-                    {% if category.image %}
-                        <img
-                            src="{{ category.image|image_variant }}"
-                            srcset="{% responsive_srcset category.image %}"
-                            sizes="{% responsive_sizes %}"
-                            alt="{{ category.name }}"
-                            class="w-full h-48 object-cover rounded-t-lg"
-                        >
-                    {% else %}
-                        <div class="w-full h-48 bg-beige-200 flex items-center justify-center rounded-t-lg">
-                            <span class="text-brown-500">Немає зображення</span>
+            </section>
+            {% endif %}
+            <section class="home-transition-section" data-section="about">
+                <div class="home-transition-card home-transition-card--about">
+                    <div class="grid gap-6 md:grid-cols-2 home-transition-card__body">
+                        <div class="home-transition-media">
+                            <img src="{% static 'images/about.jpg' %}" alt="Про компанію" class="w-full h-64 object-cover rounded-2xl shadow-lg">
                         </div>
-                    {% endif %}
-                    <div class="p-4">
-                        <h3 class="text-xl font-semibold text-brown-800">{{ category.name }}</h3>
+                        <div class="home-transition-content space-y-4">
+                            <h2 class="text-3xl font-bold text-brown-800">Про компанію</h2>
+                            <p class="text-brown-600 leading-relaxed">
+                                Ми – провідний меблевий магазин, що пропонує якісні та стильні меблі для вашого дому.
+                                Наша місія – створювати затишок у кожному домі завдяки широкому асортименту та доступним цінам.
+                                Понад 10 років ми допомагаємо клієнтам втілювати їхні мрії про ідеальний інтер’єр.
+                            </p>
+                            <p class="text-brown-600 leading-relaxed">
+                                Ми працюємо лише з перевіреними виробниками та ретельно відбираємо кожну колекцію,
+                                аби гарантувати довговічність і комфорт. Обирайте затишок разом із нами.
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </a>
-        {% endfor %}
-    </div>
+            </section>
+            <section class="home-transition-section" data-section="categories">
+                <div class="home-transition-card home-transition-card--categories">
+                    <div class="home-transition-card__header flex items-center justify-between gap-4">
+                        <h2 class="text-2xl md:text-3xl font-bold text-brown-800">Категорії</h2>
+                        <a href="{% url 'categories:categories_list' %}" class="hidden md:inline-flex items-center gap-2 text-sm font-medium text-brown-700 hover:text-brown-900 transition">
+                            Переглянути всі
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 home-transition-card__body">
+                        {% for category in categories %}
+                        <a href="{% url 'categories:category_detail' category.slug %}" class="block focus:outline-none focus:ring-2 focus:ring-brown-400 rounded-2xl home-transition-category">
+                            <div class="category-card rounded-2xl shadow hover:shadow-xl transition bg-beige-50 border border-beige-200">
+                                {% if category.image %}
+                                    <img
+                                        src="{{ category.image|image_variant }}"
+                                        srcset="{% responsive_srcset category.image %}"
+                                        sizes="{% responsive_sizes %}"
+                                        alt="{{ category.name }}"
+                                        class="w-full h-48 object-cover rounded-t-2xl"
+                                    >
+                                {% else %}
+                                    <div class="w-full h-48 bg-beige-200 flex items-center justify-center rounded-t-2xl">
+                                        <span class="text-brown-500">Немає зображення</span>
+                                    </div>
+                                {% endif %}
+                                <div class="p-4">
+                                    <h3 class="text-xl font-semibold text-brown-800">{{ category.name }}</h3>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 {% endblock %}
+
