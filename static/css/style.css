@@ -16,6 +16,424 @@
     --green-500: #10b981;
 }
 
+html,
+body {
+    overflow-x: hidden;
+}
+
+body.holiday-mode {
+    --beige-100: #f4f7ff;
+    --beige-200: #dee8ff;
+    --beige-300: #c8d7ff;
+    --beige-700: #98acd9;
+    --brown-300: #93a9ff;
+    --brown-500: #3f4c99;
+    --brown-600: #2e3a73;
+    --brown-700: #242f5b;
+    --brown-800: #1c2543;
+    background: radial-gradient(circle at top, rgba(223, 232, 255, 0.65), transparent 55%), linear-gradient(180deg, #f4f7ff 0%, #e3edff 45%, #f7f9ff 100%);
+    color: var(--brown-700);
+}
+
+body.holiday-mode nav.bg-white {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+}
+
+
+.holiday-header {
+    position: relative;
+    padding-top: 28px;
+    overflow: visible;
+    z-index: 110;
+}
+
+.ny-garland {
+    position: absolute;
+    top: -16px;
+    left: 0;
+    right: 0;
+    height: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: clamp(10px, 2.5vw, 30px);
+    padding: 4px clamp(12px, 4vw, 40px) 6px;
+    pointer-events: none;
+    z-index: 120;
+    max-width: 100%;
+}
+
+.ny-garland::before {
+    content: '';
+    position: absolute;
+    inset: 0 -6% 0;
+    background: linear-gradient(180deg, rgba(6, 10, 28, 0.65), rgba(6, 10, 28, 0));
+    z-index: -1;
+}
+
+.ny-bulb {
+    position: relative;
+    width: 16px;
+    height: 20px;
+    border-radius: 50%;
+    margin-top: 8px;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+    transform-origin: top center;
+    animation: ny-bulb-swing 2.5s ease-in-out infinite alternate;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
+    --neon-start: rgba(255, 255, 255, 0.6);
+    --neon-end: rgba(255, 255, 255, 0.85);
+    --neon-delay: 0s;
+}
+
+.ny-bulb::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 6px;
+    border-radius: 3px;
+    background: #555;
+}
+
+.ny-bulb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.25), transparent 70%);
+    box-shadow: 0 0 14px var(--neon-start), 0 0 28px var(--neon-start), 0 0 38px rgba(255, 255, 255, 0.18);
+    animation: neon-pulse 2.6s ease-in-out infinite;
+    animation-delay: var(--neon-delay);
+}
+
+.ny-bulb-red {
+    background: #ff4b4b;
+    animation-delay: 0s;
+    --neon-start: rgba(255, 75, 75, 0.75);
+    --neon-end: rgba(255, 184, 194, 0.95);
+    --neon-delay: 0s;
+}
+
+.ny-bulb-blue {
+    background: #4b8bff;
+    animation-delay: 0.3s;
+    --neon-start: rgba(75, 139, 255, 0.75);
+    --neon-end: rgba(155, 202, 255, 0.95);
+    --neon-delay: 0.2s;
+}
+
+.ny-bulb-yellow {
+    background: #ffd84b;
+    animation-delay: 0.6s;
+    --neon-start: rgba(255, 216, 75, 0.75);
+    --neon-end: rgba(255, 239, 160, 0.95);
+    --neon-delay: 0.4s;
+}
+
+.ny-bulb-green {
+    background: #4bff7b;
+    animation-delay: 0.9s;
+    --neon-start: rgba(75, 255, 123, 0.75);
+    --neon-end: rgba(176, 255, 208, 0.95);
+    --neon-delay: 0.6s;
+}
+
+.ny-bulb-pink {
+    background: #ff7bff;
+    animation-delay: 1.2s;
+    --neon-start: rgba(255, 123, 255, 0.75);
+    --neon-end: rgba(255, 210, 255, 0.95);
+    --neon-delay: 0.8s;
+}
+
+.ny-bulb-amber {
+    background: #ffb347;
+    animation-delay: 1.5s;
+    --neon-start: rgba(255, 179, 71, 0.75);
+    --neon-end: rgba(255, 221, 158, 0.95);
+    --neon-delay: 1s;
+}
+
+.ny-bulb-icy {
+    background: #9be7ff;
+    animation-delay: 1.8s;
+    --neon-start: rgba(155, 231, 255, 0.75);
+    --neon-end: rgba(212, 246, 255, 0.95);
+    --neon-delay: 1.2s;
+}
+
+.ny-garland .ny-bulb:nth-child(2) {
+    margin-top: 10px;
+}
+
+.ny-garland .ny-bulb:nth-child(3) {
+    margin-top: 14px;
+}
+
+.ny-garland .ny-bulb:nth-child(4) {
+    margin-top: 18px;
+}
+
+.ny-garland .ny-bulb:nth-child(5) {
+    margin-top: 24px;
+}
+
+.ny-garland .ny-bulb:nth-child(6) {
+    margin-top: 20px;
+}
+
+.ny-garland .ny-bulb:nth-child(7) {
+    margin-top: 16px;
+}
+
+.ny-garland .ny-bulb:nth-child(8) {
+    margin-top: 22px;
+}
+
+.ny-garland .ny-bulb:nth-child(9) {
+    margin-top: 18px;
+}
+
+.ny-garland .ny-bulb:nth-child(10) {
+    margin-top: 12px;
+}
+
+.ny-garland .ny-bulb:nth-child(11) {
+    margin-top: 26px;
+}
+
+.ny-garland .ny-bulb:nth-child(12) {
+    margin-top: 18px;
+}
+
+.ny-garland .ny-bulb:nth-child(13) {
+    margin-top: 12px;
+}
+
+.holiday-toggle {
+    position: fixed;
+    left: clamp(12px, 3vw, 28px);
+    bottom: clamp(12px, 4vh, 28px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    color: #1c2543;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(28, 36, 78, 0.22);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+    z-index: 25;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.holiday-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(28, 36, 78, 0.25);
+}
+
+.holiday-toggle__icon {
+    font-size: 16px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.holiday-toggle__knob {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background: rgba(63, 76, 153, 0.35);
+    border-radius: 999px;
+    transition: background 0.3s ease;
+}
+
+.holiday-toggle__knob::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #ffffff, #dfe5ff);
+    box-shadow: 0 2px 4px rgba(28, 36, 78, 0.25);
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.holiday-toggle--off {
+    background: rgba(255, 255, 255, 0.7);
+    color: #5c668d;
+}
+
+.holiday-toggle--off .holiday-toggle__knob {
+    background: rgba(146, 156, 191, 0.35);
+}
+
+.holiday-toggle--off .holiday-toggle__knob::after {
+    transform: translateX(16px);
+    background: linear-gradient(145deg, #f1f3f8, #cfd5e8);
+}
+
+.holiday-toggle--off .holiday-toggle__icon {
+    opacity: 0.55;
+    transform: scale(0.92);
+}
+
+.holiday-toggle:focus-visible {
+    outline: 2px solid rgba(99, 132, 230, 0.6);
+    outline-offset: 2px;
+}
+
+.holiday-toggle:active {
+    transform: translateY(0);
+    box-shadow: 0 12px 24px rgba(28, 36, 78, 0.22);
+}
+
+body.holiday-decor-disabled .ny-garland {
+    display: none;
+}
+body.holiday-decor-disabled .holiday-header {
+    padding-top: 0;
+}
+body.holiday-decor-disabled #holiday-snow-container {
+    display: none !important;
+}
+
+.ny-bulb:hover {
+    animation: ny-bulb-bounce 0.35s ease-out;
+    transform: translateY(0);
+    filter: brightness(1.1);
+}
+
+@keyframes ny-bulb-swing {
+    0% {
+        transform: rotate(-6deg);
+    }
+    100% {
+        transform: rotate(6deg);
+    }
+}
+
+@keyframes ny-bulb-bounce {
+    0% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(6px) scale(1.05);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes neon-pulse {
+    0% {
+        box-shadow: 0 0 10px var(--neon-start), 0 0 24px var(--neon-start), 0 0 36px rgba(255, 255, 255, 0.25);
+        filter: drop-shadow(0 0 4px var(--neon-start));
+    }
+    40% {
+        box-shadow: 0 0 14px var(--neon-end), 0 0 32px var(--neon-end), 0 0 52px rgba(255, 255, 255, 0.35);
+        filter: drop-shadow(0 0 8px var(--neon-end));
+    }
+    70% {
+        box-shadow: 0 0 8px var(--neon-start), 0 0 18px rgba(255, 255, 255, 0.28), 0 0 32px rgba(255, 255, 255, 0.2);
+        filter: drop-shadow(0 0 3px var(--neon-start));
+    }
+    100% {
+        box-shadow: 0 0 14px var(--neon-end), 0 0 32px var(--neon-end), 0 0 56px rgba(255, 255, 255, 0.3);
+        filter: drop-shadow(0 0 7px var(--neon-end));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ny-bulb {
+        animation: none;
+    }
+    .ny-bulb::after {
+        animation: none;
+    }
+    .holiday-toggle {
+        transition: none;
+    }
+    .holiday-toggle__knob::after {
+        transition: none;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 100px 0;
+    }
+}
+
+@keyframes sparkle {
+    0% {
+        filter: brightness(1);
+    }
+    100% {
+        filter: brightness(1.8);
+    }
+}
+
+
+@media (max-width: 768px) {
+    .holiday-toggle {
+        left: 16px;
+        bottom: 88px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+}
+#holiday-snow-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+}
+
+.holiday-snowflake {
+    position: absolute;
+    top: -10vh;
+    width: 14px;
+    height: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 0;
+    animation: holiday-snowfall var(--fall-duration, 12s) linear infinite;
+    filter: drop-shadow(0 4px 6px rgba(63, 76, 153, 0.25));
+}
+
+.holiday-snowflake::before {
+    content: '\2744';
+    font-size: var(--flake-size, 14px);
+}
+
+@keyframes holiday-snowfall {
+    0% {
+        transform: translate3d(0, -15vh, 0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate3d(var(--x-drift, 0px), 110vh, 0);
+        opacity: 0;
+    }
+}
+
 /* Global Styles */
 body {
     background-color: var(--beige-100);

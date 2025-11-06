@@ -9,6 +9,7 @@ from price_parser.models import (
     PriceUpdateLog,
 )
 from sub_categories.models import SubCategory
+from shop.models import SeasonalSettings
 
 from .forms import (
     CategoryForm,
@@ -21,6 +22,7 @@ from .forms import (
     OrderItemForm,
     ParameterForm,
     SubCategoryForm,
+    SeasonalSettingsForm,
 )
 from .registry import AdminSection, registry
 
@@ -234,6 +236,21 @@ def register_default_sections() -> None:
             title="Парсер цін — мапінги",
             description="Привʼязка товарів до конкретних комірок прайсів.",
             icon="fa-table-cells",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="seasonal-settings",
+            model=SeasonalSettings,
+            form_class=SeasonalSettingsForm,
+            list_display=("name", "is_enabled", "updated_at"),
+            list_display_labels=("Назва", "Увімкнено", "Оновлено"),
+            ordering=("-updated_at",),
+            title="Сезонне оформлення",
+            description="Керуйте відображенням гірлянд та снігу на сайті.",
+            icon="fa-lightbulb",
+            allow_create=False,
+            allow_delete=False,
         )
     )
     registry.register(

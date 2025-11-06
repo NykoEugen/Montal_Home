@@ -94,6 +94,7 @@ TEMPLATES = [
                 "shop.context_processors.cart_count",
                 "shop.context_processors.breadcrumbs",
                 "shop.context_processors.seo_defaults",
+                "shop.context_processors.seasonal_pack",
             ],
         },
     },
