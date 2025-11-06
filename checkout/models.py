@@ -1,6 +1,12 @@
-from django.db import models
+import logging
+from functools import cached_property
 
-from furniture.models import Furniture
+from django.core.files.storage import default_storage
+from django.db import models
+from django.utils import timezone
+
+from fabric_category.models import FabricCategory
+from furniture.models import Furniture, FurnitureSizeVariant, FurnitureVariantImage
 
 
 class Order(models.Model):
@@ -45,8 +51,31 @@ class Order(models.Model):
         verbose_name="Тип оплати",
     )
 
+    is_confirmed = models.BooleanField(
+        default=False,
+        verbose_name="Підтверджено",
+        help_text="Після підтвердження автоматично генерується рахунок-фактура.",
+    )
+    invoice_pdf_url = models.URLField(
+        max_length=500,
+        blank=True,
+        verbose_name="Посилання на рахунок",
+    )
+    invoice_pdf_path = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="Шлях до файлу рахунку",
+    )
+    invoice_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата генерації рахунку",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     items = models.ManyToManyField(Furniture, through="OrderItem")
+
+    _logger = logging.getLogger(__name__)
 
     class Meta:
         verbose_name = "Замовлення"
@@ -77,6 +106,58 @@ class Order(models.Model):
     def customer_full_name(self) -> str:
         """Convenience accessor for displaying the full customer name."""
         return f"{self.customer_name} {self.customer_last_name}".strip()
+
+    @property
+    def total_amount(self):
+        """Total payable amount for the order."""
+        return sum(item.price * item.quantity for item in self.orderitem_set.all())
+
+    def mark_invoice_generated(self, pdf_path: str, pdf_url: str) -> None:
+        """Persist invoice metadata after successful generation."""
+        generated_at = timezone.now()
+        self.invoice_pdf_path = pdf_path
+        self.invoice_pdf_url = pdf_url
+        self.invoice_generated_at = generated_at
+        type(self).objects.filter(pk=self.pk).update(
+            invoice_pdf_path=pdf_path,
+            invoice_pdf_url=pdf_url,
+            invoice_generated_at=generated_at,
+        )
+
+    def save(self, *args, **kwargs):
+        old_invoice_path = None
+        clear_invoice = False
+
+        if self.pk:
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .only(
+                    "is_confirmed",
+                    "invoice_pdf_path",
+                    "invoice_pdf_url",
+                    "invoice_generated_at",
+                )
+                .first()
+            )
+            if previous and previous.is_confirmed and not self.is_confirmed:
+                clear_invoice = True
+                old_invoice_path = previous.invoice_pdf_path
+
+        if clear_invoice:
+            self.invoice_pdf_url = ""
+            self.invoice_pdf_path = ""
+            self.invoice_generated_at = None
+
+        super().save(*args, **kwargs)
+
+        if clear_invoice and old_invoice_path:
+            try:
+                default_storage.delete(old_invoice_path)
+            except Exception:  # pragma: no cover - best effort cleanup
+                self._logger.exception(
+                    "Unable to delete old invoice file %s", old_invoice_path
+                )
 
 
 class OrderItem(models.Model):
@@ -181,3 +262,63 @@ class OrderItem(models.Model):
         if self.size_variant_is_promotional and self.size_variant_original_price:
             savings += (self.size_variant_original_price - self.price) * self.quantity
         return savings
+
+    @cached_property
+    def size_variant_obj(self):
+        """Return the related size variant object if the ID is set."""
+        if not self.size_variant_id:
+            return None
+        try:
+            return FurnitureSizeVariant.objects.select_related("parameter").get(pk=self.size_variant_id)
+        except FurnitureSizeVariant.DoesNotExist:
+            return None
+
+    @cached_property
+    def fabric_category_obj(self):
+        """Return the related fabric category object if the ID is set."""
+        if not self.fabric_category_id:
+            return None
+        try:
+            return FabricCategory.objects.get(pk=self.fabric_category_id)
+        except FabricCategory.DoesNotExist:
+            return None
+
+    @cached_property
+    def variant_image_obj(self):
+        """Return the related variant image object if the ID is set."""
+        if not self.variant_image_id:
+            return None
+        try:
+            return FurnitureVariantImage.objects.get(pk=self.variant_image_id)
+        except FurnitureVariantImage.DoesNotExist:
+            return None
+
+    @property
+    def size_variant_display(self) -> str:
+        """Human-readable representation of the selected size variant."""
+        variant = self.size_variant_obj
+        if not variant:
+            return ""
+        if variant.parameter and variant.parameter_value:
+            label = variant.parameter.label or variant.parameter.key
+            return f"{label}: {variant.parameter_value}"
+        return variant.dimensions
+
+    @property
+    def fabric_category_display(self) -> str:
+        """Human-readable representation of the selected fabric category."""
+        category = self.fabric_category_obj
+        if not category:
+            return ""
+        brand = category.brand.name if category.brand_id and category.brand else ""
+        if brand:
+            return f"{brand} — {category.name}"
+        return category.name
+
+    @property
+    def variant_image_display(self) -> str:
+        """Human-readable representation of the selected variant image."""
+        variant_image = self.variant_image_obj
+        if not variant_image:
+            return ""
+        return variant_image.name
