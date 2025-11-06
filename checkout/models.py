@@ -5,13 +5,12 @@ from furniture.models import Furniture
 
 class Order(models.Model):
     DELIVERY_CHOICES = [
-        ("local", "Локальна доставка"),
+        ("local", "Доставка по місту"),
         ("nova_poshta", "Нова Пошта"),
     ]
 
     PAYMENT_CHOICES = [
         ("iban", "IBAN"),
-        ("liqupay", "LiquPay"),
     ]
 
     customer_name = models.CharField(max_length=200)

@@ -31,7 +31,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     delivery_address = ""
 
                     if delivery_type == "local":
-                        delivery_city = "Локальна доставка"
+                        delivery_city = "Доставка по місту"
                         delivery_address = form.cleaned_data["delivery_address"]
                     elif delivery_type == "nova_poshta":
                         delivery_city = form.cleaned_data["delivery_city_label"]

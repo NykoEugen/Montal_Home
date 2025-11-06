@@ -5,14 +5,13 @@ from django import forms
 
 DELIVERY_CHOICES = [
     ("", "Оберіть спосіб доставки"),
-    ("local", "Локальна доставка"),
+    ("local", "Доставка по місту"),
     ("nova_poshta", "Нова Пошта"),
 ]
 
 PAYMENT_CHOICES = [
     ("", "Оберіть спосіб оплати"),
     ("iban", "IBAN"),
-    ("liqupay", "LiquPay"),
 ]
 
 
@@ -157,7 +156,7 @@ class CheckoutForm(forms.Form):
             # For local delivery, address is required
             if not cleaned_data.get("delivery_address"):
                 raise forms.ValidationError(
-                    "Для локальної доставки необхідно вказати адресу"
+                    "Для доставки по місту необхідно вказати адресу"
                 )
         elif delivery_type == "nova_poshta":
             # For Nova Poshta, city and branch are required
