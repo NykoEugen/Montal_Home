@@ -208,10 +208,12 @@ def _build_document(order: Order, font_name: str) -> bytes:
         name_parts = [item.furniture.name if item.furniture_id else "Товар"]
         if item.custom_option_name and item.custom_option_value:
             name_parts.append(f"{item.custom_option_name}: {item.custom_option_value}")
-        if item.size_variant_id:
-            name_parts.append(f"Варіант ID {item.size_variant_id}")
-        if item.fabric_category_id:
-            name_parts.append(f"Тканина ID {item.fabric_category_id}")
+        if item.size_variant_display:
+            name_parts.append(f"Розмір: {item.size_variant_display}")
+        if item.variant_image_display:
+            name_parts.append(f"Варіант: {item.variant_image_display}")
+        if item.fabric_category_display:
+            name_parts.append(f"Тканина: {item.fabric_category_display}")
         item_name = "; ".join(name_parts)
 
         table_data.append(

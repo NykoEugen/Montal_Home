@@ -157,6 +157,25 @@ class OrderForm(StyledModelForm):
 
 
 class OrderItemForm(StyledModelForm):
+    size_variant_id = forms.ModelChoiceField(
+        queryset=FurnitureSizeVariant.objects.none(),
+        required=False,
+        label="Розмірний варіант",
+        empty_label="Базовий розмір",
+    )
+    fabric_category_id = forms.ModelChoiceField(
+        queryset=FabricCategory.objects.all(),
+        required=False,
+        label="Категорія тканини",
+        empty_label="Без тканини",
+    )
+    variant_image_id = forms.ModelChoiceField(
+        queryset=FurnitureVariantImage.objects.none(),
+        required=False,
+        label="Варіант (колір)",
+        empty_label="Без варіанту",
+    )
+
     class Meta:
         model = OrderItem
         fields = [
@@ -175,6 +194,50 @@ class OrderItemForm(StyledModelForm):
             "custom_option_value",
             "custom_option_price",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        furniture = self.initial.get("furniture") or getattr(self.instance, "furniture", None)
+
+        size_field = self.fields["size_variant_id"]
+        variant_image_field = self.fields["variant_image_id"]
+
+        if furniture:
+            size_field.queryset = FurnitureSizeVariant.objects.filter(furniture=furniture).select_related("parameter")
+            variant_image_field.queryset = FurnitureVariantImage.objects.filter(furniture=furniture)
+        else:
+            size_field.queryset = FurnitureSizeVariant.objects.select_related("furniture", "parameter")
+            variant_image_field.queryset = FurnitureVariantImage.objects.select_related("furniture")
+
+        def size_label(variant: FurnitureSizeVariant) -> str:
+            if variant.parameter and variant.parameter_value:
+                label = variant.parameter.label or variant.parameter.key
+                return f"{label}: {variant.parameter_value}"
+            return variant.dimensions
+
+        size_field.label_from_instance = size_label
+        variant_image_field.label_from_instance = lambda variant: variant.name
+        self.fields["fabric_category_id"].label_from_instance = lambda category: (
+            f"{category.brand.name} — {category.name}"
+            if category.brand_id and category.brand
+            else category.name
+        )
+
+        if self.instance and self.instance.pk:
+            if self.instance.size_variant_obj:
+                size_field.initial = self.instance.size_variant_obj
+            if self.instance.variant_image_obj:
+                variant_image_field.initial = self.instance.variant_image_obj
+            if self.instance.fabric_category_obj:
+                self.fields["fabric_category_id"].initial = self.instance.fabric_category_obj
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for field_name in ("size_variant_id", "fabric_category_id", "variant_image_id"):
+            value = cleaned_data.get(field_name)
+            if hasattr(value, "pk"):
+                cleaned_data[field_name] = value.pk
+        return cleaned_data
 
 
 class OrderItemInlineForm(OrderItemForm):
