@@ -4,10 +4,12 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.templatetags.static import static
 from django.urls import resolve
+from django.db import OperationalError, ProgrammingError
 
 from categories.models import Category
 from furniture.models import Furniture
 from sub_categories.models import SubCategory
+from .models import SeasonalSettings
 
 
 def cart_count(request: HttpRequest) -> dict:
@@ -149,4 +151,22 @@ def seo_defaults(request: HttpRequest) -> dict:
         "seo_site_domain": site_domain,
         "seo_site_url": base_url.rstrip("/"),
         "google_site_verification_token": google_verification,
+    }
+
+
+def seasonal_pack(request: HttpRequest) -> dict:
+    """Expose whether seasonal decorations are enabled from admin settings."""
+    enabled = False
+    pack_name = ""
+    try:
+        settings_obj = SeasonalSettings.get_solo()
+        enabled = settings_obj.is_enabled
+        pack_name = settings_obj.name
+    except (OperationalError, ProgrammingError):
+        # Database might be unavailable during migrations; fall back to disabled state.
+        enabled = False
+        pack_name = ""
+    return {
+        "seasonal_pack_enabled": enabled,
+        "seasonal_pack_name": pack_name,
     }

@@ -38,26 +38,30 @@
     {% block extra_head %}{% endblock %}
     {% block structured_data %}{% endblock %}
 </head>
-<body class="bg-beige-100 font-sans min-h-screen flex flex-col holiday-mode">
-    <button id="holiday-decor-toggle" class="holiday-toggle" type="button" aria-pressed="true" aria-label="Вимкнути святкові ефекти">
-        <span class="holiday-toggle__icon">❄️</span>
-        <span class="holiday-toggle__knob"></span>
-    </button>
-    <header class="holiday-header">
-        <div class="ny-garland" aria-hidden="true">
-            <div class="ny-bulb ny-bulb-red" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-green" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-amber" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-icy" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-red" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
-            <div class="ny-bulb ny-bulb-green" role="presentation"></div>
-        </div>
+<body class="bg-beige-100 font-sans min-h-screen flex flex-col {% if seasonal_pack_enabled %}holiday-mode{% endif %}">
+    {% if seasonal_pack_enabled %}
+        <button id="holiday-decor-toggle" class="holiday-toggle" type="button" aria-pressed="true" aria-label="Вимкнути {{ seasonal_pack_name|default:'святкові ефекти' }}">
+            <span class="holiday-toggle__icon">❄️</span>
+            <span class="holiday-toggle__knob"></span>
+        </button>
+    {% endif %}
+    <header{% if seasonal_pack_enabled %} class="holiday-header"{% endif %}>
+        {% if seasonal_pack_enabled %}
+            <div class="ny-garland" aria-hidden="true">
+                <div class="ny-bulb ny-bulb-red" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-green" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-amber" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-icy" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-red" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-yellow" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-blue" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-pink" role="presentation"></div>
+                <div class="ny-bulb ny-bulb-green" role="presentation"></div>
+            </div>
+        {% endif %}
         <nav class="bg-white shadow-md" aria-label="Головна навігація">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">
@@ -296,7 +300,9 @@
     <script src="{% static 'js/checkout.js' %}"></script>
     <script src="{% static 'js/chat-button.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
+    {% if seasonal_pack_enabled %}
     <script src="{% static 'js/holiday-theme.js' %}"></script>
+    {% endif %}
     <script>
         // Mobile menu toggle
         const menuBtn = document.getElementById('mobile-menu-button');

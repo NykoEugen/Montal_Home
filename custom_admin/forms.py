@@ -14,6 +14,7 @@ from furniture.models import (
 from params.models import Parameter, FurnitureParameter
 from price_parser.models import GoogleSheetConfig, FurniturePriceCellMapping
 from sub_categories.models import SubCategory
+from shop.models import SeasonalSettings
 
 
 class StyledModelForm(forms.ModelForm):
@@ -225,6 +226,12 @@ class FurnitureSizeVariantForm(StyledModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.sale_end_date:
             self.initial["sale_end_date"] = self.instance.sale_end_date.strftime("%Y-%m-%dT%H:%M")
+
+
+class SeasonalSettingsForm(StyledModelForm):
+    class Meta:
+        model = SeasonalSettings
+        fields = ["name", "is_enabled"]
 
 
 class FurnitureSizeVariantInlineForm(FurnitureSizeVariantForm):
