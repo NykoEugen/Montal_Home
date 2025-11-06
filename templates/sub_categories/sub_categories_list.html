@@ -4,28 +4,29 @@
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-brown-800 mb-8">Підкатегорії</h1>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="showcase-grid">
             {% for sub_category in sub_categories %}
-                <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="block">
-                    <div class="category-card">
+                <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}" class="showcase-card">
+                    <div class="showcase-card__image{% if not sub_category.image %} showcase-card__image--empty{% endif %}">
                         {% if sub_category.image %}
                             <img
                                 src="{{ sub_category.image|image_variant }}"
                                 srcset="{% responsive_srcset sub_category.image %}"
                                 sizes="{% responsive_sizes %}"
                                 alt="{{ sub_category.name }}"
-                                class="w-full h-48 object-cover"
+                                class="showcase-card__img"
                             >
                         {% else %}
-                            <div class="w-full h-48 bg-beige-200 flex items-center justify-center">
-                                <span class="text-brown-500">Немає зображення</span>
-                            </div>
+                            <span class="showcase-card__placeholder">Немає зображення</span>
                         {% endif %}
-                        <div class="p-4">
-                            <h2 class="text-xl font-semibold text-brown-800">{{ sub_category.name }}</h2>
-                        </div>
+                    </div>
+                    <div class="showcase-card__header">
+                        <h2 class="showcase-card__title">{{ sub_category.name }}</h2>
+                        <span class="showcase-card__cta">Переглянути</span>
                     </div>
                 </a>
+            {% empty %}
+                <p class="text-brown-600">Підкатегорій поки що немає.</p>
             {% endfor %}
         </div>
     </div>
