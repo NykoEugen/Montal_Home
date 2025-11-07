@@ -232,40 +232,95 @@
     </div>
   </div>
 
-  <!-- Tabs: Description / Specs / Delivery -->
-  <div class="mt-8 bg-white rounded-lg shadow">
-    <div class="border-b flex">
-      <button class="tab-link px-4 py-3 text-brown-700 font-medium border-b-2 border-transparent active" data-tab="desc">Опис</button>
-      <button class="tab-link px-4 py-3 text-brown-700 font-medium border-b-2 border-transparent" data-tab="specs">Характеристики</button>
-      <button class="tab-link px-4 py-3 text-brown-700 font-medium border-b-2 border-transparent" data-tab="shipping">Доставка та оплата</button>
-    </div>
-    <div class="p-6">
-      <div class="tab-pane" id="tab-desc">{{ furniture.description }}</div>
-      <div class="tab-pane hidden" id="tab-specs">
-        {% if parameters %}
-        <table class="w-full text-left border-separate border-spacing-y-2">
-          <tbody>
-            {% for param in parameters %}
-            <tr class="bg-beige-50 rounded {% if param.key == 'dimensions' %}alt-dim-row{% endif %}">
-              <td class="py-2 px-3 text-brown-600 w-1/2">{{ param.label }}</td>
-              <td class="py-2 px-3 text-brown-800 font-medium w-1/2" 
-                  {% if param.key == 'dimensions' %}id="alt-dimensions"{% else %}id="alt-param-{{ param.key }}"{% endif %}
-                  data-param-key="{{ param.key }}"
-                  data-base="{{ param.base_value|default:param.value }}">{{ param.value }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% endif %}
+  <section class="mt-10 scroll-stack" data-scroll-stack>
+    <div class="scroll-stack__grid">
+      <div>
+        <p class="scroll-stack__eyebrow">Більше про {{ furniture.name }}</p>
+        <h2 class="scroll-stack__title">Все важливе перед замовленням</h2>
+        <p class="scroll-stack__subtitle">
+          Тут є історія моделі, точні параметри та сервісні умови, щоб ви могли швидко зрозуміти, чи впишеться {{ furniture.sub_category.name|lower }} у ваш простір.
+        </p>
       </div>
-      <div class="tab-pane hidden" id="tab-shipping">
-        <div class="space-y-2 text-brown-700">
-          <p>Безкоштовна доставка безкаркасних меблів по Україні. Інші меблі — за тарифами перевізника.</p>
-          <p>Оплата: при отриманні (якщо в наявності), 50% передплата на виготовлення, або повна передплата для матеріалів.</p>
+      <div class="scroll-stack__tabs" role="tablist">
+        <button type="button" class="scroll-tab is-active" id="tab-desc" data-scroll-tab="desc" aria-controls="stack-desc" role="tab" aria-selected="true">
+          <span class="scroll-tab__label">Опис</span>
+          <span class="scroll-tab__hint">Матеріали, настрій, сценарії використання</span>
+        </button>
+        <button type="button" class="scroll-tab" id="tab-specs" data-scroll-tab="specs" aria-controls="stack-specs" role="tab" aria-selected="false">
+          <span class="scroll-tab__label">Характеристики</span>
+          <span class="scroll-tab__hint">Розміри, наповнення, додаткові опції</span>
+        </button>
+        <button type="button" class="scroll-tab" id="tab-shipping" data-scroll-tab="shipping" aria-controls="stack-shipping" role="tab" aria-selected="false">
+          <span class="scroll-tab__label">Доставка та оплата</span>
+          <span class="scroll-tab__hint">Терміни виготовлення, варіанти оплати, сервіс</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="scroll-stack__body">
+      <article id="stack-desc" class="scroll-card is-active" data-scroll-card="desc" role="tabpanel" aria-labelledby="tab-desc">
+        <div class="scroll-card__badge">01</div>
+        <div class="scroll-card__content">
+          <h3 class="scroll-card__title">Опис</h3>
+          <p class="scroll-card__lead">
+            {{ furniture.sub_category.name }} створена, щоб доповнити ваш простір, працювати і як акцент, і як спокійний фон.
+          </p>
+          <div class="scroll-card__rich-text">
+            {{ furniture.description|default:'Уточнюйте детальний опис у консультанта Montal Home.' }}
+          </div>
         </div>
-      </div>
+      </article>
+
+      <article id="stack-specs" class="scroll-card" data-scroll-card="specs" role="tabpanel" aria-labelledby="tab-specs">
+        <div class="scroll-card__badge">02</div>
+        <div class="scroll-card__content">
+          <h3 class="scroll-card__title">Ключові характеристики</h3>
+          <p class="scroll-card__lead">Ми зібрали основні параметри, що важливі перед замовленням.</p>
+          {% if parameters %}
+          <div class="scroll-card__table-wrapper">
+            <table class="scroll-card__table">
+              <tbody>
+              {% for param in parameters %}
+                <tr class="{% if param.key == 'dimensions' %}alt-dim-row{% endif %}">
+                  <th scope="row">{{ param.label }}</th>
+                  <td
+                      {% if param.key == 'dimensions' %}id="alt-dimensions"{% else %}id="alt-param-{{ param.key }}"{% endif %}
+                      data-param-key="{{ param.key }}"
+                      data-base="{{ param.base_value|default:param.value }}">{{ param.value }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-brown-700">Характеристики уточнюються індивідуально під час консультації.</p>
+          {% endif %}
+        </div>
+      </article>
+
+      <article id="stack-shipping" class="scroll-card" data-scroll-card="shipping" role="tabpanel" aria-labelledby="tab-shipping">
+        <div class="scroll-card__badge">03</div>
+        <div class="scroll-card__content">
+          <h3 class="scroll-card__title">Доставка, оплата та сервіс</h3>
+          <p class="scroll-card__lead">Щоб ви розуміли, як швидко отримаєте виріб та який сервіс ми можемо запропонувати.</p>
+          <ul class="scroll-card__list">
+            <li>
+              <span class="scroll-card__pill">Доставка</span>
+              <p>Доставка по Україні перевізником Нова Пошта, можлива доставка по місту Дніпро. Також можете отримати замовлення в магазині</p>
+            </li>
+            <li>
+              <span class="scroll-card__pill">Оплата</span>
+              <p>Оплата здійснюється на рахунок ФОП. Для виробів під замовлення — 50% передплати, для матеріалів, що ріжуться індивідуально, — 100%.</p>
+            </li>
+            <li>
+              <span class="scroll-card__pill">Сервіс</span>
+              <p>Можемо запропонувати занесення та збирання меблів, а також оплата частинами до 3 платежів без переплат — залиште запит у менеджера.</p>
+            </li>
+          </ul>
+        </div>
+      </article>
     </div>
-  </div>
+  </section>
 </div>
 
 {% block extra_body %}
