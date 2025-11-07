@@ -102,12 +102,28 @@
 
 @media (max-width: 768px) {
     .home-transition-stack {
-        gap: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
         perspective: none;
+    }
+
+    .home-transition-section {
+        transform: none !important;
+        will-change: auto;
     }
 
     .home-transition-card {
         transform: none !important;
+        padding: 1.25rem;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(209, 178, 151, 0.25);
+        box-shadow: none;
+    }
+
+    .home-transition-card__header {
+        margin-bottom: 1.1rem;
     }
 }
 

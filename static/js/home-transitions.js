@@ -20,6 +20,7 @@
 
     const { gsap, ScrollTrigger, Observer } = window;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
 
     gsap.registerPlugin(ScrollTrigger, Observer);
 
@@ -28,7 +29,7 @@
         sections.forEach((section) => section.classList.toggle('is-active', section === target));
     };
 
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || isSmallScreen) {
         setActive(sections[0]);
         return;
     }
