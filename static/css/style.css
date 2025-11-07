@@ -2172,7 +2172,9 @@ input[type="submit"].btn-grad {
     .showcase-card,
     .showcase-card__img,
     .showcase-card__title,
-    .showcase-card__cta {
+    .showcase-card__cta,
+    .scroll-tab,
+    .scroll-card {
         transition: none;
         animation: none;
     }
@@ -2185,12 +2187,280 @@ input[type="submit"].btn-grad {
         transition: transform 0.3s ease;
     }
 
-    .showcase-card:hover {
+    .showcase-card:hover,
+    .scroll-card,
+    .scroll-tab {
         transform: none;
     }
 
     .showcase-card:hover .showcase-card__title,
     .showcase-card:hover .showcase-card__cta {
+        transform: none;
+    }
+}
+.scroll-stack {
+    position: relative;
+    padding: clamp(2rem, 5vw, 3.5rem);
+    border-radius: 32px;
+    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.9), rgba(244, 236, 229, 0.9)),
+        linear-gradient(135deg, rgba(110, 83, 60, 0.08), rgba(41, 30, 21, 0.18));
+    overflow: hidden;
+}
+
+.scroll-stack::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.65), transparent 55%);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.scroll-stack__grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+@media (min-width: 1024px) {
+    .scroll-stack__grid {
+        grid-template-columns: 1fr minmax(260px, 320px);
+        align-items: center;
+    }
+}
+
+.scroll-stack__eyebrow {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(52, 34, 23, 0.7);
+    margin: 0 0 0.75rem;
+}
+
+.scroll-stack__title {
+    margin: 0;
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    line-height: 1.1;
+    color: #2c1c12;
+}
+
+.scroll-stack__subtitle {
+    margin-top: 0.75rem;
+    color: rgba(52, 34, 23, 0.8);
+    max-width: 56ch;
+}
+
+.scroll-stack__tabs {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+@media (min-width: 768px) {
+    .scroll-stack__tabs {
+        flex-direction: column;
+        overflow: visible;
+    }
+}
+
+.scroll-tab {
+    flex: 0 0 auto;
+    width: 100%;
+    text-align: left;
+    padding: 1rem 1.25rem;
+    border-radius: 18px;
+    border: 1px solid rgba(54, 34, 22, 0.15);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 12px 25px -18px rgba(19, 8, 2, 0.4);
+    backdrop-filter: blur(14px);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, backdrop-filter 0.35s ease;
+}
+
+.scroll-tab:hover,
+.scroll-tab:focus-visible {
+    border-color: rgba(123, 77, 42, 0.55);
+    box-shadow: 0 18px 45px -22px rgba(19, 8, 2, 0.55);
+    outline: none;
+    transform: translateY(-2px);
+    backdrop-filter: blur(0px);
+}
+
+.scroll-tab.is-active {
+    border-color: rgba(123, 77, 42, 0.9);
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.95), rgba(245, 235, 227, 0.95));
+    backdrop-filter: blur(0px);
+}
+
+.scroll-tab__label {
+    display: block;
+    font-weight: 600;
+    color: #2c1c12;
+    margin-bottom: 0.3rem;
+}
+
+.scroll-tab__hint {
+    font-size: 0.9rem;
+    color: rgba(52, 34, 23, 0.7);
+}
+
+.scroll-stack__body {
+    position: relative;
+    z-index: 1;
+    margin-top: clamp(1.5rem, 4vw, 3rem);
+}
+
+.scroll-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: clamp(1.6rem, 4vw, 2.8rem);
+    border: 1px solid rgba(51, 31, 21, 0.08);
+    box-shadow: 0 40px 60px -45px rgba(22, 10, 2, 0.55);
+    transition: transform 0.45s ease, box-shadow 0.45s ease, border-color 0.45s ease, opacity 0.45s ease;
+}
+
+.scroll-card + .scroll-card {
+    margin-top: clamp(-2.5rem, -4vw, -1.25rem);
+    padding-top: clamp(3rem, 6vw, 4.5rem);
+}
+
+.scroll-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(130deg, rgba(247, 238, 229, 0.85), rgba(255, 255, 255, 0.4));
+    backdrop-filter: blur(18px);
+    opacity: 0.85;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+}
+
+.scroll-card:not(.is-active) {
+    opacity: 0.85;
+    transform: translateY(35px) scale(0.985);
+    border-color: rgba(51, 31, 21, 0.05);
+}
+
+.scroll-card.is-active {
+    transform: translateY(0) scale(1);
+    border-color: rgba(123, 77, 42, 0.4);
+    box-shadow: 0 55px 85px -55px rgba(32, 14, 4, 0.65);
+}
+
+.scroll-card.is-active::after,
+.scroll-card:hover::after,
+.scroll-card:focus-within::after {
+    opacity: 0;
+}
+
+.scroll-card__badge {
+    position: absolute;
+    top: clamp(1rem, 3vw, 1.75rem);
+    right: clamp(1rem, 3vw, 1.75rem);
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: rgba(123, 77, 42, 0.1);
+    color: #6a3f1f;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.scroll-card__title {
+    margin: 0 0 0.8rem;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: #2b1a11;
+}
+
+.scroll-card__lead {
+    margin: 0 0 1.4rem;
+    color: rgba(52, 34, 23, 0.78);
+    font-size: 1.05rem;
+}
+
+.scroll-card__rich-text,
+.scroll-card__content {
+    color: #4b3b30;
+}
+
+.scroll-card__rich-text p + p {
+    margin-top: 0.9rem;
+}
+
+.scroll-card__table-wrapper {
+    overflow-x: auto;
+}
+
+.scroll-card__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.scroll-card__table th,
+.scroll-card__table td {
+    text-align: left;
+    padding: 0.75rem 0.5rem;
+}
+
+.scroll-card__table tr + tr {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.scroll-card__table th {
+    width: 40%;
+    color: rgba(45, 31, 22, 0.75);
+    font-weight: 500;
+}
+
+.scroll-card__table td {
+    font-weight: 600;
+    color: #2c1c12;
+}
+
+.scroll-card__list {
+    list-style: none;
+    padding: 0;
+    margin: 1.2rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.scroll-card__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(123, 77, 42, 0.12);
+    color: #6a3f1f;
+    margin-bottom: 0.4rem;
+}
+
+.scroll-card__list p {
+    margin: 0;
+    color: rgba(45, 31, 22, 0.85);
+    line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+    .scroll-card,
+    .scroll-card + .scroll-card {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .scroll-card {
         transform: none;
     }
 }

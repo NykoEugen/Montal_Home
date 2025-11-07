@@ -581,18 +581,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Tabs
-    const tabs = document.querySelectorAll('.tab-link');
-    const panes = {
-        desc: document.getElementById('tab-desc'),
-        specs: document.getElementById('tab-specs'),
-        shipping: document.getElementById('tab-shipping')
-    };
-    tabs.forEach(btn => btn.addEventListener('click', () => {
-        tabs.forEach(b => b.classList.remove('active','border-brown-800'));
-        Object.values(panes).forEach(p => p.classList.add('hidden'));
-        const key = btn.getAttribute('data-tab');
-        btn.classList.add('active','border-brown-800');
-        if (panes[key]) panes[key].classList.remove('hidden');
-    }));
+    // Scroll stack tabs
+    const scrollStack = document.querySelector('[data-scroll-stack]');
+    if (scrollStack) {
+        const stackTabs = Array.from(scrollStack.querySelectorAll('[data-scroll-tab]'));
+        const stackCards = Array.from(scrollStack.querySelectorAll('[data-scroll-card]'));
+
+        const activateStackSection = key => {
+            stackTabs.forEach(tab => {
+                const matches = tab.dataset.scrollTab === key;
+                tab.classList.toggle('is-active', matches);
+                if (matches) {
+                    tab.setAttribute('aria-selected', 'true');
+                } else {
+                    tab.setAttribute('aria-selected', 'false');
+                }
+            });
+            stackCards.forEach(card => {
+                card.classList.toggle('is-active', card.dataset.scrollCard === key);
+            });
+        };
+
+        stackTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.scrollTab;
+                const card = scrollStack.querySelector(`[data-scroll-card="${target}"]`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    activateStackSection(target);
+                }
+            });
+        });
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(entries => {
+                const visible = entries
+                    .filter(entry => entry.isIntersecting)
+                    .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+                if (visible.length) {
+                    activateStackSection(visible[0].target.dataset.scrollCard);
+                }
+            }, {
+                rootMargin: '-45% 0px -45% 0px',
+                threshold: [0.1, 0.25, 0.5]
+            });
+            stackCards.forEach(card => observer.observe(card));
+        }
+    }
 });
