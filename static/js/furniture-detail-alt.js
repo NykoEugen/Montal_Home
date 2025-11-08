@@ -586,6 +586,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollStack) {
         const stackTabs = Array.from(scrollStack.querySelectorAll('[data-scroll-tab]'));
         const stackCards = Array.from(scrollStack.querySelectorAll('[data-scroll-card]'));
+        const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+        const applyStackMode = () => {
+            if (mobileQuery.matches) {
+                scrollStack.classList.add('scroll-stack--mobile');
+            } else {
+                scrollStack.classList.remove('scroll-stack--mobile');
+            }
+        };
+
+        applyStackMode();
+        if (typeof mobileQuery.addEventListener === 'function') {
+            mobileQuery.addEventListener('change', applyStackMode);
+        } else if (typeof mobileQuery.addListener === 'function') {
+            mobileQuery.addListener(applyStackMode);
+        }
 
         const activateStackSection = key => {
             stackTabs.forEach(tab => {
@@ -607,7 +623,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const target = tab.dataset.scrollTab;
                 const card = scrollStack.querySelector(`[data-scroll-card="${target}"]`);
                 if (card) {
-                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const isMobileStack = scrollStack.classList.contains('scroll-stack--mobile');
+                    const scrollOptions = isMobileStack
+                        ? { behavior: 'smooth', block: 'nearest', inline: 'center' }
+                        : { behavior: 'smooth', block: 'start' };
+                    card.scrollIntoView(scrollOptions);
                     activateStackSection(target);
                 }
             });
@@ -622,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     activateStackSection(visible[0].target.dataset.scrollCard);
                 }
             }, {
-                rootMargin: '-45% 0px -45% 0px',
+                rootMargin: '-45% -20% -45% -20%',
                 threshold: [0.1, 0.25, 0.5]
             });
             stackCards.forEach(card => observer.observe(card));

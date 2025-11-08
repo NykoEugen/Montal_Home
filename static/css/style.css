@@ -2311,6 +2311,10 @@ input[type="submit"].btn-grad {
     margin-top: clamp(1.5rem, 4vw, 3rem);
 }
 
+.scroll-stack__body::-webkit-scrollbar {
+    display: none;
+}
+
 .scroll-card {
     position: relative;
     background: #ffffff;
@@ -2453,14 +2457,83 @@ input[type="submit"].btn-grad {
     line-height: 1.4;
 }
 
+.scroll-stack--mobile {
+    padding: 1.5rem 1.25rem 2.25rem;
+    border-radius: 24px;
+}
+
+.scroll-stack--mobile .scroll-stack__grid {
+    gap: 1.25rem;
+}
+
+.scroll-stack--mobile .scroll-stack__body {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem 0.5rem 0;
+    scroll-snap-type: x mandatory;
+    margin-top: 1.75rem;
+}
+
+.scroll-stack--mobile .scroll-card {
+    flex: 0 0 85%;
+    min-width: 85%;
+    scroll-snap-align: center;
+    margin-top: 0;
+    padding: 1.35rem 1.5rem;
+    transform: none;
+    box-shadow: 0 25px 45px -32px rgba(22, 10, 2, 0.55);
+}
+
+.scroll-stack--mobile .scroll-card + .scroll-card {
+    margin-top: 0;
+    padding-top: 1.35rem;
+}
+
+.scroll-stack--mobile .scroll-card::after {
+    display: none;
+}
+
+.scroll-stack--mobile .scroll-card__badge {
+    position: static;
+    margin-bottom: 0.9rem;
+}
+
+.scroll-stack--mobile .scroll-stack__tabs {
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.scroll-stack--mobile .scroll-tab {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
+.scroll-stack--mobile .scroll-card__title {
+    font-size: 1.35rem;
+}
+
+.scroll-stack--mobile .scroll-card__lead {
+    font-size: 1rem;
+}
+
+.scroll-stack--mobile .scroll-card__table th,
+.scroll-stack--mobile .scroll-card__table td {
+    font-size: 0.95rem;
+}
+
+.scroll-stack--mobile .scroll-card__list {
+    gap: 0.75rem;
+}
+
 @media (max-width: 640px) {
-    .scroll-card,
-    .scroll-card + .scroll-card {
+    .scroll-stack:not(.scroll-stack--mobile) .scroll-card,
+    .scroll-stack:not(.scroll-stack--mobile) .scroll-card + .scroll-card {
         margin-top: 1.5rem;
         padding: 1.5rem;
     }
 
-    .scroll-card {
+    .scroll-stack:not(.scroll-stack--mobile) .scroll-card {
         transform: none;
     }
 }
