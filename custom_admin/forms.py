@@ -2,7 +2,7 @@ from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
 from categories.models import Category
-from checkout.models import Order, OrderItem
+from checkout.models import Order, OrderItem, OrderStatus
 from fabric_category.models import FabricBrand, FabricCategory
 from furniture.models import (
     Furniture,
@@ -147,6 +147,9 @@ class OrderForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if "status" in self.fields:
+            self.fields["status"].queryset = OrderStatus.objects.order_by("sort_order", "name")
+            self.fields["status"].empty_label = None
         if "invoice_pdf_url" in self.fields:
             self.fields["invoice_pdf_url"].widget = forms.HiddenInput()
             self.fields["invoice_pdf_url"].initial = self.instance.invoice_pdf_url
@@ -155,6 +158,22 @@ class OrderForm(StyledModelForm):
     def clean_invoice_pdf_url(self):
         # Preserve generated link even though the field is disabled.
         return self.instance.invoice_pdf_url
+
+
+class OrderStatusForm(StyledModelForm):
+    class Meta:
+        model = OrderStatus
+        fields = [
+            "name",
+            "slug",
+            "salesdrive_status_id",
+            "is_default",
+            "is_active",
+            "sort_order",
+        ]
+        widgets = {
+            "slug": forms.TextInput(attrs={"placeholder": "Наприклад: new"}),
+        }
 
 
 class OrderItemForm(StyledModelForm):
