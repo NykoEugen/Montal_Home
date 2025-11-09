@@ -19,6 +19,14 @@ class Order(models.Model):
         ("iban", "IBAN"),
     ]
 
+    STATUS_CHOICES = [
+        ("new", "Нове"),
+        ("processing", "В обробці"),
+        ("shipped", "Відправлено"),
+        ("completed", "Завершено"),
+        ("canceled", "Скасовано"),
+    ]
+
     customer_name = models.CharField(max_length=200)
     customer_last_name = models.CharField(max_length=200)
     customer_phone_number = models.CharField(
@@ -49,6 +57,13 @@ class Order(models.Model):
         max_length=20,
         choices=PAYMENT_CHOICES,
         verbose_name="Тип оплати",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="new",
+        verbose_name="Статус замовлення",
     )
 
     is_confirmed = models.BooleanField(

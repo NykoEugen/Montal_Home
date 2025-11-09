@@ -107,6 +107,12 @@ SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
+# --- Third-party integrations ---
+SALESDRIVE_API_KEY = os.getenv("SALASEDRIVE_API", "")
+SALESDRIVE_API_ENDPOINT = os.getenv(
+    "SALESDRIVE_API_ENDPOINT", "https://montal.salesdrive.me/handler/"
+)
+SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET", SALESDRIVE_API_KEY)
 
 # --- Invoice configuration ---
 INVOICE_COMPANY_NAME = os.getenv("INVOICE_COMPANY_NAME", "ФОП Кивенко Анастасія Олегівна")
