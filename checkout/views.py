@@ -5,11 +5,13 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
 
-from furniture.models import Furniture, FurnitureCustomOption
+from fabric_category.models import FabricCategory
+from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
 from store.connection_utils import resilient_database_operation, save_form_draft, load_form_draft, clear_form_draft
 
 from .forms import CheckoutForm
 from .models import Order, OrderItem
+from .salesdrive import push_order_to_salesdrive
 
 
 def checkout(request: HttpRequest) -> HttpResponse:
@@ -68,6 +70,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 )
                 return render(request, "checkout/checkout.html", {"form": form})
 
+            salesdrive_products = []
+
             # Process cart items with resilient database operations
             for cart_key, item_data in cart.items():
                 # Extract furniture_id from the cart key
@@ -97,9 +101,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 
                 # Calculate price based on size variant and fabric
                 size_variant = None
+                size_variant_description = ""
                 if size_variant_id and size_variant_id != 'base':
                     try:
-                        from furniture.models import FurnitureSizeVariant
                         size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
                         price = float(size_variant.current_price)
                         size_variant_original_price = float(size_variant.price)
@@ -113,10 +117,16 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     size_variant_original_price = None
                     size_variant_is_promotional = False
                 
+                if size_variant:
+                    if size_variant.parameter_value:
+                        size_variant_description = size_variant.parameter_value
+                    else:
+                        size_variant_description = size_variant.dimensions
+
                 # Add fabric cost if fabric is selected
+                fabric_category = None
                 if fabric_category_id:
                     try:
-                        from fabric_category.models import FabricCategory
                         fabric_category = FabricCategory.objects.get(id=fabric_category_id)
                         fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
                         price += fabric_cost
@@ -161,6 +171,28 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
                 price += custom_option_price
 
+                description_parts = []
+                if size_variant_description:
+                    description_parts.append(f"Розмір: {size_variant_description}")
+                if fabric_category:
+                    description_parts.append(f"Тканина: {fabric_category.name}")
+                if custom_option_value_final:
+                    label = custom_option_name or "Опція"
+                    description_parts.append(f"{label}: {custom_option_value_final}")
+
+                salesdrive_product = {
+                    "id": furniture.article_code or str(furniture.id),
+                    "name": furniture.name,
+                    "costPerItem": round(price, 2),
+                    "amount": quantity,
+                }
+
+                if furniture.article_code:
+                    salesdrive_product["sku"] = furniture.article_code
+                if description_parts:
+                    salesdrive_product["description"] = "; ".join(description_parts)
+                salesdrive_products.append(salesdrive_product)
+
                 OrderItem.objects.create(
                     order=order,
                     furniture=furniture,
@@ -178,6 +210,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option_value=custom_option_value_final,
                     custom_option_price=custom_option_price or None,
                 )
+
+            push_order_to_salesdrive(order, salesdrive_products, form.cleaned_data)
 
             request.session["cart"] = {}
             messages.success(request, "Замовлення успішно оформлено!", extra_tags="user")
