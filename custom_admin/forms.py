@@ -137,6 +137,7 @@ class OrderForm(StyledModelForm):
             "delivery_branch",
             "delivery_address",
             "payment_type",
+            "status",
             "is_confirmed",
             "invoice_pdf_url",
         ]
