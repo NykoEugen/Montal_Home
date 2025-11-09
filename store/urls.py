@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
+from checkout.webhooks import salesdrive_order_status_webhook
 from . import views
 from .admin_utils import admin_connection_status_view, admin_retry_failed_operations_view
 from .sitemaps import SITEMAPS
@@ -40,4 +41,9 @@ urlpatterns = [
     path("checkout/", include("checkout.urls")),
     path("delivery/", include("delivery.urls")),
     path("price-parser/", include("price_parser.urls", namespace="price_parser")),
+    path(
+        "integrations/salesdrive/webhook/order-status/",
+        salesdrive_order_status_webhook,
+        name="salesdrive_order_status_webhook",
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

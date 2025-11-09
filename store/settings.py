@@ -112,6 +112,7 @@ SALESDRIVE_API_KEY = os.getenv("SALASEDRIVE_API", "")
 SALESDRIVE_API_ENDPOINT = os.getenv(
     "SALESDRIVE_API_ENDPOINT", "https://montal.salesdrive.me/handler/"
 )
+SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET", SALESDRIVE_API_KEY)
 
 # --- Invoice configuration ---
 INVOICE_COMPANY_NAME = os.getenv("INVOICE_COMPANY_NAME", "ФОП Кивенко Анастасія Олегівна")
