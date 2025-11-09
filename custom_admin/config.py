@@ -1,5 +1,5 @@
 from categories.models import Category
-from checkout.models import Order, OrderItem
+from checkout.models import Order, OrderItem, OrderStatus
 from fabric_category.models import FabricBrand, FabricCategory
 from furniture.models import Furniture
 from params.models import Parameter
@@ -19,6 +19,7 @@ from .forms import (
     FabricCategoryForm,
     GoogleSheetConfigForm,
     OrderForm,
+    OrderStatusForm,
     OrderItemForm,
     ParameterForm,
     SubCategoryForm,
@@ -135,6 +136,7 @@ def register_default_sections() -> None:
                 "created_at",
                 "delivery_type",
                 "payment_type",
+                "status",
                 "is_confirmed",
             ),
             list_display_labels=(
@@ -144,6 +146,7 @@ def register_default_sections() -> None:
                 "Створено",
                 "Доставка",
                 "Оплата",
+                "Статус",
                 "Підтверджено",
             ),
             search_fields=(
@@ -182,6 +185,19 @@ def register_default_sections() -> None:
             title="Позиції замовлень",
             description="Редагуйте склад та ціни в замовленнях.",
             icon="fa-cart-shopping",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="order-statuses",
+            model=OrderStatus,
+            form_class=OrderStatusForm,
+            list_display=("name", "slug", "salesdrive_status_id", "is_default", "is_active", "sort_order"),
+            search_fields=("name", "slug"),
+            ordering=("sort_order", "name"),
+            title="Статуси замовлень",
+            description="Створюйте та синхронізуйте статуси з SalesDrive.",
+            icon="fa-signal",
         )
     )
     registry.register(

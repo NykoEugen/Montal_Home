@@ -7,21 +7,18 @@ from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import Order
+from .models import Order, OrderStatus
 
 logger = logging.getLogger(__name__)
 
 
-STATUS_ID_MAP = {
-    1: "new",          # Новий
-    2: "processing",   # Підтверджено
-    3: "processing",   # На відправку
-    4: "shipped",      # Відправлено
-    5: "completed",    # Продаж
-    6: "canceled",     # Відмова
-    7: "canceled",     # Повернення
-    8: "canceled",     # Видалений
-}
+def _get_status_by_salesdrive_id(status_id: Any) -> OrderStatus | None:
+    """Return status mapped to SalesDrive status id."""
+    try:
+        status_id_int = int(status_id)
+    except (TypeError, ValueError):
+        return None
+    return OrderStatus.objects.filter(salesdrive_status_id=status_id_int).first()
 
 
 def _verify_request(request: HttpRequest) -> bool:
@@ -79,16 +76,11 @@ def salesdrive_order_status_webhook(request: HttpRequest) -> JsonResponse:
         logger.warning("SalesDrive webhook referenced unknown order ID %s", order_id)
         return JsonResponse({"status": "ignored", "reason": "order_not_found"})
 
-    try:
-        status_id_int = int(status_id)
-    except (TypeError, ValueError):
-        status_id_int = None
-
-    mapped_status = STATUS_ID_MAP.get(status_id_int) if status_id_int is not None else None
+    mapped_status = _get_status_by_salesdrive_id(status_id)
     if not mapped_status:
         return JsonResponse({"status": "ignored", "reason": "status_not_mapped"})
 
-    if order.status == mapped_status:
+    if order.status_id == mapped_status.id:
         return JsonResponse({"status": "ok", "updated": False})
 
     previous_status = order.status
@@ -97,7 +89,9 @@ def salesdrive_order_status_webhook(request: HttpRequest) -> JsonResponse:
     logger.info(
         "Order %s status updated via SalesDrive webhook: %s -> %s",
         order.id,
-        previous_status,
-        mapped_status,
+        previous_status.name if previous_status else None,
+        mapped_status.name,
     )
-    return JsonResponse({"status": "ok", "updated": True, "new_status": mapped_status})
+    return JsonResponse(
+        {"status": "ok", "updated": True, "new_status": mapped_status.slug, "label": mapped_status.name}
+    )

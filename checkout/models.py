@@ -4,9 +4,57 @@ from functools import cached_property
 from django.core.files.storage import default_storage
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 from fabric_category.models import FabricCategory
 from furniture.models import Furniture, FurnitureSizeVariant, FurnitureVariantImage
+
+
+class OrderStatus(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Назва статусу")
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        verbose_name="Системна назва",
+        help_text="Використовується у внутрішніх інтеграціях",
+    )
+    salesdrive_status_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        unique=True,
+        verbose_name="ID статусу в SalesDrive",
+        help_text="Опціонально. Використовується для синхронізації вебхуком",
+    )
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name="Статус за замовчуванням",
+        help_text="Присвоюється новим замовленням, якщо не вибрано інше значення.",
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активний")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="Порядок сортування")
+
+    class Meta:
+        ordering = ("sort_order", "name")
+        verbose_name = "Статус замовлення"
+        verbose_name_plural = "Статуси замовлень"
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+        if self.is_default:
+            type(self).objects.exclude(pk=self.pk).filter(is_default=True).update(is_default=False)
+
+    @classmethod
+    def get_default(cls) -> "OrderStatus | None":
+        default_status = cls.objects.filter(is_default=True).first()
+        if default_status:
+            return default_status
+        return cls.objects.order_by("sort_order", "id").first()
 
 
 class Order(models.Model):
@@ -17,14 +65,6 @@ class Order(models.Model):
 
     PAYMENT_CHOICES = [
         ("iban", "IBAN"),
-    ]
-
-    STATUS_CHOICES = [
-        ("new", "Нове"),
-        ("processing", "В обробці"),
-        ("shipped", "Відправлено"),
-        ("completed", "Завершено"),
-        ("canceled", "Скасовано"),
     ]
 
     customer_name = models.CharField(max_length=200)
@@ -59,10 +99,12 @@ class Order(models.Model):
         verbose_name="Тип оплати",
     )
 
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="new",
+    status = models.ForeignKey(
+        OrderStatus,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="orders",
         verbose_name="Статус замовлення",
     )
 
@@ -140,6 +182,11 @@ class Order(models.Model):
         )
 
     def save(self, *args, **kwargs):
+        if not self.status_id:
+            default_status = OrderStatus.get_default()
+            if default_status:
+                self.status = default_status
+
         old_invoice_path = None
         clear_invoice = False
 
