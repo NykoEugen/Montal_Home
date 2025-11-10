@@ -80,7 +80,10 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context.update(
             {
-                "categories": Category.objects.all(),
+                # Show only categories that have subcategories with at least one furniture item
+                "categories": Category.objects.filter(
+                    sub_categories__furniture__isnull=False
+                ).distinct(),
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": self._get_promotional_furniture(),
