@@ -10,7 +10,11 @@ from sub_categories.models import SubCategory
 
 
 def categories_list(request: HttpRequest) -> HttpResponse:
-    categories = Category.objects.all()
+    # Show only categories that have at least one subcategory with furniture
+    categories = (
+        Category.objects.filter(sub_categories__furniture__isnull=False)
+        .distinct()
+    )
     context = {
         "categories": categories,
         "meta_title": "Каталог меблів — Montal Home",
