@@ -12,6 +12,7 @@ DELIVERY_CHOICES = [
 PAYMENT_CHOICES = [
     ("", "Оберіть спосіб оплати"),
     ("iban", "IBAN"),
+    ("liqpay", "Оплата онлайн (LiqPay)"),
 ]
 
 

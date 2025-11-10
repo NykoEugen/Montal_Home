@@ -93,6 +93,7 @@ class SalesDriveClient:
         }
         payment_method_map = {
             "iban": "IBAN",
+            "liqpay": "LiqPay",
         }
 
         shipping_method = shipping_method_map.get(order.delivery_type, order.delivery_type)
@@ -143,7 +144,11 @@ class SalesDriveClient:
     def _build_comment(self, order) -> str:
         """Generate short comment with delivery/payment summary."""
         delivery = "Нова Пошта" if order.delivery_type == "nova_poshta" else "Доставка по місту"
-        payment = "IBAN" if order.payment_type == "iban" else order.payment_type
+        payment_map = {
+            "iban": "IBAN",
+            "liqpay": "LiqPay",
+        }
+        payment = payment_map.get(order.payment_type, order.payment_type)
         return f"Замовлення з сайту {getattr(settings, 'SITE_DOMAIN', '')}. Доставка: {delivery}. Оплата: {payment}."
 
 

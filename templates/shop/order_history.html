@@ -131,8 +131,8 @@
                             <strong>Тип оплати:</strong> 
                             {% if data.order.payment_type == 'iban' %}
                                 IBAN
-                            {% elif data.order.payment_type == 'liqupay' %}
-                                LiquPay
+                            {% elif data.order.payment_type == 'liqpay' %}
+                                LiqPay (онлайн)
                             {% else %}
                                 {{ data.order.payment_type }}
                             {% endif %}

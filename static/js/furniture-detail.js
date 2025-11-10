@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fabricSelect && fabricSelect.value) {
                 selectedFabricCategoryInput.value = fabricSelect.value;
             }
-            
+
             // no manual submit needed; default form submit proceeds
         });
     }

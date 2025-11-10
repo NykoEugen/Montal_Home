@@ -152,6 +152,7 @@
                     <input id="quantity" name="quantity" type="number" min="1" value="1" class="w-24 p-2 border border-brown-300 rounded-lg" form="add-to-cart-form">
                 </div>
 
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <form id="add-to-cart-form" method="post" action="{% url 'shop:add_to_cart_from_detail' %}" class="col-span-1">
                         {% csrf_token %}

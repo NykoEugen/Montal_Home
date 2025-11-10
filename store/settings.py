@@ -114,6 +114,17 @@ SALESDRIVE_API_ENDPOINT = os.getenv(
 )
 SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET", SALESDRIVE_API_KEY)
 
+# --- LiqPay configuration ---
+LIQPAY_PUBLIC_KEY = os.getenv("LIQPAY_PUB_KEY", "")
+LIQPAY_PRIVATE_KEY = os.getenv("LIQPAY_SECRET_KEY", "")
+LIQPAY_DEFAULT_CURRENCY = os.getenv("LIQPAY_CURRENCY", "UAH")
+LIQPAY_SANDBOX = os.getenv("LIQPAY_SANDBOX", "true").lower() == "true"
+LIQPAY_PAYMENT_METHODS = os.getenv(
+    "LIQPAY_PAYTYPES",
+    "card,privat24,applepay,googlepay",
+)
+LIQPAY_API_VERSION = os.getenv("LIQPAY_API_VERSION", "3")
+
 # --- Invoice configuration ---
 INVOICE_COMPANY_NAME = os.getenv("INVOICE_COMPANY_NAME", "ФОП Кивенко Анастасія Олегівна")
 INVOICE_COMPANY_ADDRESS = os.getenv("INVOICE_COMPANY_ADDRESS", "м. Дніпро, проспект Богдана Хмельницького, 31Д")
