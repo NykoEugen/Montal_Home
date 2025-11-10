@@ -1,17 +1,112 @@
+import logging
 import re
+from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from fabric_category.models import FabricCategory
 from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
 from store.connection_utils import resilient_database_operation, save_form_draft, load_form_draft, clear_form_draft
 
 from .forms import CheckoutForm
-from .models import Order, OrderItem
+from .liqpay import (
+    LiqPayConfigurationError,
+    LiqPaySignatureMismatch,
+    get_liqpay_client,
+)
+from .models import Order, OrderItem, OrderStatus
 from .salesdrive import push_order_to_salesdrive
+
+logger = logging.getLogger(__name__)
+
+LIQPAY_ENDPOINT = "https://www.liqpay.ua/api/3/checkout"
+SUCCESS_STATUSES = {"success", "sandbox", "wait_accept"}
+
+
+def _ensure_liqpay_available() -> None:
+    """Raise if LiqPay credentials are missing."""
+    try:
+        get_liqpay_client()
+    except LiqPayConfigurationError:
+        raise
+
+
+def _format_amount(value: float | Decimal) -> Decimal:
+    """Return LiqPay-friendly amount with 2 decimals."""
+    try:
+        amount = Decimal(value)
+    except (InvalidOperation, TypeError):
+        raise ValueError("Сума замовлення некоректна")
+
+    amount = amount.quantize(Decimal("0.01"))
+    if amount <= 0:
+        raise ValueError("Сума для оплати повинна бути більшою за нуль")
+    return amount
+
+
+def _build_liqpay_checkout_payload(order: Order, request: HttpRequest) -> dict[str, str]:
+    """Prepare LiqPay data/signature payload."""
+    client = get_liqpay_client()
+    amount = _format_amount(order.total_amount)
+    description = f"Замовлення #{order.id} на Montal Home"
+    result_url = request.build_absolute_uri(reverse("checkout:liqpay_result"))
+    server_url = request.build_absolute_uri(reverse("checkout:liqpay_callback"))
+
+    data, signature = client.build_checkout(
+        {
+            "action": "pay",
+            "amount": str(amount),
+            "currency": getattr(settings, "LIQPAY_DEFAULT_CURRENCY", "UAH"),
+            "description": description[:250],
+            "order_id": f"MONTAL-{order.id}",
+            "result_url": result_url,
+            "server_url": server_url,
+            "language": "uk",
+            "sandbox": 1 if getattr(settings, "LIQPAY_SANDBOX", True) else 0,
+            "paytypes": getattr(settings, "LIQPAY_PAYMENT_METHODS", "card,privat24,applepay"),
+        }
+    )
+    return {
+        "liqpay_data": data,
+        "liqpay_signature": signature,
+        "liqpay_endpoint": LIQPAY_ENDPOINT,
+    }
+
+
+def _extract_order_id(raw_order_id: str | None) -> int | None:
+    """Convert LiqPay order_id (e.g. MONTAL-123) back to numeric ID."""
+    if not raw_order_id:
+        return None
+    match = re.search(r"(\d+)$", str(raw_order_id))
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _mark_order_paid(order: Order) -> None:
+    """Mark order as confirmed and switch status to 'confirmed' if available."""
+    update_fields: list[str] = []
+    if not order.is_confirmed:
+        order.is_confirmed = True
+        update_fields.append("is_confirmed")
+
+    confirmed_status = OrderStatus.objects.filter(slug="confirmed").first()
+    if confirmed_status and order.status_id != confirmed_status.id:
+        order.status = confirmed_status
+        update_fields.append("status")
+
+    if update_fields:
+        order.save(update_fields=update_fields)
 
 
 def checkout(request: HttpRequest) -> HttpResponse:
@@ -22,6 +117,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
             if not cart:
                 messages.error(request, "Кошик порожній!", extra_tags="user")
                 return redirect("shop:view_cart")
+
+            payment_type = form.cleaned_data["payment_type"]
+            if payment_type == "liqpay":
+                try:
+                    _ensure_liqpay_available()
+                except LiqPayConfigurationError:
+                    form.add_error(
+                        "payment_type",
+                        "Онлайн-оплата тимчасово недоступна. Оберіть інший спосіб.",
+                    )
+                    return render(request, "shop/checkout.html", {"form": form})
 
             try:
                 # Use resilient database operation for order creation
@@ -68,7 +174,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     "Помилка при створенні замовлення. Ваші дані збережено як чернетку. Спробуйте ще раз.",
                     extra_tags="user",
                 )
-                return render(request, "checkout/checkout.html", {"form": form})
+                return render(request, "shop/checkout.html", {"form": form})
 
             salesdrive_products = []
 
@@ -214,20 +320,40 @@ def checkout(request: HttpRequest) -> HttpResponse:
             push_order_to_salesdrive(order, salesdrive_products, form.cleaned_data)
 
             request.session["cart"] = {}
+            request.session.modified = True
+
+            if payment_type == "liqpay":
+                try:
+                    liqpay_context = _build_liqpay_checkout_payload(order, request)
+                except (ValueError, LiqPayConfigurationError) as exc:
+                    logger.exception("Не вдалося ініціювати LiqPay для замовлення %s: %s", order.id, exc)
+                    messages.warning(
+                        request,
+                        "Замовлення створено, але онлайн-оплата недоступна. Менеджер зв'яжеться для уточнення оплати.",
+                        extra_tags="user",
+                    )
+                    return redirect("shop:home")
+
+                request.session["pending_liqpay_order_id"] = order.id
+                return render(
+                    request,
+                    "checkout/liqpay_redirect.html",
+                    {"order": order, **liqpay_context},
+                )
+
             messages.success(request, "Замовлення успішно оформлено!", extra_tags="user")
             return redirect("shop:home")
     else:
         # Load draft data if available
         draft_data = load_form_draft(request, 'checkout_form')
+        form = CheckoutForm(initial=draft_data or None)
+
         if draft_data:
-            form = CheckoutForm(initial=draft_data)
             messages.info(
                 request,
                 "Чернетка замовлення відновлена. Перевірте дані та збережіть.",
                 extra_tags="user",
             )
-        else:
-            form = CheckoutForm()
 
     return render(request, "shop/checkout.html", {"form": form})
 
@@ -267,7 +393,6 @@ def order_history(request: HttpRequest) -> HttpResponse:
                         }
                     )
     # Get all fabric categories for display in order history
-    from fabric_category.models import FabricCategory
     fabric_categories = FabricCategory.objects.all()
     
     return render(
@@ -275,3 +400,111 @@ def order_history(request: HttpRequest) -> HttpResponse:
         "shop/order_history.html",
         {"orders_data": orders_data, "phone_number": phone_number, "fabric_categories": fabric_categories},
     )
+
+
+@csrf_exempt
+@require_POST
+def liqpay_callback(request: HttpRequest) -> JsonResponse:
+    """Server-to-server LiqPay webhook."""
+    try:
+        client = get_liqpay_client()
+    except LiqPayConfigurationError:
+        logger.warning("LiqPay callback received but integration is not configured")
+        return JsonResponse({"status": "disabled"}, status=503)
+
+    data = request.POST.get("data")
+    signature = request.POST.get("signature")
+    if not data or not signature:
+        return JsonResponse({"status": "error", "reason": "missing_fields"}, status=400)
+
+    try:
+        payload = client.decode(data, signature)
+    except LiqPaySignatureMismatch:
+        logger.warning("LiqPay callback signature mismatch")
+        return JsonResponse({"status": "error", "reason": "signature"}, status=400)
+
+    order_id = _extract_order_id(payload.get("order_id"))
+    if not order_id:
+        return JsonResponse({"status": "error", "reason": "order_id"}, status=400)
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        logger.warning("LiqPay callback referenced unknown order %s", order_id)
+        return JsonResponse({"status": "error", "reason": "not_found"}, status=404)
+
+    status = (payload.get("status") or "").lower()
+    if status in SUCCESS_STATUSES:
+        _mark_order_paid(order)
+        logger.info("Order %s marked as paid via LiqPay callback (%s)", order_id, status)
+    else:
+        logger.info("LiqPay callback for order %s with status %s", order_id, status)
+
+    return JsonResponse({"status": "ok"})
+
+
+@csrf_exempt
+def liqpay_result(request: HttpRequest) -> HttpResponse:
+    """Handle customer redirect after LiqPay payment."""
+    data = request.POST.get("data") or request.GET.get("data")
+    signature = request.POST.get("signature") or request.GET.get("signature")
+    pending_order_id = request.session.get("pending_liqpay_order_id")
+    payload = {}
+
+    if data and signature:
+        try:
+            client = get_liqpay_client()
+            payload = client.decode(data, signature)
+        except (LiqPayConfigurationError, LiqPaySignatureMismatch) as exc:
+            logger.warning("Failed to decode LiqPay result: %s", exc)
+            payload = {}
+    if not payload:
+        fallback_status = request.POST.get("status") or request.GET.get("status")
+        fallback_order = request.POST.get("order_id") or request.GET.get("order_id")
+        if fallback_status or fallback_order:
+            payload = {
+                "status": fallback_status,
+                "order_id": fallback_order,
+            }
+
+    order_id = _extract_order_id(payload.get("order_id"))
+    status = (payload.get("status") or "").lower()
+    resolved_order_id = order_id or pending_order_id
+    payment_confirmed = False
+    order = None
+
+    if resolved_order_id:
+        try:
+            order = Order.objects.get(id=resolved_order_id)
+        except Order.DoesNotExist:
+            logger.warning("LiqPay result referenced unknown order %s", resolved_order_id)
+        else:
+            if status in SUCCESS_STATUSES:
+                _mark_order_paid(order)
+                payment_confirmed = True
+            elif order.is_confirmed:
+                payment_confirmed = True
+
+    request.session.pop("pending_liqpay_order_id", None)
+    request.session.modified = True
+
+    if payment_confirmed:
+        messages.success(
+            request,
+            "Оплату отримано. Дякуємо за замовлення!",
+            extra_tags="user",
+        )
+    elif order:
+        messages.info(
+            request,
+            "Платіж обробляється платіжною системою. Як тільки отримаємо підтвердження, менеджер повідомить про статус замовлення.",
+            extra_tags="user",
+        )
+    else:
+        messages.warning(
+            request,
+            "Не вдалося підтвердити оплату. Якщо кошти були списані, зв'яжіться з менеджером.",
+            extra_tags="user",
+        )
+
+    return redirect("shop:home")

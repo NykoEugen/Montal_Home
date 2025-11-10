@@ -1,0 +1,31 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center bg-gradient-to-br from-beige-50 via-white to-beige-100 px-4">
+  <div class="max-w-xl w-full bg-white shadow-xl rounded-2xl border border-beige-200 p-8 text-center space-y-4">
+    <h1 class="text-2xl font-semibold text-brown-800">Переходимо до оплати</h1>
+    <p class="text-brown-600">
+      Зараз відкриється захищена сторінка LiqPay, де можна оплатити замовлення №{{ order.id }}
+      банківською карткою, через Privat24 або Apple Pay.
+    </p>
+    <p class="text-sm text-brown-500">
+      Якщо сторінка не відкрилася автоматично протягом кількох секунд, натисніть кнопку нижче.
+    </p>
+    <form id="liqpay-form" method="post" action="{{ liqpay_endpoint }}" accept-charset="utf-8">
+      <input type="hidden" name="data" value="{{ liqpay_data }}">
+      <input type="hidden" name="signature" value="{{ liqpay_signature }}">
+      <div class="flex flex-col items-center gap-4 mt-4">
+        <button type="submit" class="btn-grad px-6 py-3 rounded-lg font-semibold">Перейти до оплати</button>
+        <input type="image" src="//static.liqpay.ua/buttons/payUk.png" alt="LiqPay" class="h-12 w-auto" />
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('liqpay-form');
+    if (form) {
+      form.submit();
+    }
+  });
+</script>
+{% endblock %}

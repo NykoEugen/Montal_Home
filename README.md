@@ -50,6 +50,20 @@ NOVA_POSHTA_API_KEY=your_novaposhta_api_key
 DATABASE_URL=postgresql://user:password@localhost:5432/montal_home
 ```
 
+#### LiqPay sandbox keys
+
+For online payments add the LiqPay credentials that you received in Merchant Admin (sandbox keys are fine for testing):
+
+```env
+LIQPAY_PUB_KEY=your_public_key
+LIQPAY_SECRET_KEY=your_private_key
+# Optional overrides:
+# LIQPAY_SANDBOX=true
+# LIQPAY_PAYTYPES=card,privat24,applepay,googlepay
+```
+
+Without these variables the LiqPay option on checkout will stay disabled.
+
 ### 4. Database Setup
 
 ```bash

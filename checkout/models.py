@@ -65,6 +65,7 @@ class Order(models.Model):
 
     PAYMENT_CHOICES = [
         ("iban", "IBAN"),
+        ("liqpay", "LiqPay"),
     ]
 
     customer_name = models.CharField(max_length=200)
