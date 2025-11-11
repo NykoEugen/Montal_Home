@@ -65,9 +65,8 @@
                                         </td>
                                         <td>{{ log.started_at|date:"d.m.Y H:i" }}</td>
                                         <td>
-                                            {% if log.completed_at %}
-                                                {% widthratio log.completed_at|date:"U" log.started_at|date:"U" 1 as duration %}
-                                                {{ duration }} сек
+                                            {% if log.duration_seconds %}
+                                                {{ log.duration_seconds }} сек
                                             {% else %}
                                                 <span class="text-muted">В процесі</span>
                                             {% endif %}
@@ -166,12 +165,19 @@
                     <div class="list-group">
                         {% for error in log.errors %}
                         <div class="list-group-item">
-                            {% if error.row %}
-                                <strong>Рядок {{ error.row }}:</strong>
-                            {% endif %}
-                            {% if error.furniture_name %}
-                                <strong>{{ error.furniture_name }}:</strong>
-                            {% endif %}
+                            <div class="fw-semibold">
+                                {% if error.furniture_name %}
+                                    {{ error.furniture_name }}
+                                {% elif error.cell %}
+                                    Комірка {{ error.cell }}
+                                {% else %}
+                                    Помилка
+                                {% endif %}
+                            </div>
+                            <small class="text-muted d-block">
+                                {% if error.cell %}Комірка: {{ error.cell }}{% endif %}
+                                {% if error.row %} Рядок: {{ error.row }}{% endif %}
+                            </small>
                             {{ error.error }}
                         </div>
                         {% endfor %}

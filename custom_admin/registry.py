@@ -24,6 +24,7 @@ class AdminSection:
     allow_create: bool = True
     allow_edit: bool = True
     allow_delete: bool = True
+    read_only: bool = False
 
     def get_title(self) -> str:
         if self.title:

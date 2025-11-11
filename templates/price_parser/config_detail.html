@@ -18,40 +18,53 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>{{ config.name }}</h1>
-                <div class="btn-group">
-                    <a href="{% url 'admin:price_parser_googlesheetconfig_change' config.id %}" 
-                       class="btn btn-outline-secondary">
-                        <i class="fas fa-edit"></i> Редагувати
-                    </a>
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">{{ config.name }}</h1>
+            <p class="text-muted mb-1">{{ source_label }}</p>
+            {% if last_log %}
+                <small class="text-muted">
+                    Останнє оновлення: {{ last_log.started_at|date:"d.m.Y H:i" }},
+                    статус —
+                    {% if last_log.status == 'success' %}
+                        <span class="text-success">успішно</span>
+                    {% elif last_log.status == 'error' %}
+                        <span class="text-danger">помилка</span>
+                    {% else %}
+                        <span class="text-warning">частково</span>
+                    {% endif %}
+                </small>
+            {% endif %}
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <div class="btn-group w-100 w-md-auto">
+                <a href="{% url 'admin:price_parser_googlesheetconfig_change' config.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-edit me-1"></i> Редагувати
+                </a>
+                {% if config.sheet_url %}
                     <a href="{{ config.sheet_url }}" target="_blank" class="btn btn-outline-primary">
-                        <i class="fas fa-external-link-alt"></i> Відкрити таблицю
+                        <i class="fas fa-external-link-alt me-1"></i> Відкрити таблицю
                     </a>
-                </div>
+                {% elif config.xlsx_file %}
+                    <a href="{{ config.xlsx_file.url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-1"></i> Завантажити XLSX
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-8">
-            <!-- Configuration Details -->
+        <div class="col-lg-8">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Деталі конфігурації</h5>
+                    <h5 class="mb-0">Підключення</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <dl class="row">
-                                <dt class="col-sm-4">ID таблиці:</dt>
-                                <dd class="col-sm-8">
-                                    <code>{{ config.sheet_id }}</code>
-                                </dd>
-                                
-                                <dt class="col-sm-4">Статус:</dt>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Статус</dt>
                                 <dd class="col-sm-8">
                                     {% if config.is_active %}
                                         <span class="badge bg-success">Активна</span>
@@ -59,51 +72,81 @@
                                         <span class="badge bg-secondary">Неактивна</span>
                                     {% endif %}
                                 </dd>
-                                
-                                <dt class="col-sm-4">Створено:</dt>
-                                <dd class="col-sm-8">{{ config.created_at|date:"d.m.Y H:i" }}</dd>
+
+                                <dt class="col-sm-4">Sheet ID</dt>
+                                <dd class="col-sm-8"><code>{{ config.sheet_id|default:"—" }}</code></dd>
+
+                                <dt class="col-sm-4">Лист</dt>
+                                <dd class="col-sm-8">
+                                    {{ config.sheet_name|default:"—" }}
+                                    {% if config.sheet_gid %}
+                                        <span class="text-muted">(gid {{ config.sheet_gid }})</span>
+                                    {% endif %}
+                                </dd>
                             </dl>
                         </div>
                         <div class="col-md-6">
-                            <dl class="row">
-                                <dt class="col-sm-4">Колонка назв:</dt>
-                                <dd class="col-sm-8">{{ config.furniture_name_column }}</dd>
-                                
-                                <dt class="col-sm-4">Колонки розмірів:</dt>
-                                <dd class="col-sm-8">{{ config.size_columns|join:", " }}</dd>
-                                
-                                <dt class="col-sm-4">Колонки цін:</dt>
-                                <dd class="col-sm-8">{{ config.price_columns|join:", " }}</dd>
-                                
-                                <dt class="col-sm-4">Початковий рядок:</dt>
-                                <dd class="col-sm-8">{{ config.start_row }}</dd>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Множник</dt>
+                                <dd class="col-sm-8">
+                                    × {{ config.price_multiplier }}
+                                </dd>
+
+                                <dt class="col-sm-4">Створено</dt>
+                                <dd class="col-sm-8">{{ config.created_at|date:"d.m.Y H:i" }}</dd>
+
+                                <dt class="col-sm-4">Оновлено</dt>
+                                <dd class="col-sm-8">{{ config.updated_at|date:"d.m.Y H:i" }}</dd>
                             </dl>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
+            <div class="card mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">Статистика мапінгів</h5>
+                    <a href="{% url 'admin:price_parser_furniturepricecellmapping_changelist' %}?config__id__exact={{ config.id }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-link me-1"></i> Відкрити в адмінці
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="h4 mb-0">{{ mapping_stats.total }}</div>
+                            <small class="text-muted">Всього звʼязків</small>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="h4 mb-0">{{ mapping_stats.active }}</div>
+                            <small class="text-muted">Активні</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="h4 mb-0">{{ mapping_stats.with_variants }}</div>
+                            <small class="text-muted">З розмірами</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">Дії</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <form method="post" action="{% url 'price_parser:test_parse' config.id %}" class="d-inline">
+                            <form method="post" action="{% url 'price_parser:test_parse' config.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-warning w-100 mb-2">
-                                    <i class="fas fa-vial"></i> Тестувати парсинг
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="fas fa-vial me-1"></i> Тестувати парсер
                                 </button>
                             </form>
                         </div>
                         <div class="col-md-6">
-                            <form method="post" action="{% url 'price_parser:update_prices' config.id %}" class="d-inline">
+                            <form method="post" action="{% url 'price_parser:update_prices' config.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-success w-100 mb-2" 
-                                        onclick="return confirm('Ви впевнені, що хочете оновити ціни?')">
-                                    <i class="fas fa-sync-alt"></i> Оновити ціни
+                                <button type="submit" class="btn btn-success w-100" onclick="return confirm('Ви впевнені, що хочете оновити ціни?')">
+                                    <i class="fas fa-sync-alt me-1"></i> Оновити ціни
                                 </button>
                             </form>
                         </div>
@@ -112,8 +155,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <!-- Recent Logs -->
+        <div class="col-lg-4">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Останні логи</h5>
@@ -126,25 +168,26 @@
                         <div class="list-group list-group-flush">
                             {% for log in recent_logs %}
                             <div class="list-group-item px-0">
-                                <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex justify-content-between">
                                     <div>
-                                        <small class="text-muted">{{ log.started_at|date:"d.m.Y H:i" }}</small>
-                                        <div class="mt-1">
-                                            {% if log.status == 'success' %}
-                                                <span class="badge bg-success">Успішно</span>
-                                            {% elif log.status == 'error' %}
-                                                <span class="badge bg-danger">Помилка</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Частково</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
+                                        <div class="fw-semibold">{{ log.started_at|date:"d.m.Y H:i" }}</div>
                                         <small class="text-muted">
-                                            {{ log.items_updated }}/{{ log.items_processed }}
+                                            {{ log.items_updated }}/{{ log.items_processed }} оновлено
                                         </small>
                                     </div>
+                                    <div class="text-end">
+                                        {% if log.status == 'success' %}
+                                            <span class="badge bg-success">Успішно</span>
+                                        {% elif log.status == 'error' %}
+                                            <span class="badge bg-danger">Помилка</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Частково</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                {% if log.duration_seconds %}
+                                    <small class="text-muted d-block mt-1">Тривалість: {{ log.duration_seconds }} сек</small>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
@@ -159,4 +202,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

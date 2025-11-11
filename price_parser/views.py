@@ -1,10 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from .models import GoogleSheetConfig, PriceUpdateLog
+from .models import GoogleSheetConfig, PriceUpdateLog, FurniturePriceCellMapping
 from .services import GoogleSheetsPriceUpdater
 
 
@@ -22,10 +21,21 @@ def config_detail(request, config_id):
     """Show details of a specific configuration."""
     config = get_object_or_404(GoogleSheetConfig, id=config_id)
     recent_logs = PriceUpdateLog.objects.filter(config=config).order_by('-started_at')[:10]
+    mapping_qs = FurniturePriceCellMapping.objects.filter(config=config)
+    mapping_stats = {
+        "total": mapping_qs.count(),
+        "active": mapping_qs.filter(is_active=True).count(),
+        "with_variants": mapping_qs.filter(size_variant__isnull=False).count(),
+    }
+    last_log = recent_logs[0] if recent_logs else None
+    source_label = "XLSX файл" if config.xlsx_file else "Google Sheets"
     
     return render(request, 'price_parser/config_detail.html', {
         'config': config,
-        'recent_logs': recent_logs
+        'recent_logs': recent_logs,
+        'mapping_stats': mapping_stats,
+        'last_log': last_log,
+        'source_label': source_label,
     })
 
 
