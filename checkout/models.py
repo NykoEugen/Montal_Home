@@ -385,3 +385,28 @@ class OrderItem(models.Model):
         if not variant_image:
             return ""
         return variant_image.name
+
+
+class LiqPayReceipt(models.Model):
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="liqpay_receipt",
+        verbose_name="Замовлення",
+    )
+    payment_id = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=32, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    currency = models.CharField(max_length=8, default="UAH")
+    receipt_url = models.URLField(blank=True)
+    items_snapshot = models.JSONField(default=list, blank=True)
+    raw_response = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Чек LiqPay"
+        verbose_name_plural = "Чеки LiqPay"
+
+    def __str__(self) -> str:
+        return f"LiqPay чек для замовлення #{self.order_id}"

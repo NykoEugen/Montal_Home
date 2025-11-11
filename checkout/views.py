@@ -21,7 +21,7 @@ from .liqpay import (
     LiqPaySignatureMismatch,
     get_liqpay_client,
 )
-from .models import Order, OrderItem, OrderStatus
+from .models import LiqPayReceipt, Order, OrderItem, OrderStatus
 from .salesdrive import push_order_to_salesdrive
 
 logger = logging.getLogger(__name__)
@@ -107,6 +107,45 @@ def _mark_order_paid(order: Order) -> None:
 
     if update_fields:
         order.save(update_fields=update_fields)
+
+
+def _build_items_snapshot(order: Order) -> list[dict[str, object]]:
+    items = []
+    queryset = order.orderitem_set.select_related("furniture")
+    for item in queryset:
+        furniture_name = item.furniture.name if item.furniture_id else ""
+        items.append(
+            {
+                "name": furniture_name,
+                "quantity": item.quantity,
+                "price": float(item.price),
+                "total": float(item.price * item.quantity),
+            }
+        )
+    return items
+
+
+def _store_liqpay_receipt(order: Order, payload: dict) -> None:
+    """Persist LiqPay receipt payload for auditing."""
+    payment_id = payload.get("payment_id") or payload.get("order_id")
+    receipt_url = payload.get("receipt_url") or payload.get("download_url") or ""
+    amount_raw = payload.get("amount")
+    try:
+        amount = _format_amount(amount_raw)
+    except Exception:
+        amount = _format_amount(order.total_amount)
+
+    defaults = {
+        "payment_id": payment_id or "",
+        "status": payload.get("status", ""),
+        "amount": amount,
+        "currency": payload.get("currency") or getattr(settings, "LIQPAY_DEFAULT_CURRENCY", "UAH"),
+        "receipt_url": receipt_url,
+        "items_snapshot": _build_items_snapshot(order),
+        "raw_response": payload,
+    }
+
+    LiqPayReceipt.objects.update_or_create(order=order, defaults=defaults)
 
 
 def checkout(request: HttpRequest) -> HttpResponse:
@@ -436,6 +475,7 @@ def liqpay_callback(request: HttpRequest) -> JsonResponse:
     status = (payload.get("status") or "").lower()
     if status in SUCCESS_STATUSES:
         _mark_order_paid(order)
+        _store_liqpay_receipt(order, payload)
         logger.info("Order %s marked as paid via LiqPay callback (%s)", order_id, status)
     else:
         logger.info("LiqPay callback for order %s with status %s", order_id, status)
@@ -481,6 +521,8 @@ def liqpay_result(request: HttpRequest) -> HttpResponse:
         else:
             if status in SUCCESS_STATUSES:
                 _mark_order_paid(order)
+                if payload:
+                    _store_liqpay_receipt(order, payload)
                 payment_confirmed = True
             elif order.is_confirmed:
                 payment_confirmed = True
