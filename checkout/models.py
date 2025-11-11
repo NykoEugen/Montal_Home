@@ -131,6 +131,15 @@ class Order(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+    iban_invoice_requested = models.BooleanField(
+        default=False,
+        verbose_name="Потрібен рахунок IBAN",
+        help_text="Увімкніть, якщо клієнту потрібно згенерувати рахунок на оплату через IBAN.",
+    )
+    iban_invoice_generated = models.BooleanField(
+        default=False,
+        verbose_name="Рахунок IBAN згенеровано",
+    )
     items = models.ManyToManyField(Furniture, through="OrderItem")
 
     _logger = logging.getLogger(__name__)

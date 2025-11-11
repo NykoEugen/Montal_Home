@@ -19,12 +19,19 @@ def create_invoice_after_confirmation(sender, instance: Order, created: bool, **
     if not instance.is_confirmed:
         return
 
-    if instance.invoice_pdf_url:
+    if instance.payment_type != "iban":
+        return
+
+    if not instance.iban_invoice_requested:
+        return
+
+    if instance.invoice_pdf_url or instance.iban_invoice_generated:
         return
 
     try:
         pdf_path, pdf_url = generate_and_upload_invoice(instance)
         instance.mark_invoice_generated(pdf_path, pdf_url)
-        instance.refresh_from_db(fields=["invoice_pdf_path", "invoice_pdf_url", "invoice_generated_at"])
+        instance.iban_invoice_generated = True
+        instance.save(update_fields=["invoice_pdf_path", "invoice_pdf_url", "invoice_generated_at", "iban_invoice_generated"])
     except Exception:
         logger.exception("Failed to generate invoice for order %s", instance.pk)

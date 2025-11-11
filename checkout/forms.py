@@ -2,7 +2,6 @@ import re
 
 from django import forms
 
-
 DELIVERY_CHOICES = [
     ("", "Оберіть спосіб доставки"),
     ("local", "Доставка по місту"),
@@ -14,7 +13,6 @@ PAYMENT_CHOICES = [
     ("iban", "IBAN"),
     ("liqpay", "Оплата онлайн (LiqPay)"),
 ]
-
 
 class CheckoutForm(forms.Form):
     customer_name = forms.CharField(
@@ -88,7 +86,6 @@ class CheckoutForm(forms.Form):
         ),
         label="Тип оплати",
     )
-
     # Address field for local delivery
     delivery_address = forms.CharField(
         max_length=500,

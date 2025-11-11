@@ -16,36 +16,219 @@
         </div>
     </div>
 
+    {% if object and object.payment_type == "iban" %}
+    <div class="bg-beige-100 border border-beige-300 rounded-xl p-5 flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-sm uppercase tracking-wide text-brown-600 font-semibold">Статус рахунку IBAN</p>
+                <p class="text-lg font-semibold text-brown-900">
+                    {% if object.iban_invoice_generated %}
+                        Рахунок згенеровано
+                    {% elif object.iban_invoice_requested %}
+                        Очікує генерації
+                    {% else %}
+                        Не запитано
+                    {% endif %}
+                </p>
+                {% if object.invoice_pdf_url %}
+                    <a href="{{ object.invoice_pdf_url }}" target="_blank" class="inline-flex items-center mt-2 px-4 py-2 bg-black text-white rounded-md hover:bg-neutral-800">
+                        <i class="fa-solid fa-file-invoice mr-2"></i> Відкрити рахунок
+                    </a>
+                {% endif %}
+            </div>
+            {% if object.iban_invoice_requested and not object.iban_invoice_generated %}
+            <form method="post" action="{% url 'custom_admin:generate_iban_invoice' object.pk %}" class="self-start">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    <i class="fa-solid fa-file-invoice-dollar mr-2"></i> Згенерувати рахунок IBAN
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if object and object.payment_type == "liqpay" and object.liqpay_receipt %}
+    <div class="bg-white border border-green-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-sm uppercase tracking-wide text-green-600 font-semibold">LiqPay чек</p>
+                <p class="text-lg font-semibold text-brown-900">Статус: {{ object.liqpay_receipt.status|default:"—" }}</p>
+                <p class="text-brown-600 mt-1">
+                    Сума: {{ object.liqpay_receipt.amount }} {{ object.liqpay_receipt.currency }}
+                </p>
+                {% if object.liqpay_receipt.receipt_url %}
+                    <a href="{{ object.liqpay_receipt.receipt_url }}" target="_blank" rel="noopener" class="inline-flex items-center mt-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <i class="fa-solid fa-receipt mr-2"></i> Відкрити чек LiqPay
+                    </a>
+                {% endif %}
+            </div>
+            <div class="text-sm text-brown-600 bg-green-50 border border-green-200 rounded-lg p-4">
+                <p class="font-semibold text-green-800 mb-2">Позиції в чеку:</p>
+                <ul class="space-y-1">
+                    {% for item in object.liqpay_receipt.items_snapshot %}
+                        <li>• {{ item.name }} — {{ item.quantity }} шт. на суму {{ item.total }} {{ object.liqpay_receipt.currency }}</li>
+                    {% empty %}
+                        <li>Позиції не збережено.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <form method="post" class="space-y-8">
         {% csrf_token %}
         {{ form.non_field_errors }}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+
         <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-4">
             <h2 class="text-xl font-semibold text-brown-900">Контактна інформація</h2>
             <div class="grid gap-4 md:grid-cols-2">
-                {% for field in form %}
-                    {% if field.is_hidden %}
-                        {{ field }}
-                    {% else %}
-                        <div class="space-y-1">
-                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
-                                {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                            </label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <p class="text-xs text-brown-400">{{ field.help_text }}</p>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <p class="text-xs text-red-600">{{ error }}</p>
-                            {% endfor %}
-                        </div>
+                <div class="space-y-1">
+                    <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.customer_name.label }}<span class="text-red-500">*</span>
+                    </label>
+                    {{ form.customer_name }}
+                    {% for error in form.customer_name.errors %}
+                        <p class="text-xs text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.customer_last_name.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.customer_last_name.label }}<span class="text-red-500">*</span>
+                    </label>
+                    {{ form.customer_last_name }}
+                    {% for error in form.customer_last_name.errors %}
+                        <p class="text-xs text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.customer_phone_number.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.customer_phone_number.label }}<span class="text-red-500">*</span>
+                    </label>
+                    {{ form.customer_phone_number }}
+                    {% for error in form.customer_phone_number.errors %}
+                        <p class="text-xs text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.customer_email.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.customer_email.label }}
+                    </label>
+                    {{ form.customer_email }}
+                    {% if form.customer_email.help_text %}
+                        <p class="text-xs text-brown-400">{{ form.customer_email.help_text }}</p>
                     {% endif %}
+                    {% for error in form.customer_email.errors %}
+                        <p class="text-xs text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-6">
+            <h2 class="text-xl font-semibold text-brown-900">Доставка</h2>
+            <div class="bg-beige-50 border border-beige-200 rounded-lg p-4 text-sm text-brown-700 space-y-1">
+                <p><span class="font-semibold">Тип доставки:</span> {{ object.get_delivery_type_display }}</p>
+                <p><span class="font-semibold">Адреса (локальна):</span> {{ object.delivery_address|default:"—" }}</p>
+                <p><span class="font-semibold">Місто (НП):</span> {{ object.delivery_city|default:"—" }}</p>
+                <p><span class="font-semibold">Відділення (НП):</span> {{ object.delivery_branch|default:"—" }}</p>
+            </div>
+            <div>
+                <label for="{{ form.delivery_type.id_for_label }}" class="block text-sm font-semibold text-brown-600 mb-1">{{ form.delivery_type.label }}</label>
+                {{ form.delivery_type }}
+                {% for error in form.delivery_type.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ error }}</p>
                 {% endfor %}
-                {% if object.invoice_pdf_url %}
-                    <div class="space-y-1 md:col-span-2">
-                        <span class="block text-sm font-medium text-brown-700">Рахунок</span>
-                        <a href="{{ object.invoice_pdf_url }}" target="_blank" rel="noopener" class="inline-flex items-center px-4 py-2 bg-black text-white rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">Відкрити рахунок</a>
-                    </div>
-                {% endif %}
+            </div>
+            <div id="local-delivery-fields" class="space-y-2">
+                <label for="{{ form.delivery_address.id_for_label }}" class="block text-sm font-semibold text-brown-600">{{ form.delivery_address.label }}</label>
+                {{ form.delivery_address }}
+                {% for error in form.delivery_address.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <div id="nova-poshta-fields" class="space-y-4">
+                <div class="relative">
+                    <label for="{{ form.delivery_city_label.id_for_label }}" class="block text-sm font-semibold text-brown-600">
+                        {{ form.delivery_city_label.label }}
+                    </label>
+                    {{ form.delivery_city_label }}
+                    {% for error in form.delivery_city_label.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                    {% endfor %}
+                    <ul id="city-suggestions" class="absolute left-0 right-0 top-full mt-2 bg-white border border-beige-300 rounded-xl shadow-lg hidden max-h-60 overflow-y-auto z-10"></ul>
+                </div>
+                <div>
+                    <label for="{{ form.delivery_branch_label.id_for_label }}" class="block text-sm font-semibold text-brown-600">
+                        {{ form.delivery_branch_label.label }}
+                    </label>
+                    {{ form.delivery_branch_label }}
+                    {% for error in form.delivery_branch_label.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 space-y-6">
+            <h2 class="text-xl font-semibold text-brown-900">Оплата</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-1">
+                    <label for="{{ form.payment_type.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.payment_type.label }}
+                    </label>
+                    {{ form.payment_type }}
+                    {% for error in form.payment_type.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                        {{ form.status.label }}
+                    </label>
+                    {{ form.status }}
+                    {% for error in form.status.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-sm font-medium text-brown-700">{{ form.iban_invoice_requested.label }}</label>
+                    <label class="inline-flex items-center gap-2">
+                        {{ form.iban_invoice_requested }}
+                        <span class="text-sm text-brown-600">Потрібно згенерувати рахунок IBAN</span>
+                    </label>
+                    {% for error in form.iban_invoice_requested.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-sm font-medium text-brown-700">{{ form.iban_invoice_generated.label }}</label>
+                    {{ form.iban_invoice_generated }}
+                </div>
+                <div class="space-y-1">
+                    <span class="block text-sm font-medium text-brown-700">Рахунок IBAN</span>
+                    {% if object and object.invoice_pdf_url %}
+                        <a href="{{ object.invoice_pdf_url }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-black text-white rounded-md hover:bg-neutral-800">
+                            <i class="fa-solid fa-file-invoice mr-2"></i> Відкрити рахунок
+                        </a>
+                    {% else %}
+                        <span class="text-sm text-brown-500">Ще не згенеровано</span>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <span class="block text-sm font-medium text-brown-700">Рахунок LiqPay</span>
+                    {% if object and object.liqpay_receipt and object.liqpay_receipt.receipt_url %}
+                        <a href="{{ object.liqpay_receipt.receipt_url }}" target="_blank" rel="noopener" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            <i class="fa-solid fa-receipt mr-2"></i> Відкрити чек LiqPay
+                        </a>
+                    {% else %}
+                        <span class="text-sm text-brown-500">Немає даних</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
