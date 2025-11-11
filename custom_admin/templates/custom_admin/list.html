@@ -65,11 +65,35 @@
     </form>
 {% endif %}
 
+{% if has_bulk_actions %}
+<form method="post" action="{% url 'custom_admin:price_config_bulk_action' %}" class="space-y-4">
+    {% csrf_token %}
+    <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h2 class="text-brown-900 font-semibold text-lg">Групові дії</h2>
+            <p class="text-sm text-brown-500">Виберіть потрібні конфігурації нижче та запустіть дію.</p>
+        </div>
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+            <button type="submit" name="action" value="update" class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                <i class="fa-solid fa-play mr-2 text-sm"></i> Оновити ціни
+            </button>
+            <button type="submit" name="action" value="test" class="inline-flex items-center justify-center px-4 py-2 border border-blue-200 text-blue-700 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-offset-2">
+                <i class="fa-solid fa-vial mr-2 text-sm"></i> Тестувати парсер
+            </button>
+        </div>
+    </div>
+{% endif %}
+
 <div class="bg-white rounded-xl shadow-sm border border-beige-300 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-beige-200">
             <thead class="bg-beige-100 text-left text-xs font-medium text-brown-500 uppercase tracking-wider">
                 <tr>
+                    {% if has_bulk_actions %}
+                        <th scope="col" class="px-4 py-3 w-12">
+                            <input type="checkbox" id="select-all-configs" class="rounded border-beige-300 text-brown-600 focus:ring-brown-500">
+                        </th>
+                    {% endif %}
                     {% for header in list_headers %}
                         <th scope="col" class="px-6 py-3">{{ header }}</th>
                     {% endfor %}
@@ -81,6 +105,11 @@
             <tbody class="bg-white divide-y divide-beige-100 text-sm text-brown-700">
                 {% for obj in objects %}
                     <tr class="hover:bg-beige-50">
+                        {% if has_bulk_actions %}
+                            <td class="px-4 py-4 text-center">
+                                <input type="checkbox" name="selected_configs" value="{{ obj.pk }}" class="price-config-checkbox rounded border-beige-300 text-brown-600 focus:ring-brown-500">
+                            </td>
+                        {% endif %}
                         {% for column in list_display %}
                             <td class="px-6 py-4 whitespace-nowrap">
                                 {% if forloop.first or column == 'name' or column == 'id' or column == 'pk' %}
@@ -93,17 +122,19 @@
                             </td>
                         {% endfor %}
                         {% if show_actions %}
-                            <td class="px-6 py-4 whitespace-nowrap text-right space-x-3 text-sm">
-                                {% if can_edit %}
-                                    <a href="{% url 'custom_admin:edit' section.slug obj.pk %}" class="text-brown-600 hover:text-brown-900 font-medium">
-                                        <i class="fa-solid fa-pen mr-1"></i>Редагувати
-                                    </a>
-                                {% endif %}
-                                {% if can_delete %}
-                                    <a href="{% url 'custom_admin:delete' section.slug obj.pk %}" class="text-red-600 hover:text-red-800 font-medium">
-                                        <i class="fa-solid fa-trash mr-1"></i>Видалити
-                                    </a>
-                                {% endif %}
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
+                                    {% if can_edit %}
+                                        <a href="{% url 'custom_admin:edit' section.slug obj.pk %}" class="inline-flex w-full sm:w-auto items-center justify-center text-brown-600 hover:text-brown-900 font-medium">
+                                            <i class="fa-solid fa-pen mr-1"></i>{% if section_read_only %}Переглянути{% else %}Редагувати{% endif %}
+                                        </a>
+                                    {% endif %}
+                                    {% if can_delete %}
+                                        <a href="{% url 'custom_admin:delete' section.slug obj.pk %}" class="inline-flex w-full sm:w-auto items-center justify-center text-red-600 hover:text-red-800 font-medium">
+                                            <i class="fa-solid fa-trash mr-1"></i>Видалити
+                                        </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         {% endif %}
                     </tr>
@@ -135,4 +166,20 @@
         </div>
     {% endif %}
 </div>
+{% if has_bulk_actions %}
+</form>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('select-all-configs');
+        if (!selectAll) {
+            return;
+        }
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.price-config-checkbox').forEach(function (checkbox) {
+                checkbox.checked = selectAll.checked;
+            });
+        });
+    });
+</script>
+{% endif %}
 {% endblock %}

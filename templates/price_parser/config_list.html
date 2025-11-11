@@ -29,8 +29,11 @@
                                     <tr>
                                         <th>Назва</th>
                                         <th>ID таблиці</th>
+                                        <th>Аркуш</th>
+                                        <th>Джерело</th>
+                                        <th>Множник</th>
                                         <th>Статус</th>
-                                        <th>Останнє оновлення</th>
+                                        <th>Оновлено</th>
                                         <th>Дії</th>
                                     </tr>
                                 </thead>
@@ -42,9 +45,18 @@
                                                 {{ config.name }}
                                             </a>
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             <code>{{ config.sheet_id|truncatechars:20 }}</code>
                                         </td>
+                                        <td>{{ config.sheet_name|default:"—" }}</td>
+                                        <td>
+                                            {% if config.xlsx_file %}
+                                                <span class="badge bg-info text-dark">XLSX</span>
+                                            {% else %}
+                                                <span class="badge bg-primary">Google Sheets</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>× {{ config.price_multiplier }}</td>
                                         <td>
                                             {% if config.is_active %}
                                                 <span class="badge bg-success">Активна</span>
@@ -99,7 +111,7 @@
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <a href="{% url 'admin:price_parser_furniturepricemapping_changelist' %}" class="btn btn-outline-warning w-100 mb-2">
+                            <a href="{% url 'admin:price_parser_furniturepricecellmapping_changelist' %}" class="btn btn-outline-warning w-100 mb-2">
                                 <i class="fas fa-link"></i> Управління зв'язками меблів
                             </a>
                         </div>

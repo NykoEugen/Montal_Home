@@ -20,9 +20,11 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from sub_categories.models import SubCategory
 from checkout.models import Order
 from checkout.invoice import generate_and_upload_invoice
+from price_parser.models import GoogleSheetConfig
+from price_parser.services import GoogleSheetsPriceUpdater
+from sub_categories.models import SubCategory
 
 from .forms import (
     FurnitureCustomOptionFormSet,
@@ -121,6 +123,7 @@ class SectionMixin(StaffRequiredMixin):
         context["can_create"] = self.section.allow_create
         context["can_edit"] = self.section.allow_edit
         context["can_delete"] = self.section.allow_delete
+        context["section_read_only"] = self.section.read_only
         return context
 
 
@@ -181,10 +184,15 @@ class SectionListView(SectionMixin, ListView):
         context["list_headers"] = headers
         context["search_query"] = self.request.GET.get("q", "")
         context["show_actions"] = self.section.allow_edit or self.section.allow_delete
-        context["column_span"] = len(self.section.list_display) + (1 if context["show_actions"] else 0)
+        action_columns = 1 if context["show_actions"] else 0
+        if self.section.slug == "price-configs":
+            action_columns += 1
+        context["column_span"] = len(self.section.list_display) + action_columns
         querydict = self.request.GET.copy()
         querydict.pop("page", None)
         context["current_query_string"] = querydict.urlencode()
+        context["has_bulk_actions"] = self.section.slug == "price-configs"
+        context["section_read_only"] = self.section.read_only
         if self.section.slug == "furniture":
             context["filter_options"] = {
                 "sub_categories": SubCategory.objects.order_by("name"),
@@ -209,6 +217,9 @@ class SectionFormMixin(SectionMixin):
         return [self.section_templates.get(self.section.slug, self.template_name)]
 
     def form_valid(self, form):
+        if self.section.read_only:
+            messages.info(self.request, _("Цей розділ доступний лише для перегляду."))
+            return redirect(self.get_success_url())
         with transaction.atomic():
             self.object = form.save()
         self._after_object_saved()
@@ -260,6 +271,9 @@ class SectionUpdateView(SectionFormMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         if not self.section.allow_edit:
             raise Http404("Редагування у цьому розділі недоступне.")
+        if self.section.read_only and request.method.lower() != "get":
+            messages.info(request, _("Цей розділ доступний лише для перегляду."))
+            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk"))
         return super().dispatch(request, *args, **kwargs)
 
     def _uses_formsets(self) -> bool:
@@ -407,6 +421,110 @@ def generate_iban_invoice(request, pk: int):
         messages.success(request, "Рахунок IBAN згенеровано успішно.")
     except Exception as exc:
         messages.error(request, f"Не вдалося згенерувати рахунок: {exc}")
+
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def update_price_config_prices(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(GoogleSheetConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+
+    try:
+        updater = GoogleSheetsPriceUpdater(config)
+        result = updater.update_prices()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося оновити ціни: {exc}")
+        return redirect(redirect_url)
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Оновлено {result.get('updated_count', 0)} товарів з {result.get('processed_count', 0)}.",
+        )
+    else:
+        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def test_price_config_parse(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(GoogleSheetConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+
+    try:
+        updater = GoogleSheetsPriceUpdater(config)
+        result = updater.test_parse()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося виконати тестовий парсинг: {exc}")
+        return redirect(redirect_url)
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Тестовий парсинг успішний. Знайдено {len(result.get('data', []))} рядків.",
+        )
+    else:
+        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def price_config_bulk_action(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    action = request.POST.get("action")
+    selected_ids = request.POST.getlist("selected_configs")
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+
+    if not selected_ids:
+        messages.warning(request, "Будь ласка, виберіть хоча б одну конфігурацію.")
+        return redirect(redirect_url)
+
+    configs = GoogleSheetConfig.objects.filter(pk__in=selected_ids)
+    if not configs.exists():
+        messages.error(request, "Обрані конфігурації не знайдено.")
+        return redirect(redirect_url)
+
+    success_count = 0
+    errors: list[str] = []
+    action_label = "оновлення" if action == "update" else "тестування"
+
+    for config in configs:
+        try:
+            updater = GoogleSheetsPriceUpdater(config)
+            if action == "update":
+                result = updater.update_prices()
+            elif action == "test":
+                result = updater.test_parse()
+            else:
+                messages.error(request, "Невідома дія.")
+                return redirect(redirect_url)
+
+            if result.get("success"):
+                success_count += 1
+            else:
+                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+        except Exception as exc:
+            errors.append(f"{config.name}: {exc}")
+
+    if success_count:
+        messages.success(request, f"Успішно виконано {action_label} для {success_count} конфігурацій.")
+    if errors:
+        preview = " ; ".join(errors[:3])
+        if len(errors) > 3:
+            preview += " ..."
+        messages.error(request, preview)
 
     return redirect(redirect_url)
 

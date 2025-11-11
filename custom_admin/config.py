@@ -18,6 +18,7 @@ from .forms import (
     FabricBrandForm,
     FabricCategoryForm,
     GoogleSheetConfigForm,
+    PriceUpdateLogForm,
     OrderForm,
     OrderStatusForm,
     OrderItemForm,
@@ -275,7 +276,7 @@ def register_default_sections() -> None:
         AdminSection(
             slug="price-logs",
             model=PriceUpdateLog,
-            form_class=None,
+            form_class=PriceUpdateLogForm,
             list_display=(
                 "config",
                 "status",
@@ -298,8 +299,8 @@ def register_default_sections() -> None:
             description="Журнал запусків оновлення цін.",
             icon="fa-clock-rotate-left",
             allow_create=False,
-            allow_edit=False,
             allow_delete=False,
+            read_only=True,
         )
     )
 

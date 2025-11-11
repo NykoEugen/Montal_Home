@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.db import models
 from django.utils import timezone
 from furniture.models import Furniture, FurnitureSizeVariant
@@ -148,6 +150,12 @@ class PriceUpdateLog(models.Model):
     
     def __str__(self):
         return f"{self.config.name} - {self.started_at.strftime('%Y-%m-%d %H:%M')}"
+
+    @property
+    def duration_seconds(self) -> Optional[int]:
+        if self.completed_at:
+            return int((self.completed_at - self.started_at).total_seconds())
+        return None
 
 
 

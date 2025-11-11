@@ -2,12 +2,13 @@ import re
 import json
 import logging
 from decimal import Decimal, InvalidOperation
-from typing import Dict, List, Tuple, Optional
-from django.utils import timezone
-from django.db import transaction
 from io import BytesIO, StringIO
+from typing import Dict, List, Optional, Tuple
+
 import csv
 import requests
+from django.db import transaction
+from django.utils import timezone
 
 from .models import GoogleSheetConfig, PriceUpdateLog, FurniturePriceCellMapping
 from furniture.models import Furniture, FurnitureSizeVariant
@@ -64,18 +65,19 @@ class GoogleSheetsPriceUpdater:
                 return {'success': False, 'error': 'Не вдалося отримати дані з таблиці'}
             
             # Update prices using direct cell mappings only
-            updated_count = self._update_prices_from_cell_mappings(data)
+            updated_count, processed_count = self._update_prices_from_cell_mappings(data)
             
             # Update log
-            self.log.items_processed = updated_count
+            self.log.items_processed = processed_count
             self.log.items_updated = updated_count
             self.log.completed_at = timezone.now()
-            self.log.log_details = f"Оновлено {updated_count} товарів з прямих комірок"
+            self.log.log_details = f"Оновлено {updated_count} товарів з {processed_count} комірок"
             self.log.save()
             
             return {
                 'success': True,
-                'updated_count': updated_count
+                'updated_count': updated_count,
+                'processed_count': processed_count,
             }
             
         except Exception as e:
@@ -98,56 +100,113 @@ class GoogleSheetsPriceUpdater:
             return None
     
     def _fetch_google_sheets_data(self) -> Optional[List[List]]:
-        """Fetch data from Google Sheets using the sheet ID and sheet name."""
+        """Fetch data from Google Sheets using CSV export with GViz fallback."""
+        last_error: Optional[Exception] = None
+
         try:
-            # Use CSV export with specific sheet name
-            csv_url = f"https://docs.google.com/spreadsheets/d/{self.config.sheet_id}/export?format=csv&gid={self._get_sheet_gid()}"
-            
-            response = requests.get(csv_url, timeout=30)
-            response.raise_for_status()
-            
-            # Parse CSV data
-            csv_data = StringIO(response.text)
-            reader = csv.reader(csv_data)
-            return list(reader)
-            
-        except Exception as e:
-            logger.error(f"Error fetching sheet data: {str(e)}")
-            return None
-    
+            return self._fetch_google_sheets_via_export()
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "Standard sheet export failed for config %s: %s",
+                self.config.name,
+                exc,
+            )
+
+        try:
+            return self._fetch_google_sheets_via_xlsx_export()
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "XLSX export fallback failed for config %s: %s",
+                self.config.name,
+                exc,
+            )
+
+        try:
+            data = self._fetch_google_sheets_via_gviz()
+            if data:
+                logger.info(
+                    "GViz fallback succeeded for config %s",
+                    self.config.name,
+                )
+            return data
+        except Exception as exc:
+            last_error = exc
+            logger.error(
+                "GViz fallback failed for config %s: %s",
+                self.config.name,
+                exc,
+            )
+
+        if last_error:
+            raise last_error
+        return None
+
+    def _fetch_google_sheets_via_export(self) -> List[List]:
+        """Fetch sheet data via the export CSV endpoint."""
+        csv_url = (
+            f"https://docs.google.com/spreadsheets/d/{self.config.sheet_id}/export"
+            f"?format=csv&gid={self._get_sheet_gid()}"
+        )
+        response = requests.get(csv_url, timeout=30)
+        response.raise_for_status()
+        csv_data = StringIO(response.text)
+        return list(csv.reader(csv_data))
+
+    def _fetch_google_sheets_via_gviz(self) -> List[List]:
+        """Fetch sheet data via the GViz endpoint (works when export is blocked)."""
+        base_url = f"https://docs.google.com/spreadsheets/d/{self.config.sheet_id}/gviz/tq"
+        params: Dict[str, str] = {"tqx": "out:csv"}
+
+        if self.config.sheet_gid:
+            params["gid"] = self.config.sheet_gid
+        elif self.config.sheet_name:
+            params["sheet"] = self.config.sheet_name
+        else:
+            params["gid"] = self._get_sheet_gid()
+
+        response = requests.get(base_url, params=params, timeout=30)
+        response.raise_for_status()
+        csv_data = StringIO(response.text)
+        return list(csv.reader(csv_data))
+
+    def _fetch_google_sheets_via_xlsx_export(self) -> List[List]:
+        """Download the Google Sheet as XLSX and return matrix data."""
+        from openpyxl import load_workbook  # Imported lazily
+
+        url = f"https://docs.google.com/spreadsheets/d/{self.config.sheet_id}/export?format=xlsx&id={self.config.sheet_id}"
+        params: Dict[str, str] = {}
+        if self.config.sheet_gid:
+            params["gid"] = self.config.sheet_gid
+
+        response = requests.get(url, params=params or None, timeout=60)
+        response.raise_for_status()
+
+        workbook = load_workbook(BytesIO(response.content), data_only=True)
+
+        if self.config.sheet_name and self.config.sheet_name in workbook.sheetnames:
+            worksheet = workbook[self.config.sheet_name]
+        else:
+            worksheet = workbook.active
+
+        return self._worksheet_to_data(worksheet)
+
     def _fetch_xlsx_data(self) -> Optional[List[List]]:
         """Fetch data from XLSX file."""
         try:
-            # Try to import openpyxl
-            try:
-                from openpyxl import load_workbook
-            except ImportError:
-                logger.error("openpyxl is not installed. Please install it with: pip install openpyxl")
-                return None
-            
-            # Load the workbook
+            from openpyxl import load_workbook
+        except ImportError:
+            logger.error("openpyxl is not installed. Please install it with: pip install openpyxl")
+            return None
+
+        try:
             workbook = load_workbook(self.config.xlsx_file.path, data_only=True)
-            
-            # Get the sheet by name or use the first sheet
             if self.config.sheet_name and self.config.sheet_name in workbook.sheetnames:
                 worksheet = workbook[self.config.sheet_name]
             else:
                 worksheet = workbook.active
-            
-            # Convert worksheet to list of lists
-            data = []
-            for row in worksheet.iter_rows(values_only=True):
-                # Convert all values to strings and handle None values
-                row_data = []
-                for cell_value in row:
-                    if cell_value is None:
-                        row_data.append('')
-                    else:
-                        row_data.append(str(cell_value))
-                data.append(row_data)
-            
-            return data
-            
+            return self._worksheet_to_data(worksheet)
         except Exception as e:
             logger.error(f"Error fetching XLSX data: {str(e)}")
             return None
@@ -189,9 +248,20 @@ class GoogleSheetsPriceUpdater:
         except Exception as e:
             logger.error(f"Error getting sheet GID: {str(e)}")
             return '0'  # Default to first sheet
-    
 
-    
+    def _worksheet_to_data(self, worksheet) -> List[List[str]]:
+        """Convert an openpyxl worksheet to a list of lists."""
+        data: List[List[str]] = []
+        for row in worksheet.iter_rows(values_only=True):
+            row_data: List[str] = []
+            for cell_value in row:
+                if cell_value is None:
+                    row_data.append("")
+                else:
+                    row_data.append(str(cell_value))
+            data.append(row_data)
+        return data
+
     def _parse_price(self, price_str: str) -> Optional[Decimal]:
         """Parse price string into Decimal and apply multiplier."""
         try:
@@ -226,15 +296,18 @@ class GoogleSheetsPriceUpdater:
             result = result * 26 + (ord(char) - ord('A') + 1)
         return result - 1
     
-    def _update_prices_from_cell_mappings(self, data: List[List]) -> int:
+    def _update_prices_from_cell_mappings(self, data: List[List]) -> Tuple[int, int]:
         """Update prices using direct cell mappings."""
         updated_count = 0
         
         # Get all active cell mappings for this config
-        cell_mappings = FurniturePriceCellMapping.objects.filter(
+        cell_mappings = list(
+            FurniturePriceCellMapping.objects.filter(
             config=self.config,
             is_active=True
         ).select_related('furniture', 'size_variant')
+        )
+        processed_count = len(cell_mappings)
         
         for mapping in cell_mappings:
             try:
@@ -287,7 +360,7 @@ class GoogleSheetsPriceUpdater:
                     'error': str(e)
                 })
         
-        return updated_count
+        return updated_count, processed_count
     
     def _update_log_error(self, error_msg: str):
         """Update log with error information."""
