@@ -158,6 +158,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 return redirect("shop:view_cart")
 
             payment_type = form.cleaned_data["payment_type"]
+            iban_invoice_requested = payment_type == "iban"
             if payment_type == "liqpay":
                 try:
                     _ensure_liqpay_available()
@@ -195,6 +196,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             delivery_branch=delivery_branch,
                             delivery_address=delivery_address,
                             payment_type=form.cleaned_data["payment_type"],
+                            iban_invoice_requested=iban_invoice_requested,
                         )
                         return order
 

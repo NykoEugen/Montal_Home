@@ -137,8 +137,9 @@ class OrderForm(StyledModelForm):
             "delivery_branch",
             "delivery_address",
             "payment_type",
+            "iban_invoice_requested",
+            "iban_invoice_generated",
             "status",
-            "is_confirmed",
             "invoice_pdf_url",
         ]
         widgets = {
@@ -154,6 +155,9 @@ class OrderForm(StyledModelForm):
             self.fields["invoice_pdf_url"].widget = forms.HiddenInput()
             self.fields["invoice_pdf_url"].initial = self.instance.invoice_pdf_url
             self.fields["invoice_pdf_url"].help_text = ""
+        if "iban_invoice_generated" in self.fields:
+            self.fields["iban_invoice_generated"].disabled = True
+            self.fields["iban_invoice_generated"].help_text = "Галочка зʼявляється автоматично після генерації рахунку."
 
     def clean_invoice_pdf_url(self):
         # Preserve generated link even though the field is disabled.

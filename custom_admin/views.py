@@ -4,21 +4,25 @@ from functools import cached_property
 from typing import Any
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import FieldError
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from sub_categories.models import SubCategory
+from checkout.models import Order
+from checkout.invoice import generate_and_upload_invoice
 
 from .forms import (
     FurnitureCustomOptionFormSet,
@@ -380,6 +384,31 @@ class SectionDeleteView(SectionMixin, DeleteView):
 
     def get_success_url(self):
         return reverse("custom_admin:list", args=[self.section.slug])
+
+
+@login_required
+@require_POST
+def generate_iban_invoice(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    order = get_object_or_404(Order, pk=pk)
+    redirect_url = reverse("custom_admin:edit", kwargs={"section_slug": "orders", "pk": order.pk})
+
+    if order.payment_type != "iban":
+        messages.error(request, "Це замовлення не потребує рахунку IBAN.")
+        return redirect(redirect_url)
+
+    try:
+        pdf_path, pdf_url = generate_and_upload_invoice(order)
+        order.mark_invoice_generated(pdf_path, pdf_url)
+        order.iban_invoice_generated = True
+        order.save(update_fields=["iban_invoice_generated"])
+        messages.success(request, "Рахунок IBAN згенеровано успішно.")
+    except Exception as exc:
+        messages.error(request, f"Не вдалося згенерувати рахунок: {exc}")
+
+    return redirect(redirect_url)
 
 
 def redirect_to_dashboard(request):

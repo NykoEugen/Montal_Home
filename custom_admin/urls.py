@@ -9,6 +9,7 @@ urlpatterns = [
     path("login/", views.CustomAdminLoginView.as_view(), name="login"),
     path("logout/", views.CustomAdminLogoutView.as_view(), name="logout"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
+    path("orders/<int:pk>/generate-iban/", views.generate_iban_invoice, name="generate_iban_invoice"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
     path("<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"),
     path(

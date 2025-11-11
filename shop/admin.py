@@ -1,11 +1,11 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
 from django.forms import BaseInlineFormSet
 from django.core.exceptions import ValidationError
 
 from categories.models import Category
-from checkout.models import Order, OrderItem
+from checkout.models import LiqPayReceipt, Order, OrderItem
 from furniture.models import (
     Furniture,
     FurnitureCustomOption,
@@ -410,29 +410,32 @@ class OrderAdmin(ResilientModelAdmin):
         "customer_phone_number",
         "delivery_type",
         "payment_type",
+        "iban_invoice_requested",
+        "iban_invoice_generated",
+        "iban_invoice_status",
         "created_at",
         "total_items",
         "total_amount",
-        "total_savings"
+        "total_savings",
+        "iban_invoice_status",
     ]
-    list_filter = ["delivery_type", "payment_type", "created_at"]
+    list_filter = ["delivery_type", "payment_type", "iban_invoice_requested", "iban_invoice_generated", "created_at"]
     search_fields = [
         "customer_name",
         "customer_last_name",
         "customer_phone_number",
         "customer_email",
     ]
-    readonly_fields = ["created_at", "total_savings", "total_original_amount"]
+    readonly_fields = [
+        "created_at",
+        "total_savings",
+        "total_original_amount",
+        "total_amount",
+        "total_items",
+        "iban_invoice_generated",
+    ]
     inlines = [OrderItemInline]
     
-    def total_items(self, obj):
-        return sum(item.quantity for item in obj.orderitem_set.all())
-    total_items.short_description = 'Total Items'
-    
-    def total_amount(self, obj):
-        return sum(item.price * item.quantity for item in obj.orderitem_set.all())
-    total_amount.short_description = 'Total Amount'
-
     fieldsets = (
         (
             "Контактна інформація",
@@ -447,18 +450,70 @@ class OrderAdmin(ResilientModelAdmin):
         ),
         (
             "Доставка",
+                        {
+                            "fields": (
+                                "delivery_type",
+                                "delivery_city",
+                                "delivery_branch",
+                                "delivery_address",
+                            )
+                        },
+                    ),
+        (
+            "Оплата",
             {
                 "fields": (
-                    "delivery_type",
-                    "delivery_city",
-                    "delivery_branch",
-                    "delivery_address",
+                    "payment_type",
+                    "iban_invoice_requested",
+                    "iban_invoice_generated",
                 )
             },
         ),
-        ("Оплата", {"fields": ("payment_type",)}),
         ("Системна інформація", {"fields": ("created_at", "total_savings", "total_original_amount"), "classes": ("collapse",)}),
     )
+
+    actions = ["generate_iban_invoice_action"]
+
+    def total_items(self, obj):
+        return sum(item.quantity for item in obj.orderitem_set.all())
+
+    total_items.short_description = "Товарів"
+
+    def total_amount(self, obj):
+        total = sum(item.price * item.quantity for item in obj.orderitem_set.all())
+        return f"{total:.2f} грн"
+
+    total_amount.short_description = "Сума"
+
+    def iban_invoice_status(self, obj):
+        if obj.payment_type != "iban":
+            return "—"
+        if obj.iban_invoice_generated:
+            return "Рахунок згенеровано"
+        if obj.iban_invoice_requested:
+            return "Очікує генерації"
+        return "Не запитано"
+
+    iban_invoice_status.short_description = "Статус рахунку IBAN"
+
+    def generate_iban_invoice_action(self, request, queryset):
+        from checkout.invoice import generate_and_upload_invoice
+        generated = 0
+        for order in queryset:
+            if order.payment_type != "iban" or not order.iban_invoice_requested:
+                continue
+            try:
+                pdf_path, pdf_url = generate_and_upload_invoice(order)
+                order.mark_invoice_generated(pdf_path, pdf_url)
+                order.iban_invoice_generated = True
+                order.save(update_fields=["iban_invoice_generated"])
+                generated += 1
+            except Exception as exc:
+                self.message_user(request, f"Не вдалося згенерувати рахунок для замовлення #{order.id}: {exc}", level=messages.ERROR)
+        if generated:
+            self.message_user(request, f"Рахунок згенеровано для {generated} замовлень.")
+
+    generate_iban_invoice_action.short_description = "Згенерувати рахунок IBAN"
 
 
 @admin.register(OrderItem)
@@ -469,10 +524,10 @@ class OrderItemAdmin(ResilientModelAdmin):
         "quantity",
         "price_display",
         "is_promotional",
-        "size_variant_info",
-        "fabric_info",
-        "custom_option_display",
-        "total_price",
+        "size_variant_column",
+        "fabric_column",
+        "custom_option_column",
+        "total_price_column",
         "savings_amount",
     ]
     list_filter = ["is_promotional", "size_variant_is_promotional", "order__created_at"]
@@ -519,67 +574,59 @@ class OrderItemAdmin(ResilientModelAdmin):
         ),
     )
 
-    def total_price(self, obj):
-        if obj.price is not None:
-            return obj.price * obj.quantity
-        return 0
+    def size_variant_column(self, obj):
+        return obj.size_variant_display or "—"
 
-    total_price.short_description = "Загальна вартість"
-    
-    def variant_info(self, obj):
-        if obj.variant_image_id:
-            try:
-                from furniture.models import FurnitureVariantImage
-                variant = FurnitureVariantImage.objects.get(id=obj.variant_image_id)
-                return f"{variant.name}"
-            except FurnitureVariantImage.DoesNotExist:
-                return f"Варіант ID {obj.variant_image_id} (видалено)"
-        return "Стандартний варіант"
-    
-    variant_info.short_description = "Колір"
-    
-    def size_variant_info(self, obj):
-        if obj.size_variant_id and obj.size_variant_id != 'base':
-            try:
-                from furniture.models import FurnitureSizeVariant
-                variant = FurnitureSizeVariant.objects.get(id=obj.size_variant_id)
-                if obj.size_variant_is_promotional and obj.size_variant_original_price:
-                    return f"{variant.dimensions} - {obj.price} грн (знижка з {obj.size_variant_original_price} грн)"
-                else:
-                    return f"{variant.dimensions} - {obj.price} грн"
-            except (FurnitureSizeVariant.DoesNotExist, ValueError):
-                return f"Розмір ID {obj.size_variant_id} (видалено або недійсний)"
-        return "Стандартний розмір"
-    
-    size_variant_info.short_description = "Розмір та ціна"
-    
-    def fabric_info(self, obj):
-        if obj.fabric_category_id:
-            try:
-                from fabric_category.models import FabricCategory
-                fabric = FabricCategory.objects.get(id=obj.fabric_category_id)
-                return f"{fabric.name} - {fabric.price} грн"
-            except FabricCategory.DoesNotExist:
-                return f"Тканина ID {obj.fabric_category_id} (видалено)"
-        return "Стандартна тканина"
-    
-    fabric_info.short_description = "Тканина та ціна"
+    size_variant_column.short_description = "Розмір"
 
-    def custom_option_display(self, obj):
+    def fabric_column(self, obj):
+        return obj.fabric_category_display or "—"
+
+    fabric_column.short_description = "Тканина"
+
+    def custom_option_column(self, obj):
         if obj.custom_option_value:
-            label = obj.custom_option_name or "Параметр"
+            label = obj.custom_option_name or "Опція"
             price_part = ""
-            if getattr(obj, "custom_option_price", None):
+            if obj.custom_option_price:
                 try:
-                    price_value = float(obj.custom_option_price)
-                    if price_value:
-                        price_part = f" (+{price_value:g} грн)"
+                    price_part = f" (+{float(obj.custom_option_price):g} грн)"
                 except (TypeError, ValueError):
-                    pass
+                    price_part = ""
             return f"{label}: {obj.custom_option_value}{price_part}"
         return "—"
 
-    custom_option_display.short_description = "Додатковий параметр"
+    custom_option_column.short_description = "Додатковий параметр"
+
+    def total_price_column(self, obj):
+        return f"{obj.price * obj.quantity:.2f} грн" if obj.price is not None else "—"
+
+    total_price_column.short_description = "Сума"
+
+
+@admin.register(LiqPayReceipt)
+class LiqPayReceiptAdmin(ResilientModelAdmin):
+    list_display = ["order", "payment_id", "status", "amount", "currency", "created_at"]
+    search_fields = ["order__id", "order__customer_name", "order__customer_phone_number", "payment_id"]
+    list_filter = ["status", "currency", "created_at"]
+    readonly_fields = [
+        "order",
+        "payment_id",
+        "status",
+        "amount",
+        "currency",
+        "receipt_url",
+        "items_snapshot",
+        "raw_response",
+        "created_at",
+        "updated_at",
+    ]
+
+    fieldsets = (
+        ("Загальна інформація", {"fields": ("order", "payment_id", "status", "amount", "currency", "receipt_url")}),
+        ("Деталі чека", {"fields": ("items_snapshot", "raw_response")}),
+        ("Службова інформація", {"fields": ("created_at", "updated_at")}),
+    )
 
 
 @admin.register(FurnitureSizeVariant)
