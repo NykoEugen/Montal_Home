@@ -1,19 +1,34 @@
 import re
 import json
 import logging
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
 from typing import Dict, List, Optional, Tuple
 
 import csv
 import requests
-from django.db import transaction
 from django.utils import timezone
 
-from .models import GoogleSheetConfig, PriceUpdateLog, FurniturePriceCellMapping
+from .models import (
+    GoogleSheetConfig,
+    PriceUpdateLog,
+    FurniturePriceCellMapping,
+    SupplierFeedConfig,
+    SupplierFeedUpdateLog,
+)
 from furniture.models import Furniture, FurnitureSizeVariant
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_FEED_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    ),
+    "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
+}
 
 
 class GoogleSheetsPriceUpdater:
@@ -368,4 +383,335 @@ class GoogleSheetsPriceUpdater:
             self.log.status = 'error'
             self.log.completed_at = timezone.now()
             self.log.errors.append({'error': error_msg})
-            self.log.save() 
+            self.log.save()
+
+
+@dataclass
+class SupplierOffer:
+    offer_id: str
+    name: str
+    model: Optional[str]
+    price: Decimal
+    old_price: Optional[Decimal]
+
+
+class SupplierFeedPriceUpdater:
+    """Service responsible for parsing supplier XML feeds (Matrolux etc.)."""
+
+    def __init__(self, config: SupplierFeedConfig):
+        self.config = config
+        self.log: Optional[SupplierFeedUpdateLog] = None
+        self._furniture_index: Optional[Dict[str, Dict]] = None
+
+    def test_parse(self) -> Dict:
+        """Preview first offers without applying changes."""
+        try:
+            offers = self._fetch_offers()
+        except Exception as exc:  # pragma: no cover - network faults
+            logger.error("Supplier feed test failed for %s: %s", self.config.name, exc)
+            return {'success': False, 'error': str(exc)}
+
+        preview = [
+            {
+                'offer_id': offer.offer_id,
+                'name': offer.name,
+                'model': offer.model,
+                'price': str(offer.price),
+                'old_price': str(offer.old_price) if offer.old_price else None,
+            }
+            for offer in offers[:10]
+        ]
+        return {
+            'success': True,
+            'offers_total': len(offers),
+            'preview': preview,
+        }
+
+    def update_prices(self) -> Dict:
+        if not self.config.is_active:
+            return {'success': False, 'error': 'Конфігурація неактивна'}
+
+        self.log = SupplierFeedUpdateLog.objects.create(
+            config=self.config,
+            status='success',
+            started_at=timezone.now(),
+        )
+
+        try:
+            offers = self._fetch_offers()
+            if not offers:
+                self._finalize_log(errors=[{'error': 'Фід не містить пропозицій'}])
+                return {'success': False, 'error': 'Фід не містить пропозицій'}
+
+            offers_processed = len(offers)
+            items_matched = 0
+            items_updated = 0
+            errors: List[Dict[str, str]] = []
+            seen_furniture: set[int] = set()
+
+            for offer in offers:
+                try:
+                    furniture = self._match_offer_to_furniture(offer)
+                except Exception as exc:  # Defensive to log unexpected parsing issues
+                    errors.append({
+                        'offer_id': offer.offer_id,
+                        'name': offer.name,
+                        'error': f'Помилка підбору товару: {exc}'
+                    })
+                    continue
+
+                if not furniture:
+                    errors.append({
+                        'offer_id': offer.offer_id,
+                        'name': offer.name,
+                        'model': offer.model,
+                        'error': 'Не знайдено відповідний товар'
+                    })
+                    continue
+
+                items_matched += 1
+
+                if furniture.pk in seen_furniture:
+                    # Avoid double updates for дублікати offerів на один товар
+                    continue
+
+                try:
+                    changed = self._apply_offer_prices(furniture, offer)
+                except Exception as exc:
+                    errors.append({
+                        'offer_id': offer.offer_id,
+                        'name': offer.name,
+                        'model': offer.model,
+                        'error': f'Не вдалося оновити ціну: {exc}'
+                    })
+                    continue
+
+                seen_furniture.add(furniture.pk)
+                if changed:
+                    items_updated += 1
+
+            self._finalize_log(
+                offers_processed=offers_processed,
+                items_matched=items_matched,
+                items_updated=items_updated,
+                errors=errors,
+            )
+
+            success = not errors or items_updated > 0
+            return {
+                'success': success,
+                'offers_processed': offers_processed,
+                'items_matched': items_matched,
+                'items_updated': items_updated,
+                'errors': errors,
+            }
+
+        except Exception as exc:
+            logger.exception("Supplier feed update failed for %s", self.config.name)
+            self._finalize_log(errors=[{'error': str(exc)}], force_status='error')
+            return {'success': False, 'error': str(exc)}
+
+    # --- Internal helpers -------------------------------------------------
+
+    def _fetch_offers(self) -> List[SupplierOffer]:
+        response = requests.get(
+            self.config.feed_url,
+            headers=DEFAULT_FEED_HEADERS,
+            timeout=60,
+        )
+        response.raise_for_status()
+        root = ET.fromstring(response.content)
+
+        offers: List[SupplierOffer] = []
+        for offer_el in root.findall('.//offer'):
+            price = self._parse_decimal(offer_el.findtext('price'))
+            if price is None:
+                continue
+            old_price = self._parse_decimal(offer_el.findtext('oldprice'))
+            offer = SupplierOffer(
+                offer_id=offer_el.get('id') or (offer_el.findtext('model') or '').strip() or (offer_el.findtext('name') or '').strip() or 'unknown',
+                name=(offer_el.findtext('name') or '').strip(),
+                model=(offer_el.findtext('model') or '').strip() or None,
+                price=price,
+                old_price=old_price,
+            )
+            offers.append(offer)
+        return offers
+
+    def _parse_decimal(self, value: Optional[str]) -> Optional[Decimal]:
+        if not value:
+            return None
+        cleaned = re.sub(r'[^0-9,.-]', '', value)
+        if not cleaned:
+            return None
+        if cleaned.count(',') == 1 and cleaned.count('.') == 0:
+            cleaned = cleaned.replace(',', '.')
+        elif cleaned.count(',') > 0 and cleaned.count('.') > 0:
+            cleaned = cleaned.replace('.', '').replace(',', '.')
+        try:
+            return Decimal(cleaned)
+        except InvalidOperation:
+            return None
+
+    def _match_offer_to_furniture(self, offer: SupplierOffer) -> Optional[Furniture]:
+        index = self._get_furniture_index()
+
+        if self.config.match_by_article and offer.model:
+            key = offer.model.strip().lower()
+            furniture = index['article'].get(key)
+            if furniture:
+                return furniture
+
+        if not (self.config.match_by_name and offer.name):
+            return None
+
+        offer_variants = self._generate_name_variants(offer.name)
+        candidates = self._collect_name_matches(offer_variants)
+        if len(candidates) == 1:
+            return candidates[0]
+
+        # Fallback: partial contains search across index
+        partial_candidates: List[Furniture] = []
+        name_index = index['names']
+        for variant in offer_variants:
+            if not variant:
+                continue
+            for stored_name, furnitures in name_index.items():
+                if variant in stored_name or stored_name in variant:
+                    partial_candidates.extend(furnitures)
+        unique_partial = self._deduplicate(partial_candidates)
+        if len(unique_partial) == 1:
+            return unique_partial[0]
+        return None
+
+    def _collect_name_matches(self, offer_variants: List[str]) -> List[Furniture]:
+        index = self._get_furniture_index()['names']
+        matches: List[Furniture] = []
+        for variant in offer_variants:
+            if not variant:
+                continue
+            matches.extend(index.get(variant, []))
+        return self._deduplicate(matches)
+
+    def _deduplicate(self, items: List[Furniture]) -> List[Furniture]:
+        seen: set[int] = set()
+        unique: List[Furniture] = []
+        for furniture in items:
+            pk = furniture.pk
+            if pk and pk not in seen:
+                seen.add(pk)
+                unique.append(furniture)
+        return unique
+
+    def _generate_name_variants(self, raw_name: str) -> List[str]:
+        variants = [raw_name]
+        split_parts = re.split(r'[\\/|,:;()+\-]+', raw_name)
+        variants.extend(split_parts)
+        normalized = [self._normalize_name(part) for part in variants if part]
+        # Remove duplicates while preserving order
+        seen: set[str] = set()
+        result: List[str] = []
+        for value in normalized:
+            if value and value not in seen:
+                seen.add(value)
+                result.append(value)
+        return result
+
+    def _normalize_name(self, value: str) -> str:
+        value = value.lower()
+        value = value.replace('ё', 'е').replace('ї', 'і').replace('є', 'е').replace('ґ', 'г')
+        value = re.sub(r'[^a-z0-9а-яіїєґ ]+', ' ', value)
+        value = re.sub(r'\s+', ' ', value)
+        return value.strip()
+
+    def _get_furniture_index(self) -> Dict[str, Dict]:
+        if self._furniture_index is not None:
+            return self._furniture_index
+
+        article_index: Dict[str, Furniture] = {}
+        name_index: Dict[str, List[Furniture]] = {}
+        furnitures = Furniture.objects.all().only('id', 'name', 'article_code', 'price', 'promotional_price', 'is_promotional')
+        for furniture in furnitures:
+            if furniture.article_code:
+                article_index[furniture.article_code.strip().lower()] = furniture
+            for variant in self._generate_name_variants(furniture.name):
+                if not variant:
+                    continue
+                name_index.setdefault(variant, []).append(furniture)
+        self._furniture_index = {'article': article_index, 'names': name_index}
+        return self._furniture_index
+
+    def _apply_offer_prices(self, furniture: Furniture, offer: SupplierOffer) -> bool:
+        base_price, promo_price = self._resolve_prices(offer)
+        if base_price is None:
+            raise ValueError('Не вдалося визначити ціну')
+
+        updated_fields: List[str] = []
+        changed = False
+
+        if furniture.price != base_price:
+            furniture.price = base_price
+            updated_fields.append('price')
+            changed = True
+
+        if promo_price is not None:
+            if (furniture.promotional_price != promo_price) or (not furniture.is_promotional):
+                furniture.promotional_price = promo_price
+                furniture.is_promotional = True
+                updated_fields.extend(['promotional_price', 'is_promotional'])
+                changed = True
+        else:
+            if furniture.is_promotional or furniture.promotional_price is not None:
+                furniture.is_promotional = False
+                furniture.promotional_price = None
+                updated_fields.extend(['is_promotional', 'promotional_price'])
+                changed = True
+
+        if changed:
+            furniture.save(update_fields=list(dict.fromkeys(updated_fields)))
+
+        return changed
+
+    def _resolve_prices(self, offer: SupplierOffer) -> Tuple[Optional[Decimal], Optional[Decimal]]:
+        price = self._apply_multiplier(offer.price)
+        old_price = self._apply_multiplier(offer.old_price) if offer.old_price is not None else None
+        if price is None:
+            return None, None
+        if old_price is not None and old_price > 0:
+            return old_price, price
+        return price, None
+
+    def _apply_multiplier(self, value: Optional[Decimal]) -> Optional[Decimal]:
+        if value is None:
+            return None
+        multiplier = self.config.price_multiplier or Decimal('1')
+        try:
+            result = value * multiplier
+        except (TypeError, InvalidOperation):
+            result = value
+        return result.quantize(Decimal('0.01'))
+
+    def _finalize_log(
+        self,
+        offers_processed: int = 0,
+        items_matched: int = 0,
+        items_updated: int = 0,
+        errors: Optional[List[Dict]] = None,
+        force_status: Optional[str] = None,
+    ) -> None:
+        if not self.log:
+            return
+
+        errors = errors or []
+        status = force_status or ('success' if not errors else ('partial' if items_updated or items_matched else 'error'))
+        self.log.status = status
+        self.log.offers_processed = offers_processed
+        self.log.items_matched = items_matched
+        self.log.items_updated = items_updated
+        self.log.errors = errors
+        self.log.completed_at = timezone.now()
+        self.log.log_details = (
+            f"Матчів: {items_matched}, оновлено: {items_updated}, "
+            f"помилок: {len(errors)}"
+        )
+        self.log.save()

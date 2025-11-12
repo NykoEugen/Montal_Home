@@ -7,6 +7,8 @@ from price_parser.models import (
     FurniturePriceCellMapping,
     GoogleSheetConfig,
     PriceUpdateLog,
+    SupplierFeedConfig,
+    SupplierFeedUpdateLog,
 )
 from sub_categories.models import SubCategory
 from shop.models import SeasonalSettings
@@ -19,6 +21,8 @@ from .forms import (
     FabricCategoryForm,
     GoogleSheetConfigForm,
     PriceUpdateLogForm,
+    SupplierFeedConfigForm,
+    SupplierFeedUpdateLogForm,
     OrderForm,
     OrderStatusForm,
     OrderItemForm,
@@ -231,6 +235,34 @@ def register_default_sections() -> None:
     )
     registry.register(
         AdminSection(
+            slug="supplier-feeds",
+            model=SupplierFeedConfig,
+            form_class=SupplierFeedConfigForm,
+            list_display=(
+                "name",
+                "supplier",
+                "category_hint",
+                "price_multiplier",
+                "is_active",
+                "updated_at",
+            ),
+            list_display_labels=(
+                "Назва",
+                "Постачальник",
+                "Категорія",
+                "Множник",
+                "Активний",
+                "Оновлено",
+            ),
+            search_fields=("name", "supplier", "category_hint"),
+            ordering=("-updated_at",),
+            title="Фіди постачальників",
+            description="XML/YML джерела (наприклад, Matrolux) для автоматичного оновлення цін.",
+            icon="fa-cloud-arrow-down",
+        )
+    )
+    registry.register(
+        AdminSection(
             slug="price-mappings",
             model=FurniturePriceCellMapping,
             form_class=FurniturePriceCellMappingForm,
@@ -255,6 +287,38 @@ def register_default_sections() -> None:
             title="Парсер цін — мапінги",
             description="Привʼязка товарів до конкретних комірок прайсів.",
             icon="fa-table-cells",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="supplier-feed-logs",
+            model=SupplierFeedUpdateLog,
+            form_class=SupplierFeedUpdateLogForm,
+            list_display=(
+                "config",
+                "status",
+                "offers_processed",
+                "items_matched",
+                "items_updated",
+                "started_at",
+            ),
+            list_display_labels=(
+                "Конфігурація",
+                "Статус",
+                "Оферів",
+                "Збігів",
+                "Оновлено",
+                "Початок",
+            ),
+            search_fields=("config__name",),
+            ordering=("-started_at",),
+            title="Логи фідів постачальників",
+            description="Історія запусків XML/YML парсерів.",
+            icon="fa-clipboard-list",
+            allow_create=False,
+            allow_edit=False,
+            allow_delete=False,
+            read_only=True,
         )
     )
     registry.register(

@@ -14,7 +14,13 @@ from furniture.models import (
     FurnitureVariantImage,
 )
 from params.models import Parameter, FurnitureParameter
-from price_parser.models import GoogleSheetConfig, FurniturePriceCellMapping, PriceUpdateLog
+from price_parser.models import (
+    GoogleSheetConfig,
+    FurniturePriceCellMapping,
+    PriceUpdateLog,
+    SupplierFeedConfig,
+    SupplierFeedUpdateLog,
+)
 from sub_categories.models import SubCategory
 from shop.models import SeasonalSettings
 
@@ -306,6 +312,21 @@ class FurniturePriceCellMappingForm(StyledModelForm):
         ]
 
 
+class SupplierFeedConfigForm(StyledModelForm):
+    class Meta:
+        model = SupplierFeedConfig
+        fields = [
+            "name",
+            "supplier",
+            "category_hint",
+            "feed_url",
+            "price_multiplier",
+            "match_by_article",
+            "match_by_name",
+            "is_active",
+        ]
+
+
 class PriceUpdateLogForm(StyledModelForm):
     class Meta:
         model = PriceUpdateLog
@@ -313,6 +334,51 @@ class PriceUpdateLogForm(StyledModelForm):
             "config",
             "status",
             "items_processed",
+            "items_updated",
+            "log_details",
+            "errors",
+        ]
+        widgets = {
+            "log_details": forms.Textarea(attrs={"rows": 4}),
+            "errors": forms.Textarea(attrs={"rows": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["started_at"] = forms.DateTimeField(
+            label="Початок",
+            required=False,
+            initial=getattr(self.instance, "started_at", None),
+        )
+        self.fields["completed_at"] = forms.DateTimeField(
+            label="Завершення",
+            required=False,
+            initial=getattr(self.instance, "completed_at", None),
+        )
+        for field in self.fields.values():
+            field.disabled = True
+            classes = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{classes} bg-beige-50 cursor-not-allowed".strip()
+
+        if self.instance:
+            if self.instance.log_details:
+                self.fields["log_details"].initial = self.instance.log_details
+            if self.instance.errors:
+                try:
+                    pretty = json.dumps(self.instance.errors, ensure_ascii=False, indent=2)
+                except (TypeError, ValueError):
+                    pretty = str(self.instance.errors)
+                self.fields["errors"].initial = pretty
+
+
+class SupplierFeedUpdateLogForm(StyledModelForm):
+    class Meta:
+        model = SupplierFeedUpdateLog
+        fields = [
+            "config",
+            "status",
+            "offers_processed",
+            "items_matched",
             "items_updated",
             "log_details",
             "errors",
