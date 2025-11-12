@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any
+from typing import Any, Optional
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -17,13 +17,13 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
-from django.views.generic import DeleteView, ListView, TemplateView
+from django.views.generic import DeleteView, DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from checkout.models import Order
 from checkout.invoice import generate_and_upload_invoice
-from price_parser.models import GoogleSheetConfig
-from price_parser.services import GoogleSheetsPriceUpdater
+from price_parser.models import GoogleSheetConfig, SupplierFeedConfig
+from price_parser.services import GoogleSheetsPriceUpdater, SupplierFeedPriceUpdater
 from sub_categories.models import SubCategory
 
 from .forms import (
@@ -184,14 +184,16 @@ class SectionListView(SectionMixin, ListView):
         context["list_headers"] = headers
         context["search_query"] = self.request.GET.get("q", "")
         context["show_actions"] = self.section.allow_edit or self.section.allow_delete
+        bulk_action = self._get_bulk_action_context()
+        context["bulk_action"] = bulk_action
+        has_bulk_actions = bool(bulk_action)
         action_columns = 1 if context["show_actions"] else 0
-        if self.section.slug == "price-configs":
+        if has_bulk_actions:
             action_columns += 1
         context["column_span"] = len(self.section.list_display) + action_columns
         querydict = self.request.GET.copy()
         querydict.pop("page", None)
         context["current_query_string"] = querydict.urlencode()
-        context["has_bulk_actions"] = self.section.slug == "price-configs"
         context["section_read_only"] = self.section.read_only
         if self.section.slug == "furniture":
             context["filter_options"] = {
@@ -201,6 +203,31 @@ class SectionListView(SectionMixin, ListView):
                 "selected_stock_status": self.request.GET.get("stock_status", ""),
             }
         return context
+
+    def _get_bulk_action_context(self) -> Optional[dict[str, str]]:
+        if self.section.slug == "price-configs":
+            return {
+                "url": reverse("custom_admin:price_config_bulk_action"),
+                "selected_field": "selected_configs",
+                "select_all_id": "select-all-configs",
+                "checkbox_class": "price-config-checkbox",
+                "update_label": "Оновити ціни",
+                "test_label": "Тестувати парсер",
+                "title": "Групові дії",
+                "description": "Виберіть потрібні конфігурації нижче та запустіть дію.",
+            }
+        if self.section.slug == "supplier-feeds":
+            return {
+                "url": reverse("custom_admin:supplier_feed_bulk_action"),
+                "selected_field": "selected_feeds",
+                "select_all_id": "select-all-feeds",
+                "checkbox_class": "supplier-feed-checkbox",
+                "update_label": "Оновити ціни",
+                "test_label": "Перевірити фід",
+                "title": "Групові дії",
+                "description": "Виберіть потрібні фіди, щоб оновити ціни або протестувати парсер.",
+            }
+        return None
 
 
 class SectionFormMixin(SectionMixin):
@@ -380,6 +407,33 @@ class SectionUpdateView(SectionFormMixin, UpdateView):
         return context
 
 
+class SectionDetailView(SectionMixin, DetailView):
+    template_name = "custom_admin/form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.section.read_only:
+            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk"))
+        if not self.section.form_class:
+            raise Http404("Детальний перегляд недоступний.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return self.section.model.objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = self.section.form_class(instance=self.object)
+        context.update(
+            {
+                "form": form,
+                "object": self.object,
+                "section_read_only": True,
+                "list_url": reverse("custom_admin:list", args=[self.section.slug]),
+            }
+        )
+        return context
+
+
 class SectionDeleteView(SectionMixin, DeleteView):
     template_name = "custom_admin/confirm_delete.html"
 
@@ -526,6 +580,120 @@ def price_config_bulk_action(request):
             preview += " ..."
         messages.error(request, preview)
 
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def update_supplier_feed_prices(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierFeedConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+
+    try:
+        updater = SupplierFeedPriceUpdater(config)
+        result = updater.update_prices()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося оновити ціни: {exc}")
+        return redirect(redirect_url)
+
+    if result.get("success"):
+        messages.success(
+            request,
+            "Оновлено {updated} товарів (збігів {matched}).".format(
+                updated=result.get("items_updated", 0),
+                matched=result.get("items_matched", 0),
+            ),
+        )
+    else:
+        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def test_supplier_feed_parse(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierFeedConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+
+    try:
+        updater = SupplierFeedPriceUpdater(config)
+        result = updater.test_parse()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося виконати тестовий парсинг: {exc}")
+        return redirect(redirect_url)
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Тестовий парсинг успішний. Знайдено {result.get('offers_total', 0)} оферів.",
+        )
+    else:
+        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def supplier_feed_bulk_action(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    action = request.POST.get("action")
+    selected_ids = request.POST.getlist("selected_feeds")
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+
+    if not selected_ids:
+        messages.warning(request, "Будь ласка, виберіть хоча б один фід.")
+        return redirect(redirect_url)
+
+    configs = SupplierFeedConfig.objects.filter(pk__in=selected_ids)
+    if not configs.exists():
+        messages.error(request, "Обрані фіди не знайдено.")
+        return redirect(redirect_url)
+
+    success_count = 0
+    errors: list[str] = []
+    action_label = "оновлення" if action == "update" else "тестування"
+
+    for config in configs:
+        try:
+            updater = SupplierFeedPriceUpdater(config)
+            if action == "update":
+                result = updater.update_prices()
+            elif action == "test":
+                result = updater.test_parse()
+            else:
+                messages.error(request, "Невідома дія.")
+                return redirect(redirect_url)
+
+            if result.get("success"):
+                success_count += 1
+            else:
+                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+        except Exception as exc:
+            errors.append(f"{config.name}: {exc}")
+
+    total = configs.count()
+    if errors:
+        messages.warning(
+            request,
+            f"{action_label.capitalize()} виконано частково — успішно {success_count} з {total}.",
+        )
+        preview = " ; ".join(errors[:3])
+        if len(errors) > 3:
+            preview += " ..."
+        messages.error(request, preview)
+    else:
+        messages.success(
+            request,
+            f"{action_label.capitalize()} успішно для {success_count} конфігурацій.",
+        )
     return redirect(redirect_url)
 
 

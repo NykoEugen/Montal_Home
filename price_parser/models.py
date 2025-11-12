@@ -161,6 +161,138 @@ class PriceUpdateLog(models.Model):
 
 
 
+
+class SupplierFeedConfig(models.Model):
+    """Configuration for supplier XML/YML feeds."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Назва конфігурації",
+        help_text="Назва для ідентифікації файлу постачальника"
+    )
+    feed_url = models.URLField(
+        verbose_name="URL фіда",
+        help_text="Посилання на XML/YML файл (наприклад, YML для Matrolux)"
+    )
+    supplier = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Постачальник",
+        help_text="Назва виробника"
+    )
+    category_hint = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Категорія/нотатка",
+        help_text="Опишіть, для яких товарів застосовується"
+    )
+    price_multiplier = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=1.0,
+        verbose_name="Множник ціни",
+        help_text="Наприклад, 1.0 для гривні або курс валюти"
+    )
+    match_by_article = models.BooleanField(
+        default=True,
+        verbose_name="Шукати за артикулом",
+        help_text="Використовувати значення <model>"
+    )
+    match_by_name = models.BooleanField(
+        default=True,
+        verbose_name="Шукати за назвою",
+        help_text="Використовувати значення <name>, якщо артикул не знайдено"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активний"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата створення"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата оновлення"
+    )
+
+    class Meta:
+        db_table = "price_parser_supplier_feed_config"
+        verbose_name = "XML фід постачальника"
+        verbose_name_plural = "XML фіди постачальників"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class SupplierFeedUpdateLog(models.Model):
+    """Log of price updates executed against supplier feeds."""
+
+    STATUS_CHOICES = [
+        ('success', 'Успішно'),
+        ('error', 'Помилка'),
+        ('partial', 'Частково'),
+    ]
+
+    config = models.ForeignKey(
+        SupplierFeedConfig,
+        on_delete=models.CASCADE,
+        related_name='update_logs',
+        verbose_name="Конфігурація"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        verbose_name="Статус"
+    )
+    started_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Час початку"
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Час завершення"
+    )
+    offers_processed = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Оброблено оферів"
+    )
+    items_matched = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Зіставлено товарів"
+    )
+    items_updated = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Оновлено товарів"
+    )
+    errors = models.JSONField(
+        default=list,
+        verbose_name="Помилки",
+        help_text="Список помилок під час оновлення"
+    )
+    log_details = models.TextField(
+        blank=True,
+        verbose_name="Деталі логу"
+    )
+
+    class Meta:
+        db_table = "price_parser_supplier_feed_log"
+        verbose_name = "Лог фіда постачальника"
+        verbose_name_plural = "Логи фідів постачальників"
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"{self.config.name} - {self.started_at.strftime('%Y-%m-%d %H:%M')}"
+
+    @property
+    def duration_seconds(self) -> Optional[int]:
+        if self.completed_at:
+            return int((self.completed_at - self.started_at).total_seconds())
+        return None
+
+
 class FurniturePriceCellMapping(models.Model):
     """Direct mapping between furniture and specific price cells in Google Sheets."""
     
