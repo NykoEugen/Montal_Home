@@ -273,6 +273,8 @@ class Command(BaseCommand):
         if not feed_url and not feed_file:
             raise CommandError("Вкажіть --feed-url або --feed-file")
 
+        self.http = self._build_http_session()
+
         xml_data = self._load_feed_data(feed_url, feed_file)
         root = ET.fromstring(xml_data)
 
@@ -425,7 +427,7 @@ class Command(BaseCommand):
 
         headers = {"User-Agent": USER_AGENT, "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8"}
         try:
-            response = requests.get(feed_url, headers=headers, timeout=60)
+            response = self.http.get(feed_url, headers=headers, timeout=60)
             response.raise_for_status()
         except requests.RequestException as exc:
             raise CommandError(f"Не вдалося завантажити XML: {exc}") from exc
@@ -1075,7 +1077,7 @@ class Command(BaseCommand):
             "Referer": url,
         }
         try:
-            response = requests.get(url, headers=headers, timeout=60)
+            response = self.http.get(url, headers=headers, timeout=60)
             response.raise_for_status()
         except requests.RequestException as exc:
             logger.warning("Не вдалося завантажити зображення %s: %s", url, exc)
@@ -1102,3 +1104,10 @@ class Command(BaseCommand):
             ext = ".jpg"
         digest = hashlib.sha1(url.encode("utf-8")).hexdigest()
         return f"{IMAGE_CACHE_DIR}/{digest}{ext}"
+
+    def _build_http_session(self) -> requests.Session:
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=50, pool_maxsize=50)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        return session
