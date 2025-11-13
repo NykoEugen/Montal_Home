@@ -159,6 +159,33 @@ Montal_Home/
    - Set stock status (In Stock / On Order)
    - Update availability information
 
+## 📦 Supplier Feed Import (one-off)
+
+To rapidly create catalog items from the supplier XML feed (Matrolux-style), run the dedicated management command:
+
+```bash
+./venv/bin/python manage.py import_supplier_furniture \
+  --feed-url "https://supplier.example.com/export.xml"
+```
+
+Key points:
+- Only offers that belong to the catalog categories `Корпусні меблі` or `Комплекти меблів` are processed.
+- The command tries to match each feed category with an existing `SubCategory` (case-insensitive). Unmatched categories are skipped and logged.
+- Base product data come from `<name>`, `<model>`, `<description>`, `<price>`, `<oldprice>`, `<offer available="">`, and `<picture>` tags.
+- Technical parameters `Ширина, мм`, `Висота, мм`, and `Глибина, мм` are converted to centimeters and saved into `FurnitureParameter` records (parameters are created automatically if missing).
+- Multiple offers that share the same `<name>`/`<model>` pair but have different `<param name="Готові кольорові рішення">…</param>` values become color variants (`FurnitureVariantImage`) under a single furniture record. Images are downloaded and attached to both the variant and (if empty) the main product.
+
+Optional flags:
+- `--feed-file path/to/local.xml` — use a local XML copy instead of downloading it.
+- `--categories "Корпусні меблі" "Комплекти меблів"` — override the default category whitelist.
+- `--category-map "Корпусні меблі=Комплекти меблів"` — force-feed category names to land in specific `SubCategory` records when they differ from feed text.
+ - `--category-id-map "99883424=Комплекти меблів"` — same as above but matches `categoryId` directly (and includes the category even if it isn’t in the whitelist).
+   - Accepts `=Назва`, `=slug:your-slug`, or `=id:42` so you can point to the exact subcategory if names don’t match.
+- `--dry-run` — preview actions without touching the database (useful for verifying category mapping).
+- `--limit 10` — stop after N offers (debugging helper).
+
+> ⚠️ The importer is intentionally designed for one-off seeding: existing furniture (matched by article code) are left untouched, and repeated runs may download the same media again. Use on a clean catalog or with caution.
+
 9. **SEO and URLs**
    - Verify auto-generated slug
    - Customize if needed for better SEO
@@ -170,6 +197,7 @@ Montal_Home/
 - **Images**: Upload high-quality images with proper aspect ratios
 - **Fabric Integration**: Configure fabric options for customizable furniture
 - **Parameters**: Add detailed specifications for better product presentation
+
 
 ## 🛠️ Development Commands
 
