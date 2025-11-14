@@ -286,12 +286,39 @@ NOVA_POSHTA_API_KEY=your_production_api_key
 
 ### Price Parser Setup
 
-The price parser integrates with Google Sheets for automated price updates:
+The price parser integrates with both Google Sheets and supplier XML feeds.
+
+**Google Sheets**
 
 ```bash
 python manage.py setup_jem_config    # Setup Google Sheets configuration
 python manage.py update_prices       # Update prices from sheets
 ```
+
+**Matroluxe XML (supplier feed)**
+
+```bash
+python manage.py setup_matroluxe_supplier_feed     # Create/update the feed config
+python manage.py ensure_corpus_subcategories       # Створити підкатегорії для корпусних меблів
+python manage.py ensure_mattress_subcategories     # Створити підкатегорії для матраців
+```
+
+Після цього можна:
+- Запустити імпорт корпусних меблів:
+  ```bash
+  python manage.py import_supplier_furniture \
+    --feed-file matro_korpus_mebel.xml \
+    --profile furniture
+  ```
+- Запустити імпорт матраців (та сама логіка + власні підкатегорії):
+  ```bash
+  python manage.py import_supplier_furniture \
+    --feed-file matro-matras.xml \
+    --profile mattresses
+  ```
+- Відкрити `https://<домен>/custom-admin/` → **Supplier Feeds** та використати кнопки “Test parse” / “Update prices” для конфігурації “Matroluxe — корпусні меблі” (доступно також у стандартній Django адмінці).
+
+Парсер використовує артикул `<model>` (та, за потреби, назву) для пошуку товару, оновлює ціни й повторно не завантажує медіафайли, якщо вони вже є на диску.
 
 ### Delivery Integration
 

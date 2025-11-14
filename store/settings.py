@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from botocore.config import Config
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -255,10 +257,12 @@ AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
 
 # R2 добре працює з virtual-hosted style
 AWS_S3_ADDRESSING_STYLE = "virtual"
+AWS_S3_MAX_POOL_CONNECTIONS = int(os.getenv("AWS_S3_MAX_POOL_CONNECTIONS", "100"))
+AWS_S3_CLIENT_CONFIG = Config(max_pool_connections=AWS_S3_MAX_POOL_CONNECTIONS)
 
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "BACKEND": "utils.storage_backends.R2MediaStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
