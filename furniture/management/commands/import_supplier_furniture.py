@@ -24,10 +24,99 @@ from sub_categories.models import SubCategory
 logger = logging.getLogger(__name__)
 
 
+
 DEFAULT_CATEGORY_NAMES = (
     "Корпусні меблі",
     "Комплекти меблів",
 )
+
+CATALOG_PROFILES = {
+    "furniture": {
+        "category_name": "Корпусні меблі",
+        "feed_categories": ("Корпусні меблі", "Комплекти меблів"),
+        "subcategories": [
+            "Полиці",
+            "Тумби",
+            "Пенал",
+            "Комод",
+            "Столи",
+            "Подіуми",
+            "Шафи",
+            "Ергономічні елементи",
+            "Модульні системи",
+        ],
+        "keywords": [
+            ("Подіуми", ("подіум",)),
+            (
+                "Шафи",
+                ("шафа", "шаф ", "гардероб", "передпок", "прихож", "вітальн", "спальн", "шкаф распаш"),
+            ),
+            (
+                "Модульні системи",
+                ("модульна система", "модульний", "modular system", "color system"),
+            ),
+            (
+                "Ергономічні елементи",
+                (
+                    "вішал",
+                    "вешал",
+                    "лавка",
+                    "лавочка",
+                    "дзеркал",
+                    "полка-віш",
+                    "полка ",
+                ),
+            ),
+            ("Полиці", ("полиц", "антрес", "навісн", "шафа навісна", "стелаж")),
+            ("Комод", ("комод",)),
+            ("Тумби", ("тумб",)),
+            ("Пенал", ("пенал",)),
+            ("Столи", ("стіл", "стол", "столик")),
+        ],
+        "default_subcategory": None,
+        "skip_parameters": set(),
+    },
+    "mattresses": {
+        "category_name": "Матраци",
+        "feed_categories": ("Ортопедичні матраци",),
+        "category_ids": ("99883323",),
+        "subcategories": [
+            "Матраци-топери",
+            "Матраци MatroRoll Flip",
+            "Матраци MatroRoll King/Queen/Like",
+            "Матраци MatroRoll Futon",
+            "Матраци Kokos",
+            "Матраци Aura",
+            "Матраци Granat",
+            "Матраци Sofia",
+            "Матраци Camelia",
+            "Матраци Boom/Red",
+            "Матраци Leeds",
+            "Матраци Mirage",
+            "Матраци Rulle",
+            "Матраци Kozak",
+            "Матраци інші",
+        ],
+        "keywords": [
+            ("Матраци-топери", ("топпер", "topper")),
+            ("Матраци MatroRoll Flip", ("flip",)),
+            ("Матраци MatroRoll King/Queen/Like", ("king", "queen", "like")),
+            ("Матраци MatroRoll Futon", ("futon", "футон")),
+            ("Матраци Kokos", ("kokos", "cocos", "кокос", "extra kokos")),
+            ("Матраци Aura", ("aura", "аура")),
+            ("Матраци Granat", ("granat", "гранат")),
+            ("Матраци Sofia", ("sofia", "соф", "софія")),
+            ("Матраци Camelia", ("camelia", "камел")),
+            ("Матраци Boom/Red", ("boom", "red")),
+            ("Матраци Leeds", ("leeds", "лідс")),
+            ("Матраци Mirage", ("mirage", "міраж")),
+            ("Матраци Rulle", ("rulle", "рулл")),
+            ("Матраци Kozak", ("kozak", "козак")),
+        ],
+        "default_subcategory": "Матраци інші",
+        "skip_parameters": set(),
+    },
+}
 
 DIMENSION_PARAMS = {
     "width_mm": {"source": "Ширина, мм", "key": "width_cm", "label": "Ширина (см)"},
@@ -46,53 +135,6 @@ USER_AGENT = (
 IMAGE_CACHE_DIR = "supplier_cache"
 
 SKIP_PARAMETER_NAMES = {"торгова марка", "готові кольорові рішення"}
-
-TARGET_SUBCATEGORY_NAMES = [
-    "Полиці",
-    "Тумби",
-    "Пенал",
-    "Комод",
-    "Столи",
-    "Подіуми",
-    "Шафи",
-    "Ергономічні елементи",
-    "Модульні системи",
-]
-
-SUBCATEGORY_KEYWORDS: List[Tuple[str, Tuple[str, ...]]] = [
-    ("Подіуми", ("подіум",)),
-    (
-        "Шафи",
-        (
-            "шафа",
-            "шаф ",
-            "гардероб",
-            "передпок",
-            "прихож",
-            "вітальн",
-            "спальн",
-            "шкаф распаш",
-        ),
-    ),
-    ("Модульні системи", ("модульна система", "модульний", "modular system")),
-    (
-        "Ергономічні елементи",
-        (
-            "вішал",
-            "вешал",
-            "лавка",
-            "лавочка",
-            "дзеркал",
-            "полка-віш",
-            "полка ",
-        ),
-    ),
-    ("Полиці", ("полиц", "антрес", "навісн", "шафа навісна", "стелаж")),
-    ("Комод", ("комод",)),
-    ("Тумби", ("тумб",)),
-    ("Пенал", ("пенал",)),
-    ("Столи", ("стіл", "стол", "столик")),
-]
 
 NAME_REPLACEMENTS = [
     ("Вешалка", "Вішалка"),
@@ -258,12 +300,28 @@ class Command(BaseCommand):
                 "Перекриває мапінг за назвою."
             ),
         )
+        parser.add_argument(
+            "--profile",
+            choices=CATALOG_PROFILES.keys(),
+            default="furniture",
+            help="Який профіль каталогу обробляти (корпусні меблі або матраци).",
+        )
 
     def handle(self, *args, **options) -> None:  # pragma: no cover - CLI glue
         feed_url = options.get("feed_url")
         feed_file = options.get("feed_file")
         dry_run = options.get("dry_run")
-        categories = tuple(options.get("categories") or DEFAULT_CATEGORY_NAMES)
+        profile_key = options.get("profile") or "furniture"
+        if profile_key not in CATALOG_PROFILES:
+            raise CommandError(f"Невідомий профіль '{profile_key}'")
+        self.profile = CATALOG_PROFILES[profile_key]
+        self.target_category_name = self.profile["category_name"]
+        self.target_subcategory_names = self.profile["subcategories"]
+        self.subcategory_keywords = self.profile["keywords"]
+        self.default_subcategory_name = self.profile.get("default_subcategory")
+        self.skip_parameter_names = SKIP_PARAMETER_NAMES | set(self.profile.get("skip_parameters", []))
+
+        categories = tuple(options.get("categories") or self.profile["feed_categories"])
         limit = options.get("limit")
         category_overrides = self._parse_category_overrides(options.get("category_map"))
         category_id_overrides = self._parse_category_id_overrides(
@@ -284,10 +342,14 @@ class Command(BaseCommand):
         }
 
         category_lookup = self._build_category_lookup(root)
+        forced_ids = set(category_id_overrides.keys())
+        if self.profile.get("category_ids"):
+            forced_ids.update(str(cid) for cid in self.profile["category_ids"])
+
         category_targets = self._resolve_target_categories(
             category_lookup,
             categories,
-            forced_ids=set(category_id_overrides.keys()),
+            forced_ids=forced_ids,
         )
         if not category_targets:
             raise CommandError("Не знайдено жодної категорії, що відповідає заданим назвам.")
@@ -626,19 +688,24 @@ class Command(BaseCommand):
         return resolved
 
     def _load_target_subcategories(self) -> Dict[str, SubCategory]:
-        category = Category.objects.filter(name__iexact="Корпусні меблі").first()
+        category = Category.objects.filter(name__iexact=self.target_category_name).first()
         if not category:
-            raise CommandError("Категорію 'Корпусні меблі' не знайдено.")
+            raise CommandError(f"Категорію '{self.target_category_name}' не знайдено.")
 
         subcategories = SubCategory.objects.filter(
-            category=category, name__in=TARGET_SUBCATEGORY_NAMES
+            category=category, name__in=self.target_subcategory_names
         )
         mapping = {subcat.name: subcat for subcat in subcategories}
-        missing = [name for name in TARGET_SUBCATEGORY_NAMES if name not in mapping]
+        missing = [name for name in self.target_subcategory_names if name not in mapping]
         if missing:
+            ensure_cmd = (
+                "ensure_corpus_subcategories"
+                if self.target_category_name == "Корпусні меблі"
+                else "ensure_mattress_subcategories"
+            )
             raise CommandError(
                 f"Не знайдено підкатегорії: {', '.join(missing)}. "
-                "Запустіть команду ensure_corpus_subcategories."
+                f"Запустіть команду {ensure_cmd}."
             )
         return mapping
 
@@ -672,10 +739,13 @@ class Command(BaseCommand):
         if mapped:
             return mapped
 
+        if self.default_subcategory_name:
+            return self.target_subcategories.get(self.default_subcategory_name)
+
         return None
 
     def _match_subcategory_keyword(self, name_lower: str) -> Optional[str]:
-        for subcat_name, keywords in SUBCATEGORY_KEYWORDS:
+        for subcat_name, keywords in self.subcategory_keywords:
             if any(keyword in name_lower for keyword in keywords):
                 return subcat_name
         return None
@@ -773,7 +843,7 @@ class Command(BaseCommand):
             if not clean_name:
                 continue
             name_lower = clean_name.lower()
-            if name_lower in SKIP_PARAMETER_NAMES:
+            if name_lower in self.skip_parameter_names:
                 continue
             if clean_name in DIMENSION_LABELS:
                 continue
@@ -1055,6 +1125,9 @@ class Command(BaseCommand):
         return 1 if created else 0
 
     def _get_or_create_generic_parameter(self, label: str) -> Parameter:
+        existing = Parameter.objects.filter(label__iexact=label).first()
+        if existing:
+            return existing
         key = self._parameter_key_from_name(label)
         parameter, created = Parameter.objects.get_or_create(key=key, defaults={"label": label})
         if not created and parameter.label != label:
@@ -1107,7 +1180,7 @@ class Command(BaseCommand):
 
     def _build_http_session(self) -> requests.Session:
         session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=50, pool_maxsize=50)
+        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         return session
