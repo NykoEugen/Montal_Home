@@ -34,6 +34,7 @@ CATALOG_PROFILES = {
     "furniture": {
         "category_name": "Корпусні меблі",
         "feed_categories": ("Корпусні меблі", "Комплекти меблів"),
+        "category_ids": (),
         "subcategories": [
             "Полиці",
             "Тумби",
@@ -75,6 +76,8 @@ CATALOG_PROFILES = {
         ],
         "default_subcategory": None,
         "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
     },
     "mattresses": {
         "category_name": "Матраци",
@@ -115,6 +118,8 @@ CATALOG_PROFILES = {
         ],
         "default_subcategory": "Матраци інші",
         "skip_parameters": set(),
+        "use_offer_size_variants": True,
+        "color_variants_enabled": False,
     },
 }
 
@@ -320,6 +325,8 @@ class Command(BaseCommand):
         self.subcategory_keywords = self.profile["keywords"]
         self.default_subcategory_name = self.profile.get("default_subcategory")
         self.skip_parameter_names = SKIP_PARAMETER_NAMES | set(self.profile.get("skip_parameters", []))
+        self.use_offer_size_variants = self.profile.get("use_offer_size_variants", False)
+        self.color_variants_enabled = self.profile.get("color_variants_enabled", True)
 
         categories = tuple(options.get("categories") or self.profile["feed_categories"])
         limit = options.get("limit")
@@ -428,34 +435,46 @@ class Command(BaseCommand):
 
             size_variants_created = 0
             if not dry_run:
-                slash_variants = self._extract_slashed_dimensions(primary_offer)
-                if slash_variants:
-                    variant_count = len(slash_variants["variants"])
-                    base_price = self._adjust_pricing_for_dimension_variants(
-                        furniture, variant_count + 1  # include основний розмір
-                    )
-                    self._sync_parameters(
-                        furniture,
-                        primary_offer,
-                        override_values=slash_variants["primary"],
-                    )
-                    size_variants_created = self._create_dimension_variants(
-                        furniture,
-                        primary_offer,
-                        slash_variants["variants"],
-                        base_price=base_price,
-                    )
+                if not self.use_offer_size_variants:
+                    slash_variants = self._extract_slashed_dimensions(primary_offer)
+                    if slash_variants:
+                        variant_count = len(slash_variants["variants"])
+                        base_price = self._adjust_pricing_for_dimension_variants(
+                            furniture, variant_count + 1  # include основний розмір
+                        )
+                        self._sync_parameters(
+                            furniture,
+                            primary_offer,
+                            override_values=slash_variants["primary"],
+                        )
+                        size_variants_created = self._create_dimension_variants(
+                            furniture,
+                            primary_offer,
+                            slash_variants["variants"],
+                            base_price=base_price,
+                        )
+                    else:
+                        self._sync_parameters(furniture, primary_offer)
                 else:
                     self._sync_parameters(furniture, primary_offer)
                 self._sync_additional_parameters(furniture, primary_offer)
                 self._ensure_main_image(furniture, primary_offer)
                 self._sync_gallery_images(furniture, primary_offer)
 
-            variants_created = self._sync_variants(
-                furniture=furniture,
-                offers=variants,
-                dry_run=dry_run,
-            )
+            if self.use_offer_size_variants:
+                variants_created = self._sync_offer_size_variants(
+                    furniture=furniture,
+                    offers=variants,
+                )
+            elif self.color_variants_enabled:
+                variants_created = self._sync_variants(
+                    furniture=furniture,
+                    offers=variants,
+                    dry_run=dry_run,
+                )
+            else:
+                variants_created = 0
+
             stats["variants_created"] += variants_created
             stats["variants_skipped"] += max(len(variants) - variants_created, 0)
             if size_variants_created:
@@ -926,6 +945,57 @@ class Command(BaseCommand):
                 furniture.save(update_fields=["image"])
         return created
 
+    def _sync_offer_size_variants(
+        self,
+        furniture: Furniture,
+        offers: List[FeedOffer],
+    ) -> int:
+        created = 0
+        for offer in offers:
+            dimensions = self._extract_offer_dimensions(offer)
+            if not dimensions:
+                continue
+
+            width = dimensions["width"]
+            length = dimensions["length"]
+            height = dimensions.get("height") or Decimal("0")
+
+            base_price, promo_price, is_promotional = self._resolve_prices(offer)
+            if base_price is None:
+                continue
+
+            variant, was_created = FurnitureSizeVariant.objects.get_or_create(
+                furniture=furniture,
+                width=width,
+                length=length,
+                defaults={
+                    "height": height,
+                    "price": base_price,
+                    "promotional_price": promo_price,
+                    "is_promotional": is_promotional,
+                },
+            )
+
+            updates = {}
+            if not was_created:
+                if variant.height != height and height:
+                    updates["height"] = height
+                if variant.price != base_price:
+                    updates["price"] = base_price
+                if variant.promotional_price != promo_price:
+                    updates["promotional_price"] = promo_price
+                new_is_promotional = bool(promo_price)
+                if variant.is_promotional != new_is_promotional:
+                    updates["is_promotional"] = new_is_promotional
+                if updates:
+                    for field, value in updates.items():
+                        setattr(variant, field, value)
+                    variant.save(update_fields=list(updates.keys()))
+            else:
+                created += 1
+
+        return created
+
     def _convert_mm_to_cm(self, raw_value: Optional[str]) -> Optional[str]:
         if not raw_value:
             return None
@@ -1123,6 +1193,46 @@ class Command(BaseCommand):
             variant.price = effective_price
             variant.save(update_fields=["price"])
         return 1 if created else 0
+
+    def _extract_offer_dimensions(self, offer: FeedOffer) -> Optional[Dict[str, Decimal]]:
+        size_value = None
+        for key, value in offer.params.items():
+            if "розмір" in key.lower():
+                size_value = value
+                break
+        if not size_value:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+        else:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", size_value.lower())
+        if not match_in_name:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+        if not match_in_name:
+            return None
+
+        width = Decimal(match_in_name.group(1)).quantize(Decimal("1"))
+        length = Decimal(match_in_name.group(2)).quantize(Decimal("1"))
+
+        height_value = None
+        for key, value in offer.params.items():
+            if "висота" in key.lower():
+                height_value = value
+                break
+        height = self._parse_height_value(height_value)
+
+        return {"width": width, "length": length, "height": height}
+
+    def _parse_height_value(self, raw_value: Optional[str]) -> Optional[Decimal]:
+        if not raw_value:
+            return None
+        cleaned = raw_value.replace(",", ".")
+        match = re.search(r"(\d+(?:\.\d+)?)", cleaned)
+        if not match:
+            return None
+        value = Decimal(match.group(1))
+        lower = raw_value.lower()
+        if "мм" in lower:
+            value = value / Decimal("10")
+        return value.quantize(Decimal("1"))
 
     def _get_or_create_generic_parameter(self, label: str) -> Parameter:
         existing = Parameter.objects.filter(label__iexact=label).first()
