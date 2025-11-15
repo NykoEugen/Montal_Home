@@ -69,6 +69,16 @@
                                                 {% endfor %}
                                             </div>
                                         {% endif %}
+                                        {% if item.color_display %}
+                                            <div class="text-sm text-brown-500 flex items-center gap-2">
+                                                {% if item.color_image %}
+                                                    <img src="{{ item.color_image }}" alt="{{ item.color_display }}" class="w-4 h-4 rounded-full border border-brown-200 object-cover">
+                                                {% elif item.color_hex %}
+                                                    <span class="inline-flex w-4 h-4 rounded-full border border-brown-200" style="background-color: {{ item.color_hex }};"></span>
+                                                {% endif %}
+                                                <span>Колір: {{ item.color_name }}</span>
+                                            </div>
+                                        {% endif %}
                                         {% if item.custom_option_value %}
                                             <div class="text-sm text-brown-500">
                                                 {{ item.custom_option_name|default:"Параметр" }}: {{ item.custom_option_value }}

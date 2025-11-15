@@ -173,20 +173,20 @@
             {% if base_dimensions and not base_size_variant_id %}
             <button type="button" class="chip size-chip" 
                     data-id="base" 
-                    data-price="{{ furniture.current_price }}" 
+                    data-price="{% if furniture.is_sale_active %}{{ furniture.promotional_price }}{% else %}{{ furniture.price }}{% endif %}" 
                     data-original-price="{{ furniture.price }}"
                     data-dimensions="{{ base_dimensions }}"
-                    data-is-on-sale="{{ furniture.is_promotional|yesno:'true,false' }}">
+                    data-is-on-sale="{{ furniture.is_sale_active|yesno:'true,false' }}">
                 {{ base_dimensions }}
             </button>
             {% endif %}
             {% for variant in size_variants %}
             <button type="button" class="chip size-chip" 
                     data-id="{{ variant.id }}" 
-                    data-price="{{ variant.current_price }}" 
+                    data-price="{% if variant.is_sale_active %}{{ variant.current_price }}{% else %}{{ variant.price }}{% endif %}" 
                     data-original-price="{{ variant.price }}"
                     data-dimensions="{{ variant.dimensions }}"
-                    data-is-on-sale="{{ variant.is_on_sale|yesno:'true,false' }}"
+                    data-is-on-sale="{{ variant.is_sale_active|yesno:'true,false' }}"
                     {% if variant.parameter %}
                     data-param-key="{{ variant.parameter.key }}"
                     data-param-value="{{ variant.parameter_value }}"
@@ -211,6 +211,51 @@
         </div>
         {% endif %}
 
+        {% if color_palettes %}
+        <div class="mt-6" data-color-selector>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="text-xl font-semibold text-brown-800">Палітра кольорів</h3>
+            <p class="text-sm text-brown-600 font-medium">
+              <span data-selected-color-label>Колір не обрано</span>
+            </p>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2" data-color-grid>
+            {% for palette in color_palettes %}
+              {% with colors=palette.colors.all %}
+                {% if colors %}
+                  {% for color in colors %}
+                  <button type="button"
+                          class="color-swatch group flex flex-col items-center gap-1 rounded-lg border border-transparent p-2 text-center transition-all duration-200 hover:border-brown-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brown-500"
+                          data-color-swatch
+                          data-color-id="{{ color.id }}"
+                          data-color-name="{{ color.name }}"
+                          {% if palette.name %}data-palette-name="{{ palette.name }}"{% endif %}
+                          {% if color.hex_code %}data-color-hex="{{ color.hex_code }}"{% endif %}
+                          {% if color.image %}data-color-image="{{ color.image.url }}"{% endif %}
+                          aria-pressed="false">
+                    {% if color.hex_code %}
+                    <span class="w-12 h-12 rounded-full border border-brown-100 shadow-sm transform transition-transform duration-200 group-hover:scale-110" style="background-color: {{ color.hex_code }};"></span>
+                    {% elif color.image %}
+                    <img src="{{ color.image|image_variant:200 }}"
+                         srcset="{% responsive_srcset color.image %}"
+                         sizes="{% responsive_sizes '(max-width: 768px) 48px, 64px' %}"
+                         alt="{{ color.name }}"
+                         class="w-12 h-12 rounded-full object-cover border border-brown-100 shadow-sm transform transition-transform duration-200 group-hover:scale-110"
+                         loading="lazy">
+                    {% else %}
+                    <span class="w-12 h-12 rounded-full border border-dashed border-brown-200 flex items-center justify-center text-xs text-brown-400">N/A</span>
+                    {% endif %}
+                    <span class="text-xs text-brown-700 leading-tight">{{ color.name }}</span>
+                  </button>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+          </div>
+          <p class="text-xs text-brown-500 mt-2">Оберіть колір, щоб зафіксувати його у замовленні.</p>
+        </div>
+        {% endif %}
+
         <div class="mt-4 flex items-center gap-3">
           <label for="alt-qty" class="text-brown-700">Кількість</label>
           <input id="alt-qty" type="number" min="1" value="1" class="w-24 p-2 border border-brown-300 rounded">
@@ -226,6 +271,7 @@
           <input type="hidden" name="variant_image_id" id="alt-variant-input">
           <input type="hidden" name="quantity" id="alt-qty-input" value="1">
           <input type="hidden" name="custom_option_id" id="alt-custom-option-input">
+          <input type="hidden" name="color_id" id="alt-color-input">
           <button type="submit" class="btn-grad px-5 py-2 text-base font-semibold rounded place-self-start max-w-fit">Додати в кошик</button>
         </form>
       </div>

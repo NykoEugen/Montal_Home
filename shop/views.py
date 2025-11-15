@@ -21,6 +21,7 @@ from django.templatetags.static import static
 
 from categories.models import Category
 from delivery.views import search_city
+from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
 from store.settings import ITEMS_PER_PAGE
 
@@ -167,6 +168,11 @@ class CartView(TemplateView):
                 custom_option_value = item_data.get('custom_option_value')
                 custom_option_price_raw = item_data.get('custom_option_price')
                 custom_option_name_stored = item_data.get('custom_option_name')
+                color_id = item_data.get('color_id')
+                color_name = item_data.get('color_name')
+                color_palette_name = item_data.get('color_palette_name')
+                color_hex = item_data.get('color_hex')
+                color_image = item_data.get('color_image')
             else:
                 # Legacy format - just quantity
                 quantity = item_data
@@ -177,6 +183,11 @@ class CartView(TemplateView):
                 custom_option_value = None
                 custom_option_price_raw = None
                 custom_option_name_stored = None
+                color_id = None
+                color_name = ""
+                color_palette_name = ""
+                color_hex = ""
+                color_image = ""
             
             # Calculate item price and get size variant
             size_variant = None
@@ -191,7 +202,6 @@ class CartView(TemplateView):
             
             # Add fabric cost if fabric is selected
             if fabric_category_id:
-                from fabric_category.models import FabricCategory
                 try:
                     fabric_category = FabricCategory.objects.get(id=fabric_category_id)
                     fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
@@ -230,6 +240,23 @@ class CartView(TemplateView):
             if not custom_option_value_resolved:
                 custom_option_name_resolved = ""
 
+        color_display = color_name or ""
+        if color_id and not color_name:
+            try:
+                color_obj = FabricColor.objects.select_related("palette").get(id=int(color_id))
+                color_name = color_obj.name
+                color_palette_name = color_obj.palette.name if color_obj.palette else ""
+                color_hex = color_hex or (color_obj.hex_code or "")
+                if not color_image and color_obj.image:
+                    try:
+                        color_image = color_obj.image.url
+                    except (ValueError, OSError):
+                        color_image = ""
+                color_display = color_name
+            except (ValueError, FabricColor.DoesNotExist):
+                color_name = color_name or ""
+                color_palette_name = color_palette_name or ""
+
             item_price += custom_option_price
             total_price += item_price * quantity
             cart_items.append(
@@ -246,13 +273,15 @@ class CartView(TemplateView):
                     "custom_option_name": custom_option_name_resolved or (furniture.custom_option_name if custom_option_value_resolved else ""),
                     "custom_option_price": custom_option_price,
                     "total_price": item_price * quantity,
+                    "color_display": color_display,
+                    "color_hex": color_hex,
+                    "color_image": color_image,
                     "cart_key": cart_key,  # Add cart key for removal functionality
                 }
             )
 
 
         # Get all fabric categories for display in cart
-        from fabric_category.models import FabricCategory
         fabric_categories = FabricCategory.objects.all()
         
         context.update(
@@ -555,6 +584,7 @@ def add_to_cart_from_detail(request: HttpRequest):
     fabric_category_id = request.POST.get("fabric_category_id")
     variant_image_id = request.POST.get("variant_image_id")
     custom_option_id = request.POST.get("custom_option_id")
+    color_id = request.POST.get("color_id")
     try:
         quantity = max(1, int(request.POST.get("quantity", 1)))
     except (TypeError, ValueError):
@@ -597,6 +627,23 @@ def add_to_cart_from_detail(request: HttpRequest):
             except (TypeError, ValueError):
                 custom_option_price = 0.0
 
+        color_name = ""
+        color_palette_name = ""
+        color_hex = ""
+        color_image_url = ""
+        if color_id:
+            try:
+                color_obj = FabricColor.objects.select_related("palette").get(id=int(color_id))
+                color_name = color_obj.name
+                color_palette_name = color_obj.palette.name if color_obj.palette else ""
+                color_hex = color_obj.hex_code or ""
+                try:
+                    color_image_url = color_obj.image.url if color_obj.image else ""
+                except (ValueError, OSError):
+                    color_image_url = ""
+            except (ValueError, FabricColor.DoesNotExist):
+                color_id = None
+
         # Create a unique key for this cart item that includes variant information
         cart_key_parts = [furniture_id]
         if size_variant_id:
@@ -607,6 +654,8 @@ def add_to_cart_from_detail(request: HttpRequest):
             cart_key_parts.append(f"variant_{variant_image_id}")
         if selected_option:
             cart_key_parts.append(f"custom_{selected_option.id}")
+        if color_id:
+            cart_key_parts.append(f"color_{color_id}")
         
         cart_key = "_".join(cart_key_parts)
 
@@ -632,6 +681,13 @@ def add_to_cart_from_detail(request: HttpRequest):
             cart_item_data['custom_option_value'] = custom_option_value
             cart_item_data['custom_option_price'] = custom_option_price
             cart_item_data['custom_option_name'] = custom_option_name
+        
+        if color_id:
+            cart_item_data['color_id'] = str(color_id)
+            cart_item_data['color_name'] = color_name
+            cart_item_data['color_palette_name'] = color_palette_name
+            cart_item_data['color_hex'] = color_hex
+            cart_item_data['color_image'] = color_image_url
         
         cart[cart_key] = cart_item_data
         request.session["cart"] = cart
