@@ -67,6 +67,7 @@ class FabricColor(models.Model):
     hex_code = models.CharField(
         max_length=7,
         validators=[HEX_COLOR_VALIDATOR],
+        blank=True,
         help_text="Колір у форматі #RRGGBB",
     )
     position = models.PositiveIntegerField(default=0)

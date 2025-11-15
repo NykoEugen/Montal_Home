@@ -553,9 +553,11 @@ class Command(BaseCommand):
             if created:
                 stats["furniture_created"] += 1
 
+            is_commode = self._is_commode_subcategory(sub_category)
+            commode_overrides = self._build_commode_parameter_override(variants) if is_commode else None
             size_variants_created = 0
             if not dry_run:
-                if not self.use_offer_size_variants:
+                if not self.use_offer_size_variants and not is_commode:
                     slash_variants = self._extract_slashed_dimensions(primary_offer)
                     if slash_variants:
                         variant_count = len(slash_variants["variants"])
@@ -576,30 +578,47 @@ class Command(BaseCommand):
                     else:
                         self._sync_parameters(furniture, primary_offer)
                 else:
-                    self._sync_parameters(furniture, primary_offer)
+                    self._sync_parameters(
+                        furniture,
+                        primary_offer,
+                        override_values=commode_overrides,
+                    )
                 self._sync_additional_parameters(furniture, primary_offer)
                 self._ensure_main_image(furniture, primary_offer)
                 self._sync_gallery_images(furniture, primary_offer)
+
+            if is_commode:
+                size_variants_created += self._sync_commode_variants(
+                    furniture=furniture,
+                    offers=variants,
+                    dry_run=dry_run,
+                )
 
             if self.use_offer_size_variants:
                 variants_created = self._sync_offer_size_variants(
                     furniture=furniture,
                     offers=variants,
                 )
+                variants_skipped = max(len(variants) - variants_created, 0)
+            elif is_commode:
+                variants_created = 0
+                variants_skipped = 0
             elif self.color_variants_enabled:
                 variants_created = self._sync_variants(
                     furniture=furniture,
                     offers=variants,
                     dry_run=dry_run,
                 )
+                variants_skipped = max(len(variants) - variants_created, 0)
             else:
                 variants_created = 0
+                variants_skipped = 0
 
             stats["variants_created"] += variants_created
-            stats["variants_skipped"] += max(len(variants) - variants_created, 0)
+            stats["variants_skipped"] += variants_skipped
             if size_variants_created:
                 self.stdout.write(
-                    f"  + створено {size_variants_created} розмірних варіантів із параметрів"
+                    f"  + створено {size_variants_created} розмірних варіантів"
                 )
 
         self.stdout.write(
@@ -940,6 +959,20 @@ class Command(BaseCommand):
                 return subcat_name
         return None
 
+    def _is_commode_subcategory(self, sub_category: SubCategory) -> bool:
+        if not sub_category or not sub_category.name:
+            return False
+        return sub_category.name.strip().lower().startswith("комод")
+
+    def _build_commode_parameter_override(self, offers: List[FeedOffer]) -> Optional[Dict[str, str]]:
+        for offer in offers:
+            if self._is_commode_color_offer(offer):
+                continue
+            width_value = self._parse_dimension_value(offer.params.get("Ширина комода"))
+            if width_value is not None:
+                return {"width_mm": self._decimal_to_str(width_value)}
+        return None
+
     def _normalize_grouping_name(self, value: str) -> str:
         if not value:
             return ""
@@ -1154,6 +1187,72 @@ class Command(BaseCommand):
             return offer.color_name
         return f"Колір {index + 1}"
 
+    def _sync_commode_variants(
+        self,
+        furniture: Furniture,
+        offers: List[FeedOffer],
+        dry_run: bool = False,
+    ) -> int:
+        created = 0
+        for offer in offers:
+            if self._is_commode_color_offer(offer):
+                continue
+
+            width = self._parse_dimension_value(offer.params.get("Ширина комода"))
+            if width is None:
+                continue
+            height = self._parse_dimension_value(offer.params.get("Висота, мм"))
+            depth = self._parse_dimension_value(offer.params.get("Глибина, мм"))
+
+            base_price, promo_price, _ = self._resolve_prices(offer)
+            if base_price is None:
+                continue
+
+            if dry_run:
+                self.stdout.write(
+                    f"[DRY-RUN] Додав би комод шириною {self._decimal_to_str(width)} см "
+                    f"({furniture.article_code})"
+                )
+                continue
+
+            resolved_height = height or Decimal("0")
+            resolved_length = depth or Decimal("0")
+            variant, was_created = FurnitureSizeVariant.objects.get_or_create(
+                furniture=furniture,
+                width=width,
+                length=resolved_length,
+                defaults={
+                    "height": resolved_height,
+                    "price": base_price,
+                    "promotional_price": promo_price,
+                    "is_promotional": bool(promo_price),
+                },
+            )
+
+            if was_created:
+                created += 1
+                continue
+
+            updates = {}
+            if variant.height != resolved_height:
+                updates["height"] = resolved_height
+            if variant.length != resolved_length:
+                updates["length"] = resolved_length
+            if variant.price != base_price:
+                updates["price"] = base_price
+            if variant.promotional_price != promo_price:
+                updates["promotional_price"] = promo_price
+            new_is_promotional = bool(promo_price)
+            if variant.is_promotional != new_is_promotional:
+                updates["is_promotional"] = new_is_promotional
+
+            if updates:
+                for field, value in updates.items():
+                    setattr(variant, field, value)
+                variant.save(update_fields=list(updates.keys()))
+
+        return created
+
     def _sync_offer_size_variants(
         self,
         furniture: Furniture,
@@ -1221,6 +1320,28 @@ class Command(BaseCommand):
         if "." in normalized:
             normalized = normalized.rstrip("0").rstrip(".")
         return normalized
+
+    def _parse_dimension_value(self, raw_value: Optional[str]) -> Optional[Decimal]:
+        if not raw_value:
+            return None
+        cleaned = raw_value.replace(",", ".").lower()
+        match = re.search(r"(\d+(?:\.\d+)?)", cleaned)
+        if not match:
+            return None
+        value = Decimal(match.group(1))
+        if "мм" in cleaned:
+            value = value / Decimal("10")
+        return value.quantize(Decimal("1"))
+
+    def _is_commode_color_offer(self, offer: FeedOffer) -> bool:
+        if offer.params.get(COLOR_PARAM_NAME):
+            return True
+        name_lower = offer.raw_name.lower()
+        return "готові кольорові рішення" in name_lower
+
+    def _decimal_to_str(self, value: Decimal) -> str:
+        normalized = value.quantize(Decimal("1"))
+        return format(normalized, "f")
 
     def _get_or_create_parameter(self, key: str, label: str) -> Parameter:
         parameter, _ = Parameter.objects.get_or_create(key=key, defaults={"label": label})
