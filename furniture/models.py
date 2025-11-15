@@ -10,7 +10,7 @@ from utils.media_paths import (
     furniture_variant_image_upload_to,
 )
 
-from fabric_category.models import FabricBrand, FabricCategory
+from fabric_category.models import FabricBrand, FabricCategory, FabricColorPalette
 from params.models import Parameter
 from sub_categories.models import SubCategory
 
@@ -104,6 +104,13 @@ class Furniture(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name="Коефіцієнт тканини",
         help_text="Множник для розрахунку вартості тканини"
+    )
+    color_palettes = models.ManyToManyField(
+        FabricColorPalette,
+        blank=True,
+        related_name="furniture_items",
+        verbose_name="Палітри покриттів",
+        help_text="Набори кольорів оббивки, що доступні для товару.",
     )
     custom_option_name = models.CharField(
         max_length=200,
