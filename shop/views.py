@@ -153,10 +153,77 @@ class CartView(TemplateView):
         cart_items = []
         total_price = 0.0
 
+        if not cart:
+            context.update(
+                {
+                    "cart_items": [],
+                    "total_price": 0.0,
+                    "fabric_categories": FabricCategory.objects.all(),
+                    "meta_title": "Кошик — Montal Home",
+                    "meta_description": (
+                        "Перегляньте товари у кошику Montal Home та завершіть оформлення замовлення. "
+                        "Зручна оплата, доставка по Україні."
+                    ),
+                    "meta_keywords": "кошик, замовлення меблів, купити меблі онлайн",
+                }
+            )
+            return context
+
+        # Collect identifiers once to reduce N+1 DB queries.
+        furniture_ids: set[int] = set()
+        size_variant_ids: set[int] = set()
+        fabric_category_ids: set[int] = set()
+        color_ids: set[int] = set()
+
+        for cart_key, item_data in cart.items():
+            try:
+                furniture_ids.add(int(cart_key.split("_")[0]))
+            except (TypeError, ValueError):
+                continue
+
+            if isinstance(item_data, dict):
+                size_variant_id = item_data.get("size_variant_id")
+                fabric_category_id = item_data.get("fabric_category_id")
+                color_id = item_data.get("color_id")
+
+                if size_variant_id not in (None, "", "base"):
+                    try:
+                        size_variant_ids.add(int(size_variant_id))
+                    except (TypeError, ValueError):
+                        pass
+
+                if fabric_category_id:
+                    try:
+                        fabric_category_ids.add(int(fabric_category_id))
+                    except (TypeError, ValueError):
+                        pass
+
+                if color_id:
+                    try:
+                        color_ids.add(int(color_id))
+                    except (TypeError, ValueError):
+                        pass
+
+        furniture_map = {
+            obj.id: obj
+            for obj in Furniture.objects.filter(id__in=furniture_ids).prefetch_related("custom_options")
+        }
+        size_variant_map = FurnitureSizeVariant.objects.in_bulk(size_variant_ids)
+        fabric_category_map = FabricCategory.objects.in_bulk(fabric_category_ids)
+        fabric_color_map = {
+            color.id: color
+            for color in FabricColor.objects.select_related("palette").filter(id__in=color_ids)
+        }
+
         for cart_key, item_data in cart.items():
             # Extract furniture_id from the cart key
-            furniture_id = cart_key.split('_')[0]
-            furniture = get_object_or_404(Furniture, id=int(furniture_id))
+            try:
+                furniture_id = int(cart_key.split('_')[0])
+            except (TypeError, ValueError):
+                continue
+            furniture = furniture_map.get(furniture_id)
+            if not furniture:
+                continue
             
             # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
             if isinstance(item_data, dict):
@@ -193,21 +260,26 @@ class CartView(TemplateView):
             size_variant = None
             if size_variant_id and size_variant_id != 'base':
                 try:
-                    size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
-                    item_price = float(size_variant.current_price)
-                except (FurnitureSizeVariant.DoesNotExist, ValueError):
+                    size_variant = size_variant_map.get(int(size_variant_id))
+                    if size_variant:
+                        item_price = float(size_variant.current_price)
+                    else:
+                        item_price = float(furniture.current_price)
+                except (TypeError, ValueError):
                     item_price = float(furniture.current_price)
             else:
                 item_price = float(furniture.current_price)
             
             # Add fabric cost if fabric is selected
             if fabric_category_id:
+                fabric_category = None
                 try:
-                    fabric_category = FabricCategory.objects.get(id=fabric_category_id)
+                    fabric_category = fabric_category_map.get(int(fabric_category_id))
+                except (TypeError, ValueError):
+                    fabric_category = None
+                if fabric_category:
                     fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
                     item_price += fabric_cost
-                except FabricCategory.DoesNotExist:
-                    pass
             
             custom_option = None
             custom_option_value_resolved = ''
@@ -221,7 +293,10 @@ class CartView(TemplateView):
             if custom_option_id:
                 try:
                     option_id_int = int(custom_option_id)
-                    custom_option = furniture.custom_options.filter(id=option_id_int).first()
+                    custom_option = next(
+                        (opt for opt in furniture.custom_options.all() if opt.id == option_id_int),
+                        None,
+                    )
                 except (ValueError, TypeError):
                     custom_option = None
                 if custom_option:
@@ -240,22 +315,26 @@ class CartView(TemplateView):
             if not custom_option_value_resolved:
                 custom_option_name_resolved = ""
 
-        color_display = color_name or ""
-        if color_id and not color_name:
-            try:
-                color_obj = FabricColor.objects.select_related("palette").get(id=int(color_id))
-                color_name = color_obj.name
-                color_palette_name = color_obj.palette.name if color_obj.palette else ""
-                color_hex = color_hex or (color_obj.hex_code or "")
-                if not color_image and color_obj.image:
-                    try:
-                        color_image = color_obj.image.url
-                    except (ValueError, OSError):
-                        color_image = ""
-                color_display = color_name
-            except (ValueError, FabricColor.DoesNotExist):
-                color_name = color_name or ""
-                color_palette_name = color_palette_name or ""
+            color_display = color_name or ""
+            if color_id and not color_name:
+                color_obj = None
+                try:
+                    color_obj = fabric_color_map.get(int(color_id))
+                except (TypeError, ValueError):
+                    color_obj = None
+                if color_obj:
+                    color_name = color_obj.name
+                    color_palette_name = color_obj.palette.name if color_obj.palette else ""
+                    color_hex = color_hex or (color_obj.hex_code or "")
+                    if not color_image and color_obj.image:
+                        try:
+                            color_image = color_obj.image.url
+                        except (ValueError, OSError):
+                            color_image = ""
+                    color_display = color_name
+                else:
+                    color_name = color_name or ""
+                    color_palette_name = color_palette_name or ""
 
             item_price += custom_option_price
             total_price += item_price * quantity
