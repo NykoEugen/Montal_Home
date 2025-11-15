@@ -12,26 +12,12 @@ Health check views for the store application.
 
 
 def _healthcheck_authorized(request):
-    """
-    Allow unrestricted health checks only in DEBUG.
-
-    У продакшні приймаємо або заголовок X-Health-Check, або query token=?.
-    """
+    """Allow unrestricted health checks only in DEBUG."""
     shared_secret = getattr(settings, "HEALTHCHECK_SHARED_SECRET", "")
     if not shared_secret:
         return settings.DEBUG
-
-    header_secret = request.headers.get("X-Health-Check", "")
-    query_secret = request.GET.get("token", "")
-    path_secret = request.path.rstrip("/").split("/")[-1]
-
-    if header_secret and secrets.compare_digest(header_secret, shared_secret):
-        return True
-    if query_secret and secrets.compare_digest(query_secret, shared_secret):
-        return True
-    if path_secret and secrets.compare_digest(path_secret, shared_secret):
-        return True
-    return False
+    provided = request.headers.get("X-Health-Check", "")
+    return bool(provided) and secrets.compare_digest(provided, shared_secret)
 
 
 def health_check(request):
