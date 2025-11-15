@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
+from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -22,11 +23,27 @@ def _get_status_by_salesdrive_id(status_id: Any) -> OrderStatus | None:
 
 
 def _verify_request(request: HttpRequest) -> bool:
-    """Ensure webhook is authorized via X-Api-Key header."""
+    """
+    Ensure webhook is authorized via request metadata.
+
+    SalesDrive не дозволяє вказати кастомний заголовок, тому, окрім X-Api-Key,
+    підтримуємо `?token=<SECRET>` у URL.
+    """
     secret = getattr(settings, "SALESDRIVE_WEBHOOK_SECRET", "")
+    header_name = "X-Api-Key"
+
     if not secret:
+        # Fail closed in production but keep local DX when secret intentionally unset.
+        return settings.DEBUG
+
+    provided_header = request.headers.get(header_name, "")
+    provided_token = request.GET.get("token", "")
+
+    if provided_header and constant_time_compare(provided_header, secret):
         return True
-    return request.headers.get("X-Api-Key") == secret
+    if provided_token and constant_time_compare(provided_token, secret):
+        return True
+    return False
 
 
 def _parse_payload(body: bytes) -> Dict[str, Any]:

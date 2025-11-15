@@ -1,3 +1,4 @@
+import secrets
 import time
 
 from django.conf import settings
@@ -10,6 +11,29 @@ Health check views for the store application.
 """
 
 
+def _healthcheck_authorized(request):
+    """
+    Allow unrestricted health checks only in DEBUG.
+
+    У продакшні приймаємо або заголовок X-Health-Check, або query token=?.
+    """
+    shared_secret = getattr(settings, "HEALTHCHECK_SHARED_SECRET", "")
+    if not shared_secret:
+        return settings.DEBUG
+
+    header_secret = request.headers.get("X-Health-Check", "")
+    query_secret = request.GET.get("token", "")
+    path_secret = request.path.rstrip("/").split("/")[-1]
+
+    if header_secret and secrets.compare_digest(header_secret, shared_secret):
+        return True
+    if query_secret and secrets.compare_digest(query_secret, shared_secret):
+        return True
+    if path_secret and secrets.compare_digest(path_secret, shared_secret):
+        return True
+    return False
+
+
 def health_check(request):
     """
     Simple health check endpoint that verifies:
@@ -17,6 +41,8 @@ def health_check(request):
     - Database connection is working
     - Cache is working
     """
+    if not _healthcheck_authorized(request):
+        return JsonResponse({"status": "forbidden"}, status=403)
     health_status = {
         "status": "healthy",
         "timestamp": time.time(),
@@ -56,6 +82,8 @@ def simple_health_check(request):
     Very simple health check that just returns OK if the server is running.
     Useful for basic load balancer health checks.
     """
+    if not _healthcheck_authorized(request):
+        return JsonResponse({"status": "forbidden"}, status=403)
     return JsonResponse({"status": "ok", "timestamp": time.time()})
 
 
