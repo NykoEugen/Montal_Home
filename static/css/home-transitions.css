@@ -24,10 +24,23 @@
 .home-transition-section {
     position: relative;
     transform-style: preserve-3d;
-    will-change: transform, opacity, filter;
+    will-change: transform, opacity;
     width: 100%;
     display: flex;
     justify-content: center;
+    transition:
+        opacity 0.9s cubic-bezier(0.19, 1, 0.22, 1),
+        transform 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.home-transition-stack.is-ready .home-transition-section {
+    opacity: 0;
+    transform: translate3d(0, 90px, -40px) rotateX(-4deg);
+}
+
+.home-transition-stack.is-ready .home-transition-section.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0);
 }
 
 .home-transition-card {
@@ -129,7 +142,9 @@
 
     .home-transition-section {
         transform: none !important;
+        opacity: 1 !important;
         will-change: auto;
+        transition: none;
     }
 
     .home-transition-card {
