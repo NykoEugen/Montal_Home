@@ -12,9 +12,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const customOptionWarning = document.querySelector('[data-custom-option-warning]');
     const selectedCustomOptionInput = document.getElementById('selected-custom-option');
     const qbCustomOptionInput = document.getElementById('qb-custom-option');
+    const colorSwatches = Array.from(document.querySelectorAll('[data-color-swatch]'));
+    const selectedColorInput = document.getElementById('selected-color-id');
+    const qbColorInput = document.getElementById('qb-color-id');
+    const selectedColorLabel = document.querySelector('[data-selected-color-label]');
     
     const CHIP_ACTIVE_CLASS = 'chip--active';
     let selectedOptionPrice = 0;
+    let activeColorSwatch = null;
 
     function applyCustomOptionDefaultStyles(chip) {
         chip.classList.remove(CHIP_ACTIVE_CLASS);
@@ -78,6 +83,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return valid;
     }
+
+    function updateSelectedColorLabel(text) {
+        if (!selectedColorLabel) return;
+        selectedColorLabel.textContent = text || 'Колір не обрано';
+    }
+
+    function clearColorSelection() {
+        if (!colorSwatches.length) return;
+        colorSwatches.forEach(swatch => {
+            swatch.classList.remove('ring-2', 'ring-brown-600', 'bg-white');
+            swatch.setAttribute('aria-pressed', 'false');
+        });
+        activeColorSwatch = null;
+        if (selectedColorInput) selectedColorInput.value = '';
+        if (qbColorInput) qbColorInput.value = '';
+        updateSelectedColorLabel('Колір не обрано');
+    }
+
+    function setColorSelection(target) {
+        if (!colorSwatches.length || !target) {
+            clearColorSelection();
+            return;
+        }
+        if (activeColorSwatch === target) {
+            clearColorSelection();
+            return;
+        }
+        colorSwatches.forEach(swatch => {
+            swatch.classList.remove('ring-2', 'ring-brown-600', 'bg-white');
+            swatch.setAttribute('aria-pressed', 'false');
+        });
+        target.classList.add('ring-2', 'ring-brown-600', 'bg-white');
+        target.setAttribute('aria-pressed', 'true');
+        activeColorSwatch = target;
+        const colorId = target.dataset.colorId || '';
+        const colorName = target.dataset.colorName || '';
+        const paletteName = target.dataset.paletteName || '';
+        const label = colorName;
+        if (selectedColorInput) selectedColorInput.value = colorId;
+        if (qbColorInput) qbColorInput.value = colorId;
+        updateSelectedColorLabel(label || 'Колір не обрано');
+    }
+
+    colorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', () => setColorSelection(swatch));
+    });
 
     customOptionChips.forEach(chip => {
         applyCustomOptionDefaultStyles(chip);
@@ -227,13 +278,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (sizePrice > 0) {
                 selectedSizePrice = sizePrice;
+            } else if (originalSizePrice > 0) {
+                selectedSizePrice = originalSizePrice;
             } else {
-                selectedSizePrice = originalPrice;
+                selectedSizePrice = basePrice;
             }
             
             // Update price display using the centralized function
-            updateTotalPrice();
-            
             // Update dimensions in characteristics table
             const dimensionsValue = document.getElementById('dimensions-value');
             
@@ -469,6 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (qbFabric && fabricSelect && fabricSelect.value) qbFabric.value = fabricSelect.value;
         if (qbCustomOptionInput && selectedCustomOptionInput) {
             qbCustomOptionInput.value = selectedCustomOptionInput.value;
+        }
+        if (qbColorInput && selectedColorInput) {
+            qbColorInput.value = selectedColorInput.value || '';
         }
     }
 

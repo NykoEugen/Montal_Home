@@ -236,6 +236,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option_id = item_data.get('custom_option_id')
                     custom_option_value_session = item_data.get('custom_option_value')
                     custom_option_price_session = item_data.get('custom_option_price')
+                    color_id = item_data.get('color_id')
+                    color_name_session = item_data.get('color_name')
+                    color_palette_name_session = item_data.get('color_palette_name')
+                    color_hex_session = item_data.get('color_hex')
+                    color_image_session = item_data.get('color_image')
                 else:
                     # Legacy format - just quantity
                     quantity = item_data
@@ -245,6 +250,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option_id = None
                     custom_option_value_session = None
                     custom_option_price_session = None
+                    color_id = None
+                    color_name_session = ""
+                    color_palette_name_session = ""
+                    color_hex_session = ""
+                    color_image_session = ""
                 
                 # Calculate price based on size variant and fabric
                 size_variant = None
@@ -317,6 +327,17 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option_price = 0.0
 
                 price += custom_option_price
+                color_id_int = None
+                color_name_final = color_name_session or ""
+                color_palette_name_final = color_palette_name_session or ""
+                color_hex_final = color_hex_session or ""
+                color_image_final = color_image_session or ""
+                if color_id:
+                    try:
+                        color_id_int = int(color_id)
+                    except (TypeError, ValueError):
+                        color_id_int = None
+                color_label = color_name_final;
 
                 description_parts = []
                 if size_variant_description:
@@ -326,6 +347,8 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 if custom_option_value_final:
                     label = custom_option_name or "Опція"
                     description_parts.append(f"{label}: {custom_option_value_final}")
+                if color_label:
+                    description_parts.append(f"Колір: {color_label}")
 
                 salesdrive_product = {
                     "id": furniture.article_code or str(furniture.id),
@@ -356,6 +379,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     custom_option_name=custom_option_name,
                     custom_option_value=custom_option_value_final,
                     custom_option_price=custom_option_price or None,
+                    color_id=color_id_int,
+                    color_name=color_name_final,
+                    color_palette_name=color_palette_name_final,
+                    color_hex=color_hex_final,
+                    color_image_url=color_image_final,
                 )
 
             push_order_to_salesdrive(order, salesdrive_products, form.cleaned_data)

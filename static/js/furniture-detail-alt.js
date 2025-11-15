@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const customOptionGroup = document.querySelector('[data-custom-option-group]');
     const customOptionWarning = document.querySelector('[data-custom-option-warning]');
     const customOptionInput = document.getElementById('alt-custom-option-input');
+    const colorSwatches = Array.from(document.querySelectorAll('[data-color-swatch]'));
+    const colorInput = document.getElementById('alt-color-input');
+    const selectedColorLabel = document.querySelector('[data-selected-color-label]');
+    let activeColorSwatch = null;
     const CHIP_ACTIVE_CLASS = 'chip--active';
     let selectedOptionPrice = 0;
 
@@ -294,6 +298,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetVariantParameterCells();
 
+    function updateSelectedColorLabel(text) {
+        if (!selectedColorLabel) return;
+        selectedColorLabel.textContent = text || 'Колір не обрано';
+    }
+
+    function clearColorSelection() {
+        if (!colorSwatches.length) return;
+        colorSwatches.forEach(swatch => {
+            swatch.classList.remove('ring-2', 'ring-brown-600', 'bg-white');
+            swatch.setAttribute('aria-pressed', 'false');
+        });
+        activeColorSwatch = null;
+        if (colorInput) colorInput.value = '';
+        updateSelectedColorLabel('Колір не обрано');
+    }
+
+    function setColorSelection(target) {
+        if (!colorSwatches.length || !target) {
+            clearColorSelection();
+            return;
+        }
+        if (activeColorSwatch === target) {
+            clearColorSelection();
+            return;
+        }
+        colorSwatches.forEach(swatch => {
+            swatch.classList.remove('ring-2', 'ring-brown-600', 'bg-white');
+            swatch.setAttribute('aria-pressed', 'false');
+        });
+        target.classList.add('ring-2', 'ring-brown-600', 'bg-white');
+        target.setAttribute('aria-pressed', 'true');
+        activeColorSwatch = target;
+        const colorId = target.dataset.colorId || '';
+        const colorName = target.dataset.colorName || '';
+        const paletteName = target.dataset.paletteName || '';
+        const label = colorName;
+        if (colorInput) colorInput.value = colorId;
+        updateSelectedColorLabel(label || 'Колір не обрано');
+    }
+
+    colorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', () => setColorSelection(swatch));
+    });
+
     function resetVariantParameterCells(exceptKey = null) {
         if (!parameterCells.size) {
             return;
@@ -492,16 +540,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const paramKey = b.getAttribute('data-param-key');
         const paramValue = b.getAttribute('data-param-value');
 
-
-        
-        selectedPrice = currentPrice > 0 ? currentPrice : basePrice;
+        const effectivePrice = currentPrice > 0 ? currentPrice : basePrice;
+        selectedPrice = effectivePrice;
         applyVariantParameter(paramKey, paramValue);
 
         // Update price display to show promotional pricing
         if (priceEl) {
-            if (isOnSale && originalPrice > currentPrice) {
+            if (isOnSale && originalPrice > effectivePrice && originalPrice > 0) {
                 // Show promotional price and original price
-                priceEl.textContent = Math.round(currentPrice) + ' грн';
+                priceEl.textContent = Math.round(effectivePrice) + ' грн';
                 priceEl.className = 'text-3xl text-red-600 font-semibold';
                 
                 if (origEl) {
@@ -511,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 // Show regular price
-                priceEl.textContent = Math.round(currentPrice) + ' грн';
+                priceEl.textContent = Math.round(effectivePrice) + ' грн';
                 priceEl.className = 'text-3xl text-brown-800 font-semibold';
                 
                 if (origEl) {

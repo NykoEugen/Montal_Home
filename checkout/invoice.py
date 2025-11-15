@@ -214,6 +214,8 @@ def _build_document(order: Order, font_name: str) -> bytes:
             name_parts.append(f"Варіант: {item.variant_image_display}")
         if item.fabric_category_display:
             name_parts.append(f"Тканина: {item.fabric_category_display}")
+        if item.color_display:
+            name_parts.append(f"Колір: {item.color_display}")
         item_name = "; ".join(name_parts)
 
         table_data.append(
