@@ -6,16 +6,22 @@ from sub_categories.models import SubCategory
 
 
 TARGET_SUBCATEGORIES = [
-    "Полиці",
+    "Полиці (Антресоль)",
     "Тумби",
-    "Пенал",
-    "Комод",
+    "Пенали",
+    "Комоди",
     "Столи",
     "Подіуми",
     "Шафи",
     "Ергономічні елементи",
     "Модульні системи",
 ]
+
+LEGACY_NAME_ALIASES = {
+    "Полиці (Антресоль)": ["Полиці"],
+    "Пенали": ["Пенал"],
+    "Комоди": ["Комод"],
+}
 
 
 class Command(BaseCommand):
@@ -31,17 +37,24 @@ class Command(BaseCommand):
 
         for name in TARGET_SUBCATEGORIES:
             slug = self._generate_unique_slug(name)
-            sub_category, was_created = SubCategory.objects.get_or_create(
-                name=name,
-                defaults={
-                    "slug": slug,
-                    "category": category,
-                },
-            )
+            sub_category = self._find_existing_subcategory(name)
+            if sub_category:
+                was_created = False
+            else:
+                sub_category, was_created = SubCategory.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        "slug": slug,
+                        "category": category,
+                    },
+                )
             if was_created:
                 created += 1
             else:
                 changed = False
+                if sub_category.name != name:
+                    sub_category.name = name
+                    changed = True
                 if sub_category.category_id != category.id:
                     sub_category.category = category
                     changed = True
@@ -57,6 +70,16 @@ class Command(BaseCommand):
                 f"Готово. Створено: {created}, оновлено: {updated}, всього: {len(TARGET_SUBCATEGORIES)}"
             )
         )
+
+    def _find_existing_subcategory(self, target_name: str):
+        sub_category = SubCategory.objects.filter(name__iexact=target_name).first()
+        if sub_category:
+            return sub_category
+        for legacy_name in LEGACY_NAME_ALIASES.get(target_name, []):
+            legacy = SubCategory.objects.filter(name__iexact=legacy_name).first()
+            if legacy:
+                return legacy
+        return None
 
     def _generate_unique_slug(self, name: str) -> str:
         base_slug = slugify(name) or "subcategory"
