@@ -1,6 +1,7 @@
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.templatetags.static import static
 from django.urls import resolve
@@ -26,6 +27,11 @@ def cart_count(request: HttpRequest) -> dict:
 
 
 def breadcrumbs(request):
+    cache_key = f"breadcrumbs::{request.path}"
+    cached = cache.get(cache_key)
+    if cached:
+        return {"breadcrumbs": cached}
+
     breadcrumbs = [{"name": "Головна", "url": "/"}]
 
     # Отримуємо поточний шлях і назву view
@@ -101,6 +107,7 @@ def breadcrumbs(request):
     elif view_name == "shop:order_history":
         breadcrumbs.append({"name": "Історія замовлень", "url": "/order-history/"})
 
+    cache.set(cache_key, breadcrumbs, 300)
     return {"breadcrumbs": breadcrumbs}
 
 
@@ -156,6 +163,11 @@ def seo_defaults(request: HttpRequest) -> dict:
 
 def seasonal_pack(request: HttpRequest) -> dict:
     """Expose whether seasonal decorations are enabled from admin settings."""
+    cache_key = "seasonal_pack_settings"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     enabled = False
     pack_name = ""
     try:
@@ -163,10 +175,12 @@ def seasonal_pack(request: HttpRequest) -> dict:
         enabled = settings_obj.is_enabled
         pack_name = settings_obj.name
     except (OperationalError, ProgrammingError):
-        # Database might be unavailable during migrations; fall back to disabled state.
         enabled = False
         pack_name = ""
-    return {
+
+    data = {
         "seasonal_pack_enabled": enabled,
         "seasonal_pack_name": pack_name,
     }
+    cache.set(cache_key, data, 300)
+    return data

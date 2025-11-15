@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q
@@ -25,28 +26,54 @@ from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
 from store.settings import ITEMS_PER_PAGE
 
+PROMOTIONAL_CACHE_TIMEOUT = 180
+
 
 def fetch_active_promotional_furniture():
     """Return queryset with all active promotional furniture records."""
-    now = timezone.now()
-    return (
-        Furniture.objects.filter(
-            (
-                Q(is_promotional=True, promotional_price__isnull=False)
-                & (Q(sale_end_date__isnull=True) | Q(sale_end_date__gt=now))
-            )
-            |
-            (
-                Q(size_variants__is_promotional=True, size_variants__promotional_price__isnull=False)
-                & (
-                    Q(size_variants__sale_end_date__isnull=True)
-                    | Q(size_variants__sale_end_date__gt=now)
+    cache_key = "promotional_furniture_ids"
+    promotional_ids = cache.get(cache_key)
+
+    if promotional_ids is None:
+        now = timezone.now()
+        promotional_ids = list(
+            Furniture.objects.filter(
+                (
+                    Q(is_promotional=True, promotional_price__isnull=False)
+                    & (Q(sale_end_date__isnull=True) | Q(sale_end_date__gt=now))
+                )
+                |
+                (
+                    Q(size_variants__is_promotional=True, size_variants__promotional_price__isnull=False)
+                    & (
+                        Q(size_variants__sale_end_date__isnull=True)
+                        | Q(size_variants__sale_end_date__gt=now)
+                    )
                 )
             )
+            .order_by("-updated_at")
+            .distinct()
+            .values_list("id", flat=True)
         )
+        cache.set(cache_key, promotional_ids, PROMOTIONAL_CACHE_TIMEOUT)
+
+    if not promotional_ids:
+        return Furniture.objects.none()
+
+    order_expression = models.Case(
+        *[
+            models.When(pk=pk, then=pos)
+            for pos, pk in enumerate(promotional_ids)
+        ],
+        output_field=models.IntegerField(),
+    )
+
+    return (
+        Furniture.objects.filter(id__in=promotional_ids)
         .select_related("sub_category__category")
         .prefetch_related("size_variants")
-        .distinct()
+        .annotate(_promotional_order=order_expression)
+        .order_by("_promotional_order")
     )
 
 
