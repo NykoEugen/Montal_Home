@@ -316,6 +316,13 @@ python manage.py ensure_mattress_subcategories     # Створити підка
     --feed-file matro-matras.xml \
     --profile mattresses
   ```
+- Імпорт стільців із фіда Vetro:
+  ```bash
+  python manage.py ensure_chair_subcategories
+  python manage.py import_supplier_furniture \
+    --feed-file r_feed.xml \
+    --profile chairs
+  ```
 - Відкрити `https://<домен>/custom-admin/` → **Supplier Feeds** та використати кнопки “Test parse” / “Update prices” для конфігурації “Matroluxe — корпусні меблі” (доступно також у стандартній Django адмінці).
 
 Парсер використовує артикул `<model>` (та, за потреби, назву) для пошуку товару, оновлює ціни й повторно не завантажує медіафайли, якщо вони вже є на диску.
