@@ -109,6 +109,8 @@ SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 HEALTHCHECK_SHARED_SECRET = os.getenv("HEALTHCHECK_SHARED_SECRET", "")
+REDIS_URL = os.getenv("REDIS_URL")
+REDIS_SSL_CERT_REQS = os.getenv("REDIS_SSL_CERT_REQS", "required")
 
 # --- Third-party integrations ---
 SALESDRIVE_API_KEY = os.getenv("SALASEDRIVE_API", "")
@@ -335,6 +337,25 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
+
+if REDIS_URL:
+    redis_options = {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "IGNORE_EXCEPTIONS": True,  # Failover to DB/LocMem if Redis unavailable
+    }
+    if REDIS_URL.startswith("rediss://"):
+        redis_options["SSL"] = True
+        redis_options["SSL_CERT_REQS"] = REDIS_SSL_CERT_REQS
+
+    CACHES["default"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "TIMEOUT": int(os.getenv("REDIS_CACHE_TIMEOUT", "600")),
+        "OPTIONS": redis_options,
+    }
+
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
 
 # Enhanced logging configuration for connection monitoring
 # Production-friendly logging (console only for Heroku)
