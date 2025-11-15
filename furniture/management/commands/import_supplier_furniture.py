@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
+from PIL import Image, UnidentifiedImageError
 
 from categories.models import Category
 from furniture.models import Furniture, FurnitureVariantImage, FurnitureSizeVariant, FurnitureImage
@@ -78,6 +79,12 @@ CATALOG_PROFILES = {
         "skip_parameters": set(),
         "use_offer_size_variants": False,
         "color_variants_enabled": True,
+        "name_field": None,
+        "description_field": "description",
+        "variant_param_fields": [],
+        "base_color_param": None,
+        "category_map": {},
+        "group_by_name": False,
     },
     "mattresses": {
         "category_name": "Матраци",
@@ -120,6 +127,71 @@ CATALOG_PROFILES = {
         "skip_parameters": set(),
         "use_offer_size_variants": True,
         "color_variants_enabled": False,
+        "name_field": None,
+        "description_field": "description",
+        "variant_param_fields": [],
+        "base_color_param": None,
+        "category_map": {},
+        "group_by_name": False,
+    },
+    "chairs": {
+        "category_name": "Стільці",
+        "feed_categories": ("Стільці", "Обідні стільці", "Обідні крісла"),
+        "category_ids": ("79", "98", "93", "102", "103", "104", "80", "94", "97", "87"),
+        "subcategories": [
+            "Обідні стільці",
+            "Напівбарні",
+            "Барні",
+            "Крісла",
+            "М'які крісла",
+        ],
+        "keywords": [],
+        "default_subcategory": "Обідні стільці",
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
+        "name_field": "name_ua",
+        "description_field": "description_ua",
+        "variant_param_fields": ["Колір", "Матеріал оббивки"],
+        "base_color_param": "Колір",
+        "category_map": {
+            "79": "Обідні стільці",
+            "98": "Обідні стільці",
+            "102": "Обідні стільці",
+            "103": "Обідні стільці",
+            "104": "Обідні стільці",
+            "93": "Обідні стільці",
+            "80": "Крісла",
+            "94": "М'які крісла",
+            "97": "Барні",
+            "87": "Напівбарні",
+        },
+        "group_by_name": True,
+    },
+    "tables": {
+        "category_name": "Столи",
+        "feed_categories": ("Столи обідні", "Журнальні столи", "Столи", "Столи кавові"),
+        "category_ids": ("77", "78", "101", "108"),
+        "subcategories": [
+            "Кухонні столи",
+            "Журнальні столи",
+        ],
+        "keywords": [],
+        "default_subcategory": "Кухонні столи",
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
+        "name_field": "name_ua",
+        "description_field": "description_ua",
+        "variant_param_fields": ["Колір", "Матеріал стільниці"],
+        "base_color_param": "Колір",
+        "category_map": {
+            "77": "Кухонні столи",
+            "101": "Кухонні столи",
+            "78": "Журнальні столи",
+            "108": "Журнальні столи",
+        },
+        "group_by_name": True,
     },
 }
 
@@ -147,6 +219,37 @@ NAME_REPLACEMENTS = [
     ("Модульная система", "Модульна система"),
     ("модульная система", "модульна система"),
 ]
+
+NAME_NORMALIZATION_MAP = {
+    "а": "a",
+    "a": "a",
+    "о": "o",
+    "o": "o",
+    "с": "c",
+    "c": "c",
+    "р": "p",
+    "p": "p",
+    "х": "x",
+    "x": "x",
+    "к": "k",
+    "k": "k",
+    "в": "v",
+    "b": "b",
+    "е": "e",
+    "e": "e",
+    "н": "n",
+    "h": "h",
+    "м": "m",
+    "m": "m",
+    "т": "t",
+    "t": "t",
+    "і": "i",
+    "i": "i",
+    "ї": "i",
+    "й": "i",
+    "y": "y",
+    "у": "u",
+}
 
 CYRILLIC_MAP = {
     "а": "a",
@@ -194,6 +297,7 @@ class FeedOffer:
     offer_id: str
     raw_name: str
     base_name: str
+    normalized_name: str
     article_code: str
     group_id: Optional[str]
     description: str
@@ -206,7 +310,7 @@ class FeedOffer:
 
     @property
     def color_name(self) -> Optional[str]:
-        value = self.params.get(COLOR_PARAM_NAME)
+        value = self.params.get(COLOR_PARAM_NAME) or self.params.get("Колір")
         return value.strip() if value else None
 
 
@@ -327,6 +431,14 @@ class Command(BaseCommand):
         self.skip_parameter_names = SKIP_PARAMETER_NAMES | set(self.profile.get("skip_parameters", []))
         self.use_offer_size_variants = self.profile.get("use_offer_size_variants", False)
         self.color_variants_enabled = self.profile.get("color_variants_enabled", True)
+        self.name_field = self.profile.get("name_field")
+        self.description_field = self.profile.get("description_field", "description")
+        self.variant_param_fields = self.profile.get("variant_param_fields", [])
+        self.base_color_param = self.profile.get("base_color_param")
+        self.category_map = {
+            str(key): value for key, value in (self.profile.get("category_map") or {}).items()
+        }
+        self.group_by_name = self.profile.get("group_by_name", False)
 
         categories = tuple(options.get("categories") or self.profile["feed_categories"])
         limit = options.get("limit")
@@ -404,11 +516,19 @@ class Command(BaseCommand):
                 continue
 
             self._register_subcategory(sub_category)
-            key = (offer.base_name, offer.article_code, sub_category.id)
+            if self.group_by_name:
+                key = (offer.normalized_name, sub_category.id)
+            else:
+                key = (offer.base_name, offer.article_code, sub_category.id)
             grouped_offers.setdefault(key, []).append(offer)
 
         for idx, (group_key, variants) in enumerate(grouped_offers.items(), start=1):
-            base_name, article_code, sub_category_id = group_key
+            if self.group_by_name:
+                normalized_name, sub_category_id = group_key
+                canonical_article = variants[0].article_code
+                base_name = variants[0].base_name
+            else:
+                base_name, canonical_article, sub_category_id = group_key
             sub_category = self.subcategory_cache_by_id.get(sub_category_id)
             if not sub_category:
                 sub_category = SubCategory.objects.get(id=sub_category_id)
@@ -417,7 +537,7 @@ class Command(BaseCommand):
             if idx % 10 == 1 or len(grouped_offers) <= 10:
                 self.stdout.write(
                     f"[{idx}/{len(grouped_offers)}] Обробка '{base_name}' "
-                    f"({article_code}) — варіантів: {len(variants)}"
+                    f"({canonical_article}) — варіантів: {len(variants)}"
                 )
 
             furniture, created = self._get_or_create_furniture(
@@ -563,12 +683,25 @@ class Command(BaseCommand):
 
     def _parse_offer_element(self, offer_el: ET.Element, category_id: str) -> Optional[FeedOffer]:
         offer_id = offer_el.get("id") or str(uuid.uuid4())
-        name = _apply_name_replacements((offer_el.findtext("name") or "").strip())
-        model = (offer_el.findtext("model") or "").strip()
+        base_name_value = _apply_name_replacements((offer_el.findtext("name") or "").strip())
+        if self.name_field:
+            localized = _apply_name_replacements((offer_el.findtext(self.name_field) or "").strip())
+            if localized:
+                base_name_value = localized
+        model = (
+            offer_el.findtext("model")
+            or offer_el.findtext("vendorCode")
+            or offer_el.findtext("article")
+            or ""
+        ).strip()
         group_id = offer_el.get("group_id")
         price = self._parse_decimal(offer_el.findtext("price"))
         old_price = self._parse_decimal(offer_el.findtext("oldprice"))
-        description = (offer_el.findtext("description") or "").strip()
+        description = (
+            offer_el.findtext(self.description_field)
+            or offer_el.findtext("description")
+            or ""
+        ).strip()
         available = (offer_el.get("available") or "true").lower() == "true"
 
         params: Dict[str, str] = {}
@@ -580,22 +713,36 @@ class Command(BaseCommand):
 
         picture_urls = [pic.text.strip() for pic in offer_el.findall("picture") if pic.text]
 
-        base_name = self._extract_base_name(name)
+        variant_hints: List[str] = []
+        if self.base_color_param:
+            value = params.get(self.base_color_param)
+            if value:
+                variant_hints.append(value)
+        for field in self.variant_param_fields:
+            if field == self.base_color_param:
+                continue
+            value = params.get(field)
+            if value:
+                variant_hints.append(value)
+
+        base_name = self._extract_base_name(base_name_value, hints=variant_hints)
+        normalized_name = self._normalize_grouping_name(base_name)
         article_code = self._extract_article_code(model)
 
         if not base_name or not article_code:
             logger.warning(
                 "Пропозиція %s пропущена: відсутня назва або артикул (name=%s, model=%s)",
                 offer_id,
-                name,
+                base_name_value,
                 model,
             )
             return None
 
         return FeedOffer(
             offer_id=offer_id,
-            raw_name=name,
+            raw_name=base_name_value,
             base_name=base_name,
+            normalized_name=normalized_name,
             article_code=article_code,
             group_id=group_id,
             description=description,
@@ -608,10 +755,28 @@ class Command(BaseCommand):
         )
 
     @staticmethod
-    def _extract_base_name(raw_name: str) -> str:
+    def _extract_base_name(raw_name: str, hints: Optional[List[str]] = None) -> str:
         if not raw_name:
             return ""
-        return _apply_name_replacements(raw_name.split(",")[0].strip())
+        name = raw_name.split(",")[0].strip()
+        if hints:
+            for hint in hints:
+                hint_value = (hint or "").strip()
+                if not hint_value:
+                    continue
+                hint_lower = hint_value.lower()
+                while True:
+                    lowered = name.lower()
+                    idx = lowered.rfind(hint_lower)
+                    if idx == -1:
+                        break
+                    before = name[:idx].rstrip(" -/,")
+                    after_idx = idx + len(hint_lower)
+                    name = (before + name[after_idx:]).strip()
+        # Remove trailing connectors like "+ ..." or "/ ..."
+        name = re.split(r"\s+[+/]\s+|\s+\+\s*$", name)[0].strip()
+        name = name.rstrip("+-/, ")
+        return _apply_name_replacements(name)
 
     @staticmethod
     def _extract_article_code(raw_model: str) -> str:
@@ -738,6 +903,12 @@ class Command(BaseCommand):
         group_cache: Dict[str, str],
         category_overrides: Dict[str, SubCategory],
     ) -> Optional[SubCategory]:
+        mapped_by_id = self.category_map.get(offer.category_id)
+        if mapped_by_id:
+            sub_category = self.target_subcategories.get(mapped_by_id)
+            if sub_category:
+                return sub_category
+
         name_lower = offer.raw_name.lower()
         matched_name = self._match_subcategory_keyword(name_lower)
         if matched_name:
@@ -769,13 +940,34 @@ class Command(BaseCommand):
                 return subcat_name
         return None
 
+    def _normalize_grouping_name(self, value: str) -> str:
+        if not value:
+            return ""
+        result_chars: List[str] = []
+        for ch in value.lower():
+            result_chars.append(NAME_NORMALIZATION_MAP.get(ch, ch))
+        normalized = "".join(result_chars)
+        normalized = re.sub(r"[^a-z0-9а-яіїєґ ]+", " ", normalized)
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
     def _get_or_create_furniture(
         self,
         offer: FeedOffer,
         sub_category: SubCategory,
         dry_run: bool = False,
     ) -> Tuple[Optional[Furniture], bool]:
-        existing = Furniture.objects.filter(article_code=offer.article_code).first()
+        existing = None
+        if self.group_by_name:
+            existing = (
+                Furniture.objects.filter(sub_category=sub_category, name__iexact=offer.base_name)
+                .order_by("id")
+                .first()
+            )
+            if not existing:
+                existing = self._find_existing_by_normalized(sub_category, offer.normalized_name)
+        if not existing:
+            existing = Furniture.objects.filter(article_code=offer.article_code).first()
         if existing:
             self.stdout.write(
                 f"Скипнуто існуючий товар '{existing.name}' ({existing.article_code})"
@@ -911,7 +1103,7 @@ class Command(BaseCommand):
     ) -> int:
         created = 0
         for index, offer in enumerate(offers):
-            color_name = offer.color_name or ("Колір " + str(index + 1))
+            color_name = self._build_variant_name(offer, index)
             defaults = {
                 "stock_status": "in_stock" if offer.available else "on_order",
                 "is_default": index == 0,
@@ -940,10 +1132,27 @@ class Command(BaseCommand):
                 if cache_path:
                     variant.image.name = cache_path
                     variant.save(update_fields=["image"])
+                    self._attach_variant_image_to_gallery(furniture, cache_path, color_name, index)
             if index == 0 and not furniture.image and variant.image:
                 furniture.image.name = variant.image.name
                 furniture.save(update_fields=["image"])
         return created
+
+    def _build_variant_name(self, offer: FeedOffer, index: int) -> str:
+        if self.base_color_param:
+            color_value = offer.params.get(self.base_color_param)
+            if color_value:
+                return color_value.strip()
+        parts: List[str] = []
+        for field in self.variant_param_fields:
+            value = offer.params.get(field)
+            if value:
+                parts.append(value.strip())
+        if parts:
+            return " ".join(parts).strip()
+        if offer.color_name:
+            return offer.color_name
+        return f"Колір {index + 1}"
 
     def _sync_offer_size_variants(
         self,
@@ -1158,6 +1367,13 @@ class Command(BaseCommand):
             return None
         return record.value
 
+    def _find_existing_by_normalized(self, sub_category: SubCategory, normalized_name: str) -> Optional[Furniture]:
+        candidates = Furniture.objects.filter(sub_category=sub_category).only("id", "name")
+        for candidate in candidates:
+            if self._normalize_grouping_name(candidate.name) == normalized_name:
+                return Furniture.objects.get(pk=candidate.pk)
+        return None
+
     def _create_size_variant(
         self,
         furniture: Furniture,
@@ -1257,8 +1473,10 @@ class Command(BaseCommand):
         headers = {
             "User-Agent": USER_AGENT,
             "Accept": "image/*,*/*;q=0.8",
-            "Referer": url,
         }
+        referer = self._build_safe_referer(url)
+        if referer:
+            headers["Referer"] = referer
         try:
             response = self.http.get(url, headers=headers, timeout=60)
             response.raise_for_status()
@@ -1276,6 +1494,9 @@ class Command(BaseCommand):
         image_content = self._fetch_image(url)
         if not image_content:
             return None
+        if not self._is_valid_image_file(image_content):
+            logger.warning("Пропущено некоректне зображення %s", url)
+            return None
         default_storage.save(cache_path, image_content)
         return cache_path
 
@@ -1287,6 +1508,46 @@ class Command(BaseCommand):
             ext = ".jpg"
         digest = hashlib.sha1(url.encode("utf-8")).hexdigest()
         return f"{IMAGE_CACHE_DIR}/{digest}{ext}"
+
+    def _build_safe_referer(self, url: str) -> Optional[str]:
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            return None
+        if not parsed.scheme or not parsed.netloc:
+            return None
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    def _is_valid_image_file(self, content: ContentFile) -> bool:
+        try:
+            content.seek(0)
+            with Image.open(content) as img:
+                img.verify()
+            content.seek(0)
+            return True
+        except (UnidentifiedImageError, OSError):
+            return False
+        except Exception:
+            content.seek(0)
+            return False
+
+    def _attach_variant_image_to_gallery(
+        self,
+        furniture: Furniture,
+        cache_path: str,
+        color_name: str,
+        index: int,
+    ) -> None:
+        existing = FurnitureImage.objects.filter(furniture=furniture, image=cache_path).exists()
+        if existing:
+            return
+        gallery_image = FurnitureImage(
+            furniture=furniture,
+            alt_text=f"{furniture.name} — колір {color_name}",
+            position=furniture.images.count() + index,
+        )
+        gallery_image.image.name = cache_path
+        gallery_image.save()
 
     def _build_http_session(self) -> requests.Session:
         session = requests.Session()
