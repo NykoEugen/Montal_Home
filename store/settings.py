@@ -35,7 +35,7 @@ except KeyError:
     )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 INTERNAL_IPS = ["127.0.0.1"]
@@ -108,13 +108,22 @@ WSGI_APPLICATION = "store.wsgi.application"
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
+HEALTHCHECK_SHARED_SECRET = os.getenv("HEALTHCHECK_SHARED_SECRET", "")
 
 # --- Third-party integrations ---
 SALESDRIVE_API_KEY = os.getenv("SALASEDRIVE_API", "")
 SALESDRIVE_API_ENDPOINT = os.getenv(
     "SALESDRIVE_API_ENDPOINT", "https://montal.salesdrive.me/handler/"
 )
-SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET", SALESDRIVE_API_KEY)
+SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET")
+
+if not SALESDRIVE_WEBHOOK_SECRET:
+    if DEBUG:
+        SALESDRIVE_WEBHOOK_SECRET = "dev-salesdrive-webhook-secret"
+    else:
+        raise RuntimeError(
+            "SALESDRIVE_WEBHOOK_SECRET must be set for production environments."
+        )
 
 # --- LiqPay configuration ---
 LIQPAY_PUBLIC_KEY = os.getenv("LIQPAY_PUB_KEY", "")
