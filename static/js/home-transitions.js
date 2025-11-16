@@ -10,17 +10,26 @@
     }
 
     const clamp = (min, max, value) => Math.min(max, Math.max(min, value));
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-    const isCoarsePointer = window.matchMedia('(pointer:coarse)').matches;
+    const supportsMatchMedia = typeof window.matchMedia === 'function';
+    const media = (query, fallback = false) => supportsMatchMedia
+        ? window.matchMedia(query).matches
+        : fallback;
+    const supportsIntersectionObserver = typeof window.IntersectionObserver === 'function';
+    const hasPointerEvents = 'PointerEvent' in window;
+    const prefersReducedMotion = media('(prefers-reduced-motion: reduce)');
+    const isSmallScreen = media('(max-width: 768px)');
+    const isCoarsePointer = media('(pointer:coarse)', true);
 
     const setActive = (target) => {
         sections.forEach((section) => section.classList.toggle('is-active', section === target));
     };
 
-    if (prefersReducedMotion || isSmallScreen) {
-        sections.forEach((section, index) => section.classList.toggle('is-active', index === 0));
-        sections.forEach((section) => section.classList.add('is-visible'));
+    if (prefersReducedMotion || isSmallScreen || !supportsIntersectionObserver) {
+        stack.classList.add('is-ready');
+        sections.forEach((section, index) => {
+            section.classList.add('is-visible');
+            section.classList.toggle('is-active', index === 0);
+        });
         return;
     }
 
@@ -80,7 +89,8 @@
                 stack.style.setProperty('--home-perspective-x', `${x}%`);
 
                 if (isDragging) {
-                    const tilt = clamp(-4, 4, (event.movementY / window.innerHeight) * 24);
+                    const movementY = typeof event.movementY === 'number' ? event.movementY : 0;
+                    const tilt = clamp(-4, 4, (movementY / window.innerHeight) * 24);
                     stack.style.setProperty('--section-tilt', `${tilt}deg`);
                 }
             });
@@ -90,17 +100,22 @@
             stack.style.setProperty('--section-tilt', '0deg');
         };
 
-        window.addEventListener('pointermove', updatePointer, { passive: true });
-        window.addEventListener('pointerdown', () => {
+        const moveEvent = hasPointerEvents ? 'pointermove' : 'mousemove';
+        const downEvent = hasPointerEvents ? 'pointerdown' : 'mousedown';
+        const upEvent = hasPointerEvents ? 'pointerup' : 'mouseup';
+        const leaveEvent = hasPointerEvents ? 'pointerleave' : 'mouseleave';
+
+        window.addEventListener(moveEvent, updatePointer, { passive: true });
+        window.addEventListener(downEvent, () => {
             isDragging = true;
             stack.classList.add('home-transition-dragging');
         });
-        window.addEventListener('pointerup', () => {
+        window.addEventListener(upEvent, () => {
             isDragging = false;
             stack.classList.remove('home-transition-dragging');
             resetTilt();
         });
-        window.addEventListener('pointerleave', () => {
+        window.addEventListener(leaveEvent, () => {
             isDragging = false;
             stack.classList.remove('home-transition-dragging');
             resetTilt();
