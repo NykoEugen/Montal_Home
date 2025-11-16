@@ -48,6 +48,15 @@ DEBUG=True
 ALLOWED_HOSTS=127.0.0.1,localhost
 NOVA_POSHTA_API_KEY=your_novaposhta_api_key
 DATABASE_URL=postgresql://user:password@localhost:5432/montal_home
+# Redis (optional for local dev)
+# REDIS_URL=redis://127.0.0.1:6379/0
+
+# Static CDN (production)
+# USE_CDN_STATIC=True
+# STATIC_CDN_URL=https://cdn.montal.com.ua/static/
+# STATIC_CDN_DOMAIN=cdn.montal.com.ua
+# STATICFILES_BUCKET_NAME=montal-home-static
+# STATICFILES_LOCATION=static
 ```
 
 #### LiqPay sandbox keys
@@ -77,6 +86,24 @@ make run
 ```
 
 The application will be available at http://localhost:8000
+
+### Static assets via R2 + BunnyCDN
+
+1. **Create a separate bucket/folder** in Cloudflare R2 (e.g. `montal-home-static`) and map it to your Bunny pull zone (`cdn.montal.com.ua`).  
+2. **Set production env vars**:
+   ```
+   USE_CDN_STATIC=True
+   STATIC_CDN_URL=https://cdn.montal.com.ua/static/
+   STATIC_CDN_DOMAIN=cdn.montal.com.ua
+   STATICFILES_BUCKET_NAME=montal-home-static   # optional, defaults to AWS_STORAGE_BUCKET_NAME
+   STATICFILES_LOCATION=static                  # folder inside the bucket
+   ```
+3. **Deploy flow**:
+   ```bash
+   python manage.py collectstatic --noinput
+   ```
+   Django uploads hashed assets directly to R2 via the new `R2StaticStorage`. Bunny pulls them from R2 automatically.  
+4. **Local development**: omit `USE_CDN_STATIC` to keep the default `/static/` path served by WhiteNoise.
 
 ## 📁 Project Structure
 

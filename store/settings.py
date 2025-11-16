@@ -225,12 +225,21 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-# --- Статика (WhiteNoise) ---
-STATIC_URL = "/static/"
+# --- Статика ---
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [ BASE_DIR / "static" ]
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_LOCATION = os.getenv("STATICFILES_LOCATION", "static")
+STATICFILES_BUCKET_NAME = os.getenv(
+    "STATICFILES_BUCKET_NAME", os.getenv("AWS_STORAGE_BUCKET_NAME")
+)
+STATIC_CDN_URL = os.getenv("STATIC_CDN_URL")
+STATIC_CDN_DOMAIN = os.getenv("STATIC_CDN_DOMAIN")
+USE_CDN_STATIC = os.getenv("USE_CDN_STATIC", "false").lower() == "true"
 
-# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+if USE_CDN_STATIC and STATIC_CDN_URL:
+    STATIC_URL = STATIC_CDN_URL.rstrip("/") + "/"
+else:
+    STATIC_URL = os.getenv("STATIC_URL", "/static/")
 
 
 # MEDIA_URL = "/media/"
@@ -275,10 +284,16 @@ STORAGES = {
     "default": {
         "BACKEND": "utils.storage_backends.R2MediaStorage",
     },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
 }
+
+if USE_CDN_STATIC and STATIC_CDN_URL:
+    STORAGES["staticfiles"] = {
+        "BACKEND": "utils.storage_backends.R2StaticStorage",
+    }
+else:
+    STORAGES["staticfiles"] = {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
 # ------------------
 
 # Responsive image generation defaults
