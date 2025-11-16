@@ -14,9 +14,9 @@
     --red-600: #dc2626;
     --orange-500: #f97316;
     --green-500: #10b981;
-    --page-padding-inline-mobile: 0.85rem;
-    --page-padding-inline-tablet: 1.25rem;
-    --page-padding-inline-desktop: 1.75rem;
+    --page-padding-inline-mobile: 0.5rem;
+    --page-padding-inline-tablet: 1rem;
+    --page-padding-inline-desktop: 1.5rem;
 }
 
 html,

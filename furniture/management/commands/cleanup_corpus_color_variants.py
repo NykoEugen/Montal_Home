@@ -28,7 +28,13 @@ class Command(BaseCommand):
         parser.add_argument(
             "--category",
             default="Корпусні меблі",
-            help="Назва категорії, для якої застосовуються зміни.",
+            help="Назва категорії, для якої застосовуються зміни. Використайте 'all' для всього каталогу.",
+        )
+        parser.add_argument(
+            "--sub-categories",
+            nargs="+",
+            default=None,
+            help="Додатково обмежити перелік меблів підкатегоріями (наприклад: \"Комп'ютерні столи\" \"Журнальні столи\").",
         )
         parser.add_argument(
             "--palette-16",
@@ -53,17 +59,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         category_name: str = options["category"]
+        subcategory_names: list[str] | None = options["sub_categories"]
         dry_run: bool = options["dry_run"]
         verbose: bool = options["verbose"]
 
-        category = Category.objects.filter(name__iexact=category_name).first()
-        if category is None:
-            raise CommandError(f"Категорію '{category_name}' не знайдено.")
+        furniture_qs = Furniture.objects.all()
+        category = None
 
-        furniture_qs = (
-            Furniture.objects.filter(sub_category__category=category)
-            .select_related("sub_category", "sub_category__category")
-            .prefetch_related("color_palettes", "variant_images")
+        if category_name and category_name.lower() != "all":
+            category = Category.objects.filter(name__iexact=category_name).first()
+            if category is None:
+                raise CommandError(f"Категорію '{category_name}' не знайдено.")
+            furniture_qs = furniture_qs.filter(sub_category__category=category)
+
+        if subcategory_names:
+            furniture_qs = furniture_qs.filter(sub_category__name__in=subcategory_names)
+
+        furniture_qs = furniture_qs.select_related("sub_category", "sub_category__category").prefetch_related(
+            "color_palettes", "variant_images"
         )
 
         if not furniture_qs.exists():
@@ -72,7 +85,14 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.NOTICE(
-                f"Опрацьовуємо {furniture_qs.count()} товарів у категорії '{category.name}'."
+                "Опрацьовуємо {count} товарів{scope}.".format(
+                    count=furniture_qs.count(),
+                    scope=(
+                        f" у категорії '{category.name}'"
+                        if category
+                        else (" у підкатегоріях: " + ", ".join(subcategory_names) if subcategory_names else " у каталозі")
+                    ),
+                )
             )
         )
 
