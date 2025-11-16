@@ -106,6 +106,7 @@ class HomeView(ListView):
     def get_context_data(self, **kwargs):
         """Add additional context data."""
         context = super().get_context_data(**kwargs)
+        promotional_items, has_more_promotions = self._get_promotional_furniture()
         context.update(
             {
                 # Show only categories that have subcategories with at least one furniture item
@@ -114,7 +115,8 @@ class HomeView(ListView):
                 ).distinct(),
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
-                "promotional_furniture": self._get_promotional_furniture(),
+                "promotional_furniture": promotional_items,
+                "has_more_promotional_furniture": has_more_promotions,
                 "meta_title": "Montal Home — інтернет-магазин меблів та декору",
                 "meta_description": (
                     "Обирайте стильні та якісні меблі для дому й офісу у Montal Home. "
@@ -126,11 +128,11 @@ class HomeView(ListView):
         )
         return context
 
-    def _get_promotional_furniture(self) -> list[Furniture]:
-        """Return promotional items shuffled to interleave categories."""
+    def _get_promotional_furniture(self, limit: int = 7) -> tuple[list[Furniture], bool]:
+        """Return limited promotional items shuffled to interleave categories."""
         promotional_items = list(fetch_active_promotional_furniture())
         if not promotional_items:
-            return promotional_items
+            return promotional_items, False
 
         items_by_category: dict[object, list[Furniture]] = defaultdict(list)
         uncategorised_key = object()
@@ -159,7 +161,8 @@ class HomeView(ListView):
                 if not item_list:
                     items_by_category.pop(key, None)
 
-        return shuffled_items
+        has_more = len(shuffled_items) > limit
+        return shuffled_items[:limit], has_more
 
 
 def _summarize(text: str, length: int = 160) -> str:

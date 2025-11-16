@@ -57,6 +57,9 @@
                                                         sizes="{% responsive_sizes %}"
                                                         alt="{{ item.name }}"
                                                         class="card-media-img"
+                                                        loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                                                        decoding="async"
+                                                        fetchpriority="{% if forloop.first %}high{% else %}low{% endif %}"
                                                     >
                                                 {% else %}
                                                     <div class="card-media-placeholder">
@@ -96,7 +99,57 @@
                                     </div>
                                 </div>
                                 {% endfor %}
+                                {% if has_more_promotional_furniture %}
+                                <div class="carousel-item md:hidden">
+                                    <div class="relative furniture-card furniture-card--immersive rounded-2xl overflow-hidden shadow-xl">
+                                        <div class="absolute inset-0 bg-gradient-to-br from-amber-500 via-rose-400 to-brown-700 opacity-80"></div>
+                                        <div class="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
+                                        <div class="relative z-10 flex flex-col items-center justify-center gap-5 p-8 text-white text-center">
+                                            <div class="space-y-3 max-w-sm mx-auto">
+                                                <p class="text-xs uppercase tracking-[0.3em] text-white/70">
+                                                    Більше пропозицій
+                                                </p>
+                                                <h3 class="text-2xl md:text-3xl font-bold drop-shadow-lg">
+                                                    Ще більше акційних меблів
+                                                </h3>
+                                                <p class="text-white/85 text-sm">
+                                                    Перегляньте повний каталог діючих знижок і сезонних комплектів.
+                                                </p>
+                                            </div>
+                                            <a href="{% url 'shop:promotions' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-white/90 text-black font-semibold rounded-full shadow-lg hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white transition">
+                                                Переглянути акції
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
+                            {% if has_more_promotional_furniture %}
+                            <div class="hidden md:flex mt-6 mb-2 rounded-2xl overflow-hidden relative text-white shadow-xl">
+                                <div class="absolute inset-0 bg-gradient-to-r from-amber-500 via-rose-400 to-brown-700 opacity-85"></div>
+                                <div class="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
+                                <div class="relative z-10 w-full flex items-center justify-between px-8 py-6 gap-6">
+                                    <div class="max-w-xl space-y-2">
+                                        <p class="text-xs uppercase tracking-[0.4em] text-white/70">Акції</p>
+                                        <h3 class="text-3xl font-bold drop-shadow-lg">
+                                            Відкрийте всі акційні пропозиції Montal
+                                        </h3>
+                                        <p class="text-white/80">
+                                            Ми оновлюємо розділ з промо кожного тижня: перейдіть, щоб побачити повний перелік комплектів, сезонних знижок і спецпропозицій.
+                                        </p>
+                                    </div>
+                                    <a href="{% url 'shop:promotions' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-white/90 text-black font-semibold rounded-full shadow-lg hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white transition">
+                                        Переглянути акції
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
                             <button id="prevButton" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm text-brown-800 p-3 rounded-full z-10 shadow-lg hover:bg-white hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-300 transition-all duration-300" aria-label="Попередній">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -147,17 +200,20 @@
                         </a>
                     </div>
                     <div class="showcase-grid home-transition-card__body">
-                        {% for category in categories %}
-                        <a href="{% url 'categories:category_detail' category.slug %}" class="showcase-card">
-                            <div class="showcase-card__image{% if not category.image %} showcase-card__image--empty{% endif %}">
-                                {% if category.image %}
-                                    <img
-                                        src="{{ category.image|image_variant }}"
-                                        srcset="{% responsive_srcset category.image %}"
-                                        sizes="{% responsive_sizes %}"
-                                        alt="{{ category.name }}"
-                                        class="showcase-card__img"
-                                    >
+                                {% for category in categories %}
+                                <a href="{% url 'categories:category_detail' category.slug %}" class="showcase-card">
+                                    <div class="showcase-card__image{% if not category.image %} showcase-card__image--empty{% endif %}">
+                                        {% if category.image %}
+                                            <img
+                                                src="{{ category.image|image_variant }}"
+                                                srcset="{% responsive_srcset category.image %}"
+                                                sizes="{% responsive_sizes %}"
+                                                alt="{{ category.name }}"
+                                                class="showcase-card__img"
+                                                loading="lazy"
+                                                decoding="async"
+                                                fetchpriority="low"
+                                            >
                                 {% else %}
                                     <span class="showcase-card__placeholder">Немає зображення</span>
                                 {% endif %}
