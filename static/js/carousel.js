@@ -8,7 +8,7 @@ class PromotionalCarousel {
         this.prevButton = document.getElementById('prevButton');
         this.nextButton = document.getElementById('nextButton');
         this.indicators = document.querySelectorAll('.carousel-indicator');
-        this.items = this.carousel?.children;
+        this.items = this.carousel ? this.carousel.children : null;
         
         this.currentIndex = 0;
         this.isTransitioning = false;
@@ -25,18 +25,19 @@ class PromotionalCarousel {
         console.log('Prev button:', this.prevButton);
         console.log('Next button:', this.nextButton);
         console.log('Indicators count:', this.indicators.length);
-        console.log('Items count:', this.items?.length);
+        console.log('Items count:', this.items ? this.items.length : 0);
         
         if (this.items && this.items.length > 0) {
             console.log('Items found:', Array.from(this.items).map((item, index) => {
-                const title = item.querySelector('h3')?.textContent || 'No title';
+                const heading = item.querySelector('h3');
+                const title = heading ? heading.textContent : 'No title';
                 return `${index + 1}. ${title}`;
             }));
             console.log(`Total items loaded: ${this.items.length}`);
         }
         
         if (!this.carousel || !this.items || this.items.length === 0) {
-            console.error('Carousel elements not found - carousel:', !!this.carousel, 'items:', this.items?.length);
+            console.error('Carousel elements not found - carousel:', !!this.carousel, 'items:', this.items ? this.items.length : 0);
             return;
         }
         
@@ -149,7 +150,10 @@ class PromotionalCarousel {
             translateX,
             totalItems: this.items.length,
             isTransitioning: this.isTransitioning,
-            itemsList: Array.from(this.items).map(item => item.textContent?.trim().substring(0, 30))
+            itemsList: Array.from(this.items).map((item) => {
+                const text = item.textContent ? item.textContent.trim() : '';
+                return text.substring(0, 30);
+            })
         });
         
         this.carousel.style.transform = `translateX(-${translateX}%)`;
