@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.templatetags.static import static
 
 from categories.models import Category
+from categories.services import get_cached_categories_with_furniture
 from delivery.views import search_city
 from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
@@ -110,9 +111,7 @@ class HomeView(ListView):
         context.update(
             {
                 # Show only categories that have subcategories with at least one furniture item
-                "categories": Category.objects.filter(
-                    sub_categories__furniture__isnull=False
-                ).distinct(),
+                "categories": get_cached_categories_with_furniture(),
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
                 "promotional_furniture": promotional_items,
@@ -911,6 +910,11 @@ def search_suggestions(request):
     
     if len(query) < 2:  # Only search if query is at least 2 characters
         return JsonResponse({'suggestions': []})
+
+    cache_key = f"search_suggestions::{query.lower()}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse({'suggestions': cached})
     
     # Search in furniture names, descriptions, and article codes
     furniture_results = Furniture.objects.filter(
@@ -933,4 +937,5 @@ def search_suggestions(request):
             'promotional_price': str(furniture.promotional_price) if furniture.promotional_price else None
         })
     
+    cache.set(cache_key, suggestions, 60)
     return JsonResponse({'suggestions': suggestions})

@@ -4,12 +4,14 @@ from django.shortcuts import get_object_or_404, render
 from django.db.models import Q, Min, Max
 from django.utils.html import strip_tags
 from django.utils.text import Truncator
+from django.views.decorators.cache import cache_page
 
 from furniture.models import Furniture, FurnitureSizeVariant
 from params.models import FurnitureParameter
 from sub_categories.models import SubCategory
 
 
+@cache_page(90)
 def sub_categories_list(request: HttpRequest) -> HttpResponse:
     # Filter subcategories that have furniture items
     sub_categories = SubCategory.objects.filter(furniture__isnull=False).distinct()
@@ -24,6 +26,7 @@ def sub_categories_list(request: HttpRequest) -> HttpResponse:
     return render(request, "sub_categories/sub_categories_list.html", context)
 
 
+@cache_page(120)
 def sub_categories_details(
     request: HttpRequest, sub_categories_slug: str
 ) -> HttpResponse:
