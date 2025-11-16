@@ -305,7 +305,11 @@ IMAGE_VARIANT_SIZES_ATTR = os.getenv(
     "IMAGE_VARIANT_SIZES_ATTR",
     "(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px",
 )
-IMAGE_VARIANT_ASSUME_EXISTS = os.getenv("IMAGE_VARIANT_ASSUME_EXISTS", "true").lower() == "true"
+_image_variant_assume_env = os.getenv("IMAGE_VARIANT_ASSUME_EXISTS")
+if _image_variant_assume_env is None:
+    IMAGE_VARIANT_ASSUME_EXISTS = not DEBUG
+else:
+    IMAGE_VARIANT_ASSUME_EXISTS = _image_variant_assume_env.lower() == "true"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
