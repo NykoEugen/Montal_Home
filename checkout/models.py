@@ -1,6 +1,7 @@
 import logging
 from functools import cached_property
 
+from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import models
 from django.utils import timezone
@@ -98,6 +99,15 @@ class Order(models.Model):
         max_length=20,
         choices=PAYMENT_CHOICES,
         verbose_name="Тип оплати",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+        null=True,
+        blank=True,
+        verbose_name="Користувач",
+        help_text="Автоматично прив'язується до профілю за номером телефону.",
     )
 
     status = models.ForeignKey(

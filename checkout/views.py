@@ -4,6 +4,8 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model, login
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -28,6 +30,20 @@ logger = logging.getLogger(__name__)
 
 LIQPAY_ENDPOINT = "https://www.liqpay.ua/api/3/checkout"
 SUCCESS_STATUSES = {"success", "sandbox", "wait_accept"}
+User = get_user_model()
+
+
+def _attach_orders_to_user(user: User) -> None:
+    """
+    Connect historical orders that match the user's phone (username).
+
+    This is used after login/registration to ensure order history is complete.
+    """
+    if not user or not user.username:
+        return
+    Order.objects.filter(
+        customer_phone_number=user.username, user__isnull=True
+    ).update(user=user)
 
 
 def _ensure_liqpay_available() -> None:
@@ -173,6 +189,38 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 # Use resilient database operation for order creation
                 def create_order_operation():
                     # Prepare delivery data based on delivery type
+                    phone_number = form.cleaned_data["customer_phone_number"]
+                    user = None
+                    created = False
+
+                    if request.user.is_authenticated and request.user.username == phone_number:
+                        user = request.user
+                    else:
+                        user_defaults = {
+                            "first_name": form.cleaned_data["customer_name"],
+                            "last_name": form.cleaned_data["customer_last_name"],
+                            "email": form.cleaned_data["customer_email"],
+                        }
+                        user, created = User.objects.get_or_create(
+                            username=phone_number,
+                            defaults=user_defaults,
+                        )
+                        update_fields: list[str] = []
+                        if created:
+                            user.set_unusable_password()
+                            update_fields.append("password")
+                        if not user.first_name and user_defaults["first_name"]:
+                            user.first_name = user_defaults["first_name"]
+                            update_fields.append("first_name")
+                        if not user.last_name and user_defaults["last_name"]:
+                            user.last_name = user_defaults["last_name"]
+                            update_fields.append("last_name")
+                        if user_defaults["email"] and user.email != user_defaults["email"]:
+                            user.email = user_defaults["email"]
+                            update_fields.append("email")
+                        if update_fields:
+                            user.save(update_fields=list(set(update_fields)))
+
                     delivery_type = form.cleaned_data["delivery_type"]
                     delivery_city = ""
                     delivery_branch = ""
@@ -187,6 +235,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
                     with transaction.atomic():
                         order = Order.objects.create(
+                            user=user,
                             customer_name=form.cleaned_data["customer_name"],
                             customer_last_name=form.cleaned_data["customer_last_name"],
                             customer_phone_number=form.cleaned_data["customer_phone_number"],
@@ -198,12 +247,24 @@ def checkout(request: HttpRequest) -> HttpResponse:
                             payment_type=form.cleaned_data["payment_type"],
                             iban_invoice_requested=iban_invoice_requested,
                         )
-                        return order
+                        return order, user, created
 
-                order = resilient_database_operation(create_order_operation)
-                
+                order, order_user, user_created = resilient_database_operation(create_order_operation)
+
                 # Clear any saved drafts after successful order creation
                 clear_form_draft(request, 'checkout_form')
+
+                if order_user:
+                    _attach_orders_to_user(order_user)
+                    if not request.user.is_authenticated:
+                        order_user.backend = "django.contrib.auth.backends.ModelBackend"
+                        login(request, order_user)
+                    if user_created:
+                        messages.info(
+                            request,
+                            "Ми створили кабінет за вашим номером. За потреби встановіть пароль через «Забули пароль?»",
+                            extra_tags="user",
+                        )
                 
             except Exception as e:
                 # Save form data as draft for retry
@@ -427,47 +488,37 @@ def checkout(request: HttpRequest) -> HttpResponse:
     return render(request, "shop/checkout.html", {"form": form})
 
 
+@login_required(login_url="shop:login")
 def order_history(request: HttpRequest) -> HttpResponse:
-    phone_number = request.GET.get("phone_number", "").strip()
+    """Order history for authenticated customers."""
+    _attach_orders_to_user(request.user)
     orders_data = []
-    if phone_number:
-        if not re.match(r"^0[0-9]{9}$", phone_number):
-            messages.error(
-                request,
-                "Неправильно введений номер телефону! Формат: 0XXXXXXXXX",
-                extra_tags="user",
-            )
-        else:
-            orders = (
-                Order.objects.filter(customer_phone_number=phone_number)
-                .order_by("-created_at")
-                .prefetch_related("orderitem_set__furniture", "orderitem_set__custom_option")
-            )
-            if not orders.exists():
-                messages.info(
-                    request,
-                    "Замовлення не знайдено для цього номера телефону.",
-                    extra_tags="user",
-                )
-            else:
-                for order in orders:
-                    total_price = sum(
-                        item.price * item.quantity for item in order.orderitem_set.all()
-                    )
-                    orders_data.append(
-                        {
-                            "order": order,
-                            "items": order.orderitem_set.all(),
-                            "total_price": float(total_price),
-                        }
-                    )
-    # Get all fabric categories for display in order history
+
+    orders = (
+        Order.objects.filter(user=request.user)
+        .order_by("-created_at")
+        .prefetch_related("orderitem_set__furniture", "orderitem_set__custom_option")
+    )
+
+    for order in orders:
+        total_price = sum(item.price * item.quantity for item in order.orderitem_set.all())
+        orders_data.append(
+            {"order": order, "items": order.orderitem_set.all(), "total_price": float(total_price)}
+        )
+
     fabric_categories = FabricCategory.objects.all()
-    
+
+    if not orders_data:
+        messages.info(
+            request,
+            "У вас поки немає замовлень. Оформіть перше, і воно з'явиться тут.",
+            extra_tags="user",
+        )
+
     return render(
         request,
         "shop/order_history.html",
-        {"orders_data": orders_data, "phone_number": phone_number, "fabric_categories": fabric_categories},
+        {"orders_data": orders_data, "fabric_categories": fabric_categories},
     )
 
 

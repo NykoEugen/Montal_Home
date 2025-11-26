@@ -2,23 +2,9 @@
 {% load static %}
 {% block content %}
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Історія замовлень</h1>
-    <form class="mb-6" method="get" id="phone-search-form">
-        <div class="flex gap-4">
-            <input type="tel" name="phone_number" value="{{ phone_number|default_if_none:'' }}"
-                   placeholder="Введіть ваш номер телефону (0XXXXXXXXX)"
-                   pattern="0[0-9]{9}"
-                   title="Введіть номер у форматі 0XXXXXXXXX"
-                   class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600" required>
-            <button type="submit" class="btn-grad">Переглянути</button>
-        </div>
-        {% if messages %}
-            {% for message in messages %}
-                {% if message.extra_tags and 'user' in message.extra_tags %}
-                    <p class="text-red-500 text-sm mt-2">{{ message }}</p>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-    </form>
+    <p class="text-brown-600 mb-6">
+        Ви увійшли як <strong>{{ request.user.username }}</strong>. Усі замовлення, оформлені на цей номер, доступні нижче.
+    </p>
     {% if orders_data %}
         <div class="bg-white rounded-lg shadow-md p-6">
             {% for data in orders_data %}
@@ -151,8 +137,9 @@
                 </div>
             {% endfor %}
         </div>
-    {% elif phone_number %}
-        <p class="text-brown-600">Замовлення не знайдено для цього номера телефону.</p>
+    {% else %}
+        <p class="text-brown-600 mb-4">Замовлень ще немає. Перейдіть до каталогу, щоб оформити перше замовлення.</p>
+        <a href="{% url 'categories:categories_list' %}" class="btn-grad inline-block">Перейти до каталогу</a>
     {% endif %}
 
 {% endblock %}

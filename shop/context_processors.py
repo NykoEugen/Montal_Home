@@ -104,7 +104,7 @@ def breadcrumbs(request):
         breadcrumbs.append({"name": "Контакти", "url": "/contacts/"})
     elif view_name == "shop:view_cart":
         breadcrumbs.append({"name": "Кошик", "url": "/cart/"})
-    elif view_name == "shop:order_history":
+    elif view_name == "checkout:order_history":
         breadcrumbs.append({"name": "Історія замовлень", "url": "/order-history/"})
 
     cache.set(cache_key, breadcrumbs, 300)
