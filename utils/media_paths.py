@@ -44,3 +44,11 @@ def furniture_variant_image_upload_to(instance, filename: str) -> str:
     variant_slug = getattr(instance, "name", None)
     folder = _build_base_slug([furniture_slug])
     return f"furniture/{folder}/variants/{_build_filename([furniture_slug, variant_slug], filename)}"
+
+
+def fabric_color_image_upload_to(instance, filename: str) -> str:
+    palette = getattr(instance, "palette", None)
+    palette_slug = getattr(palette, "name", None)
+    color_slug = getattr(instance, "name", None)
+    folder = _build_base_slug(["fabric-colors", palette_slug])
+    return f"fabric/{folder}/{_build_filename([palette_slug, color_slug], filename)}"

@@ -5,7 +5,12 @@ from django.forms import BaseInlineFormSet, inlineformset_factory
 
 from categories.models import Category
 from checkout.models import Order, OrderItem, OrderStatus
-from fabric_category.models import FabricBrand, FabricCategory
+from fabric_category.models import (
+    FabricBrand,
+    FabricCategory,
+    FabricColor,
+    FabricColorPalette,
+)
 from furniture.models import (
     Furniture,
     FurnitureCustomOption,
@@ -86,6 +91,21 @@ class FabricCategoryForm(StyledModelForm):
         fields = ["brand", "name", "price"]
 
 
+class FabricColorPaletteForm(StyledModelForm):
+    class Meta:
+        model = FabricColorPalette
+        fields = ["name", "brand", "description", "is_active"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
+class FabricColorForm(StyledModelForm):
+    class Meta:
+        model = FabricColor
+        fields = ["palette", "name", "hex_code", "position", "is_active", "image"]
+
+
 class FurnitureForm(StyledModelForm):
     class Meta:
         model = Furniture
@@ -103,6 +123,7 @@ class FurnitureForm(StyledModelForm):
             "image",
             "selected_fabric_brand",
             "fabric_value",
+            "color_palettes",
             "custom_option_name",
         ]
         widgets = {
@@ -110,6 +131,9 @@ class FurnitureForm(StyledModelForm):
             "sale_end_date": forms.DateTimeInput(
                 attrs={"type": "datetime-local"},
                 format="%Y-%m-%dT%H:%M",
+            ),
+            "color_palettes": forms.CheckboxSelectMultiple(
+                attrs={"class": "grid grid-cols-1 md:grid-cols-2 gap-2"}
             ),
         }
 

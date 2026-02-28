@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q
@@ -20,32 +21,60 @@ from django.urls import reverse
 from django.templatetags.static import static
 
 from categories.models import Category
+from categories.services import get_cached_categories_with_furniture
 from delivery.views import search_city
+from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture, FurnitureCustomOption, FurnitureSizeVariant
 from store.settings import ITEMS_PER_PAGE
+
+PROMOTIONAL_CACHE_TIMEOUT = 180
 
 
 def fetch_active_promotional_furniture():
     """Return queryset with all active promotional furniture records."""
-    now = timezone.now()
-    return (
-        Furniture.objects.filter(
-            (
-                Q(is_promotional=True, promotional_price__isnull=False)
-                & (Q(sale_end_date__isnull=True) | Q(sale_end_date__gt=now))
-            )
-            |
-            (
-                Q(size_variants__is_promotional=True, size_variants__promotional_price__isnull=False)
-                & (
-                    Q(size_variants__sale_end_date__isnull=True)
-                    | Q(size_variants__sale_end_date__gt=now)
+    cache_key = "promotional_furniture_ids"
+    promotional_ids = cache.get(cache_key)
+
+    if promotional_ids is None:
+        now = timezone.now()
+        promotional_ids = list(
+            Furniture.objects.filter(
+                (
+                    Q(is_promotional=True, promotional_price__isnull=False)
+                    & (Q(sale_end_date__isnull=True) | Q(sale_end_date__gt=now))
+                )
+                |
+                (
+                    Q(size_variants__is_promotional=True, size_variants__promotional_price__isnull=False)
+                    & (
+                        Q(size_variants__sale_end_date__isnull=True)
+                        | Q(size_variants__sale_end_date__gt=now)
+                    )
                 )
             )
+            .order_by("-updated_at")
+            .distinct()
+            .values_list("id", flat=True)
         )
+        cache.set(cache_key, promotional_ids, PROMOTIONAL_CACHE_TIMEOUT)
+
+    if not promotional_ids:
+        return Furniture.objects.none()
+
+    order_expression = models.Case(
+        *[
+            models.When(pk=pk, then=pos)
+            for pos, pk in enumerate(promotional_ids)
+        ],
+        output_field=models.IntegerField(),
+    )
+
+    return (
+        Furniture.objects.filter(id__in=promotional_ids)
         .select_related("sub_category__category")
         .prefetch_related("size_variants")
-        .distinct()
+        .annotate(_promotional_order=order_expression)
+        .order_by("_promotional_order")
     )
 
 
@@ -78,15 +107,15 @@ class HomeView(ListView):
     def get_context_data(self, **kwargs):
         """Add additional context data."""
         context = super().get_context_data(**kwargs)
+        promotional_items, has_more_promotions = self._get_promotional_furniture()
         context.update(
             {
                 # Show only categories that have subcategories with at least one furniture item
-                "categories": Category.objects.filter(
-                    sub_categories__furniture__isnull=False
-                ).distinct(),
+                "categories": get_cached_categories_with_furniture(),
                 "search_query": self.request.GET.get("q"),
                 "selected_category": self.request.GET.get("category"),
-                "promotional_furniture": self._get_promotional_furniture(),
+                "promotional_furniture": promotional_items,
+                "has_more_promotional_furniture": has_more_promotions,
                 "meta_title": "Montal Home — інтернет-магазин меблів та декору",
                 "meta_description": (
                     "Обирайте стильні та якісні меблі для дому й офісу у Montal Home. "
@@ -98,11 +127,11 @@ class HomeView(ListView):
         )
         return context
 
-    def _get_promotional_furniture(self) -> list[Furniture]:
-        """Return promotional items shuffled to interleave categories."""
+    def _get_promotional_furniture(self, limit: int = 7) -> tuple[list[Furniture], bool]:
+        """Return limited promotional items shuffled to interleave categories."""
         promotional_items = list(fetch_active_promotional_furniture())
         if not promotional_items:
-            return promotional_items
+            return promotional_items, False
 
         items_by_category: dict[object, list[Furniture]] = defaultdict(list)
         uncategorised_key = object()
@@ -131,7 +160,8 @@ class HomeView(ListView):
                 if not item_list:
                     items_by_category.pop(key, None)
 
-        return shuffled_items
+        has_more = len(shuffled_items) > limit
+        return shuffled_items[:limit], has_more
 
 
 def _summarize(text: str, length: int = 160) -> str:
@@ -152,10 +182,77 @@ class CartView(TemplateView):
         cart_items = []
         total_price = 0.0
 
+        if not cart:
+            context.update(
+                {
+                    "cart_items": [],
+                    "total_price": 0.0,
+                    "fabric_categories": FabricCategory.objects.all(),
+                    "meta_title": "Кошик — Montal Home",
+                    "meta_description": (
+                        "Перегляньте товари у кошику Montal Home та завершіть оформлення замовлення. "
+                        "Зручна оплата, доставка по Україні."
+                    ),
+                    "meta_keywords": "кошик, замовлення меблів, купити меблі онлайн",
+                }
+            )
+            return context
+
+        # Collect identifiers once to reduce N+1 DB queries.
+        furniture_ids: set[int] = set()
+        size_variant_ids: set[int] = set()
+        fabric_category_ids: set[int] = set()
+        color_ids: set[int] = set()
+
+        for cart_key, item_data in cart.items():
+            try:
+                furniture_ids.add(int(cart_key.split("_")[0]))
+            except (TypeError, ValueError):
+                continue
+
+            if isinstance(item_data, dict):
+                size_variant_id = item_data.get("size_variant_id")
+                fabric_category_id = item_data.get("fabric_category_id")
+                color_id = item_data.get("color_id")
+
+                if size_variant_id not in (None, "", "base"):
+                    try:
+                        size_variant_ids.add(int(size_variant_id))
+                    except (TypeError, ValueError):
+                        pass
+
+                if fabric_category_id:
+                    try:
+                        fabric_category_ids.add(int(fabric_category_id))
+                    except (TypeError, ValueError):
+                        pass
+
+                if color_id:
+                    try:
+                        color_ids.add(int(color_id))
+                    except (TypeError, ValueError):
+                        pass
+
+        furniture_map = {
+            obj.id: obj
+            for obj in Furniture.objects.filter(id__in=furniture_ids).prefetch_related("custom_options")
+        }
+        size_variant_map = FurnitureSizeVariant.objects.in_bulk(size_variant_ids)
+        fabric_category_map = FabricCategory.objects.in_bulk(fabric_category_ids)
+        fabric_color_map = {
+            color.id: color
+            for color in FabricColor.objects.select_related("palette").filter(id__in=color_ids)
+        }
+
         for cart_key, item_data in cart.items():
             # Extract furniture_id from the cart key
-            furniture_id = cart_key.split('_')[0]
-            furniture = get_object_or_404(Furniture, id=int(furniture_id))
+            try:
+                furniture_id = int(cart_key.split('_')[0])
+            except (TypeError, ValueError):
+                continue
+            furniture = furniture_map.get(furniture_id)
+            if not furniture:
+                continue
             
             # Handle both old format (just quantity) and new format (dict with quantity and size_variant)
             if isinstance(item_data, dict):
@@ -167,6 +264,11 @@ class CartView(TemplateView):
                 custom_option_value = item_data.get('custom_option_value')
                 custom_option_price_raw = item_data.get('custom_option_price')
                 custom_option_name_stored = item_data.get('custom_option_name')
+                color_id = item_data.get('color_id')
+                color_name = item_data.get('color_name')
+                color_palette_name = item_data.get('color_palette_name')
+                color_hex = item_data.get('color_hex')
+                color_image = item_data.get('color_image')
             else:
                 # Legacy format - just quantity
                 quantity = item_data
@@ -177,27 +279,36 @@ class CartView(TemplateView):
                 custom_option_value = None
                 custom_option_price_raw = None
                 custom_option_name_stored = None
+                color_id = None
+                color_name = ""
+                color_palette_name = ""
+                color_hex = ""
+                color_image = ""
             
             # Calculate item price and get size variant
             size_variant = None
             if size_variant_id and size_variant_id != 'base':
                 try:
-                    size_variant = FurnitureSizeVariant.objects.get(id=size_variant_id)
-                    item_price = float(size_variant.current_price)
-                except (FurnitureSizeVariant.DoesNotExist, ValueError):
+                    size_variant = size_variant_map.get(int(size_variant_id))
+                    if size_variant:
+                        item_price = float(size_variant.current_price)
+                    else:
+                        item_price = float(furniture.current_price)
+                except (TypeError, ValueError):
                     item_price = float(furniture.current_price)
             else:
                 item_price = float(furniture.current_price)
             
             # Add fabric cost if fabric is selected
             if fabric_category_id:
-                from fabric_category.models import FabricCategory
+                fabric_category = None
                 try:
-                    fabric_category = FabricCategory.objects.get(id=fabric_category_id)
+                    fabric_category = fabric_category_map.get(int(fabric_category_id))
+                except (TypeError, ValueError):
+                    fabric_category = None
+                if fabric_category:
                     fabric_cost = float(fabric_category.price) * float(furniture.fabric_value)
                     item_price += fabric_cost
-                except FabricCategory.DoesNotExist:
-                    pass
             
             custom_option = None
             custom_option_value_resolved = ''
@@ -211,7 +322,10 @@ class CartView(TemplateView):
             if custom_option_id:
                 try:
                     option_id_int = int(custom_option_id)
-                    custom_option = furniture.custom_options.filter(id=option_id_int).first()
+                    custom_option = next(
+                        (opt for opt in furniture.custom_options.all() if opt.id == option_id_int),
+                        None,
+                    )
                 except (ValueError, TypeError):
                     custom_option = None
                 if custom_option:
@@ -230,6 +344,27 @@ class CartView(TemplateView):
             if not custom_option_value_resolved:
                 custom_option_name_resolved = ""
 
+            color_display = color_name or ""
+            if color_id and not color_name:
+                color_obj = None
+                try:
+                    color_obj = fabric_color_map.get(int(color_id))
+                except (TypeError, ValueError):
+                    color_obj = None
+                if color_obj:
+                    color_name = color_obj.name
+                    color_palette_name = color_obj.palette.name if color_obj.palette else ""
+                    color_hex = color_hex or (color_obj.hex_code or "")
+                    if not color_image and color_obj.image:
+                        try:
+                            color_image = color_obj.image.url
+                        except (ValueError, OSError):
+                            color_image = ""
+                    color_display = color_name
+                else:
+                    color_name = color_name or ""
+                    color_palette_name = color_palette_name or ""
+
             item_price += custom_option_price
             total_price += item_price * quantity
             cart_items.append(
@@ -246,13 +381,15 @@ class CartView(TemplateView):
                     "custom_option_name": custom_option_name_resolved or (furniture.custom_option_name if custom_option_value_resolved else ""),
                     "custom_option_price": custom_option_price,
                     "total_price": item_price * quantity,
+                    "color_display": color_display,
+                    "color_hex": color_hex,
+                    "color_image": color_image,
                     "cart_key": cart_key,  # Add cart key for removal functionality
                 }
             )
 
 
         # Get all fabric categories for display in cart
-        from fabric_category.models import FabricCategory
         fabric_categories = FabricCategory.objects.all()
         
         context.update(
@@ -569,6 +706,7 @@ def add_to_cart_from_detail(request: HttpRequest):
     fabric_category_id = request.POST.get("fabric_category_id")
     variant_image_id = request.POST.get("variant_image_id")
     custom_option_id = request.POST.get("custom_option_id")
+    color_id = request.POST.get("color_id")
     try:
         quantity = max(1, int(request.POST.get("quantity", 1)))
     except (TypeError, ValueError):
@@ -611,6 +749,23 @@ def add_to_cart_from_detail(request: HttpRequest):
             except (TypeError, ValueError):
                 custom_option_price = 0.0
 
+        color_name = ""
+        color_palette_name = ""
+        color_hex = ""
+        color_image_url = ""
+        if color_id:
+            try:
+                color_obj = FabricColor.objects.select_related("palette").get(id=int(color_id))
+                color_name = color_obj.name
+                color_palette_name = color_obj.palette.name if color_obj.palette else ""
+                color_hex = color_obj.hex_code or ""
+                try:
+                    color_image_url = color_obj.image.url if color_obj.image else ""
+                except (ValueError, OSError):
+                    color_image_url = ""
+            except (ValueError, FabricColor.DoesNotExist):
+                color_id = None
+
         # Create a unique key for this cart item that includes variant information
         cart_key_parts = [furniture_id]
         if size_variant_id:
@@ -621,6 +776,8 @@ def add_to_cart_from_detail(request: HttpRequest):
             cart_key_parts.append(f"variant_{variant_image_id}")
         if selected_option:
             cart_key_parts.append(f"custom_{selected_option.id}")
+        if color_id:
+            cart_key_parts.append(f"color_{color_id}")
         
         cart_key = "_".join(cart_key_parts)
 
@@ -646,6 +803,13 @@ def add_to_cart_from_detail(request: HttpRequest):
             cart_item_data['custom_option_value'] = custom_option_value
             cart_item_data['custom_option_price'] = custom_option_price
             cart_item_data['custom_option_name'] = custom_option_name
+        
+        if color_id:
+            cart_item_data['color_id'] = str(color_id)
+            cart_item_data['color_name'] = color_name
+            cart_item_data['color_palette_name'] = color_palette_name
+            cart_item_data['color_hex'] = color_hex
+            cart_item_data['color_image'] = color_image_url
         
         cart[cart_key] = cart_item_data
         request.session["cart"] = cart
@@ -760,6 +924,11 @@ def search_suggestions(request):
     
     if len(query) < 2:  # Only search if query is at least 2 characters
         return JsonResponse({'suggestions': []})
+
+    cache_key = f"search_suggestions::{query.lower()}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse({'suggestions': cached})
     
     # Search in furniture names, descriptions, and article codes
     furniture_results = Furniture.objects.filter(
@@ -782,4 +951,5 @@ def search_suggestions(request):
             'promotional_price': str(furniture.promotional_price) if furniture.promotional_price else None
         })
     
+    cache.set(cache_key, suggestions, 60)
     return JsonResponse({'suggestions': suggestions})

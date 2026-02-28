@@ -3,18 +3,17 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.html import strip_tags
 from django.utils.text import Truncator
+from django.views.decorators.cache import cache_page
 
 from categories.models import Category
 from furniture.models import Furniture
 from sub_categories.models import SubCategory
+from categories.services import get_cached_categories_with_furniture
 
 
+@cache_page(90)
 def categories_list(request: HttpRequest) -> HttpResponse:
-    # Show only categories that have at least one subcategory with furniture
-    categories = (
-        Category.objects.filter(sub_categories__furniture__isnull=False)
-        .distinct()
-    )
+    categories = get_cached_categories_with_furniture()
     context = {
         "categories": categories,
         "meta_title": "Каталог меблів — Montal Home",
@@ -27,6 +26,7 @@ def categories_list(request: HttpRequest) -> HttpResponse:
     return render(request, "categories/categories_list.html", context)
 
 
+@cache_page(90)
 def category_detail(request: HttpRequest, category_slug: str) -> HttpResponse:
     category = get_object_or_404(Category, slug=category_slug)
     # Filter subcategories that have furniture items

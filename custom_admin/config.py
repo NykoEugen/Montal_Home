@@ -1,6 +1,6 @@
 from categories.models import Category
 from checkout.models import Order, OrderItem, OrderStatus
-from fabric_category.models import FabricBrand, FabricCategory
+from fabric_category.models import FabricBrand, FabricCategory, FabricColor, FabricColorPalette
 from furniture.models import Furniture
 from params.models import Parameter
 from price_parser.models import (
@@ -19,6 +19,8 @@ from .forms import (
     FurniturePriceCellMappingForm,
     FabricBrandForm,
     FabricCategoryForm,
+    FabricColorForm,
+    FabricColorPaletteForm,
     GoogleSheetConfigForm,
     PriceUpdateLogForm,
     SupplierFeedConfigForm,
@@ -97,6 +99,32 @@ def register_default_sections() -> None:
             title="Тканини — категорії",
             description="Цінові категорії тканин в межах обраних брендів.",
             icon="fa-palette",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="fabric-color-palettes",
+            model=FabricColorPalette,
+            form_class=FabricColorPaletteForm,
+            list_display=("name", "brand", "is_active", "updated_at"),
+            search_fields=("name", "brand__name"),
+            ordering=("name",),
+            title="Палітри покриттів",
+            description="Групуйте кольори оббивки у палітри та привʼязуйте їх до меблів.",
+            icon="fa-swatchbook",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="fabric-colors",
+            model=FabricColor,
+            form_class=FabricColorForm,
+            list_display=("name", "palette", "hex_code", "position", "is_active"),
+            search_fields=("name", "palette__name"),
+            ordering=("palette__name", "position"),
+            title="Кольори покриттів",
+            description="Додавайте конкретні кольори (з HEX кодом) до палітр.",
+            icon="fa-fill-drip",
         )
     )
     registry.register(

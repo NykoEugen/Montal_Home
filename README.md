@@ -48,6 +48,15 @@ DEBUG=True
 ALLOWED_HOSTS=127.0.0.1,localhost
 NOVA_POSHTA_API_KEY=your_novaposhta_api_key
 DATABASE_URL=postgresql://user:password@localhost:5432/montal_home
+# Redis (optional for local dev)
+# REDIS_URL=redis://127.0.0.1:6379/0
+
+# Static CDN (production)
+# USE_CDN_STATIC=True
+# STATIC_CDN_URL=https://cdn.montal.com.ua/static/
+# STATIC_CDN_DOMAIN=cdn.montal.com.ua
+# STATICFILES_BUCKET_NAME=montal-home-static
+# STATICFILES_LOCATION=static
 ```
 
 #### LiqPay sandbox keys
@@ -77,6 +86,24 @@ make run
 ```
 
 The application will be available at http://localhost:8000
+
+### Static assets via R2 + BunnyCDN
+
+1. **Create a separate bucket/folder** in Cloudflare R2 (e.g. `montal-home-static`) and map it to your Bunny pull zone (`cdn.montal.com.ua`).  
+2. **Set production env vars**:
+   ```
+   USE_CDN_STATIC=True
+   STATIC_CDN_URL=https://cdn.montal.com.ua/static/
+   STATIC_CDN_DOMAIN=cdn.montal.com.ua
+   STATICFILES_BUCKET_NAME=montal-home-static   # optional, defaults to AWS_STORAGE_BUCKET_NAME
+   STATICFILES_LOCATION=static                  # folder inside the bucket
+   ```
+3. **Deploy flow**:
+   ```bash
+   python manage.py collectstatic --noinput
+   ```
+   Django uploads hashed assets directly to R2 via the new `R2StaticStorage`. Bunny pulls them from R2 automatically.  
+4. **Local development**: omit `USE_CDN_STATIC` to keep the default `/static/` path served by WhiteNoise.
 
 ## 📁 Project Structure
 
@@ -277,6 +304,11 @@ NOVA_POSHTA_API_KEY=your_production_api_key
 - Brand categorization
 - Price calculation integration
 
+### FabricColorPalette & FabricColor
+- **Палітри покриттів** створюються у `https://<домен>/custom-admin/` → *Палітри покриттів*: задайте назву та, за потреби, оберіть бренд, щоб привʼязати набір до конкретного виробника тканин.
+- Після створення палітри можна додавати кольори в секції *Кольори покриттів* або безпосередньо в інлайні палітри. Для кожного кольору вкажіть назву, HEX-код і (опційно) зразок покриття.
+- У формі редагування меблів є поле “Палітри покриттів”, де вибираються потрібні набори — таким чином палітра бренду підʼєднується до конкретного товару.
+
 ### Order & OrderItem
 - E-commerce order processing
 - Cart management
@@ -286,12 +318,46 @@ NOVA_POSHTA_API_KEY=your_production_api_key
 
 ### Price Parser Setup
 
-The price parser integrates with Google Sheets for automated price updates:
+The price parser integrates with both Google Sheets and supplier XML feeds.
+
+**Google Sheets**
 
 ```bash
 python manage.py setup_jem_config    # Setup Google Sheets configuration
 python manage.py update_prices       # Update prices from sheets
 ```
+
+**Matroluxe XML (supplier feed)**
+
+```bash
+python manage.py setup_matroluxe_supplier_feed     # Create/update the feed config
+python manage.py ensure_corpus_subcategories       # Створити підкатегорії для корпусних меблів
+python manage.py ensure_mattress_subcategories     # Створити підкатегорії для матраців
+```
+
+Після цього можна:
+- Запустити імпорт корпусних меблів:
+  ```bash
+  python manage.py import_supplier_furniture \
+    --feed-file matro_korpus_mebel.xml \
+    --profile furniture
+  ```
+- Запустити імпорт матраців (та сама логіка + власні підкатегорії):
+  ```bash
+  python manage.py import_supplier_furniture \
+    --feed-file matro-matras.xml \
+    --profile mattresses
+  ```
+- Імпорт стільців із фіда Vetro:
+  ```bash
+  python manage.py ensure_chair_subcategories
+  python manage.py import_supplier_furniture \
+    --feed-file r_feed.xml \
+    --profile chairs
+  ```
+- Відкрити `https://<домен>/custom-admin/` → **Supplier Feeds** та використати кнопки “Test parse” / “Update prices” для конфігурації “Matroluxe — корпусні меблі” (доступно також у стандартній Django адмінці).
+
+Парсер використовує артикул `<model>` (та, за потреби, назву) для пошуку товару, оновлює ціни й повторно не завантажує медіафайли, якщо вони вже є на диску.
 
 ### Delivery Integration
 

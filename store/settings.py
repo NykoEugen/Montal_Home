@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from botocore.config import Config
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,7 +35,7 @@ except KeyError:
     )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 INTERNAL_IPS = ["127.0.0.1"]
@@ -106,13 +108,24 @@ WSGI_APPLICATION = "store.wsgi.application"
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
+HEALTHCHECK_SHARED_SECRET = os.getenv("HEALTHCHECK_SHARED_SECRET", "")
+REDIS_URL = os.getenv("REDIS_URL")
+REDIS_SSL_CERT_REQS = os.getenv("REDIS_SSL_CERT_REQS", "required")
 
 # --- Third-party integrations ---
 SALESDRIVE_API_KEY = os.getenv("SALASEDRIVE_API", "")
 SALESDRIVE_API_ENDPOINT = os.getenv(
     "SALESDRIVE_API_ENDPOINT", "https://montal.salesdrive.me/handler/"
 )
-SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET", SALESDRIVE_API_KEY)
+SALESDRIVE_WEBHOOK_SECRET = os.getenv("SALESDRIVE_WEBHOOK_SECRET")
+
+if not SALESDRIVE_WEBHOOK_SECRET:
+    if DEBUG:
+        SALESDRIVE_WEBHOOK_SECRET = "dev-salesdrive-webhook-secret"
+    else:
+        raise RuntimeError(
+            "SALESDRIVE_WEBHOOK_SECRET must be set for production environments."
+        )
 
 # --- LiqPay configuration ---
 LIQPAY_PUBLIC_KEY = os.getenv("LIQPAY_PUB_KEY", "")
@@ -212,12 +225,21 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-# --- Статика (WhiteNoise) ---
-STATIC_URL = "/static/"
+# --- Статика ---
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [ BASE_DIR / "static" ]
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_LOCATION = os.getenv("STATICFILES_LOCATION", "static")
+STATICFILES_BUCKET_NAME = os.getenv(
+    "STATICFILES_BUCKET_NAME", os.getenv("AWS_STORAGE_BUCKET_NAME")
+)
+STATIC_CDN_URL = os.getenv("STATIC_CDN_URL")
+STATIC_CDN_DOMAIN = os.getenv("STATIC_CDN_DOMAIN")
+USE_CDN_STATIC = os.getenv("USE_CDN_STATIC", "false").lower() == "true"
 
-# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+if USE_CDN_STATIC and STATIC_CDN_URL:
+    STATIC_URL = STATIC_CDN_URL.rstrip("/") + "/"
+else:
+    STATIC_URL = os.getenv("STATIC_URL", "/static/")
 
 
 # MEDIA_URL = "/media/"
@@ -255,15 +277,23 @@ AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
 
 # R2 добре працює з virtual-hosted style
 AWS_S3_ADDRESSING_STYLE = "virtual"
+AWS_S3_MAX_POOL_CONNECTIONS = int(os.getenv("AWS_S3_MAX_POOL_CONNECTIONS", "100"))
+AWS_S3_CLIENT_CONFIG = Config(max_pool_connections=AWS_S3_MAX_POOL_CONNECTIONS)
 
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "utils.storage_backends.R2MediaStorage",
     },
 }
+
+if USE_CDN_STATIC and STATIC_CDN_URL:
+    STORAGES["staticfiles"] = {
+        "BACKEND": "utils.storage_backends.R2StaticStorage",
+    }
+else:
+    STORAGES["staticfiles"] = {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
 # ------------------
 
 # Responsive image generation defaults
@@ -275,7 +305,11 @@ IMAGE_VARIANT_SIZES_ATTR = os.getenv(
     "IMAGE_VARIANT_SIZES_ATTR",
     "(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px",
 )
-IMAGE_VARIANT_ASSUME_EXISTS = os.getenv("IMAGE_VARIANT_ASSUME_EXISTS", "true").lower() == "true"
+_image_variant_assume_env = os.getenv("IMAGE_VARIANT_ASSUME_EXISTS")
+if _image_variant_assume_env is None:
+    IMAGE_VARIANT_ASSUME_EXISTS = not DEBUG
+else:
+    IMAGE_VARIANT_ASSUME_EXISTS = _image_variant_assume_env.lower() == "true"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -322,6 +356,25 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
+
+if REDIS_URL:
+    redis_options = {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "IGNORE_EXCEPTIONS": True,  # Failover to DB/LocMem if Redis unavailable
+    }
+    if REDIS_URL.startswith("rediss://"):
+        redis_options["SSL"] = True
+        redis_options["SSL_CERT_REQS"] = REDIS_SSL_CERT_REQS
+
+    CACHES["default"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "TIMEOUT": int(os.getenv("REDIS_CACHE_TIMEOUT", "600")),
+        "OPTIONS": redis_options,
+    }
+
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
 
 # Enhanced logging configuration for connection monitoring
 # Production-friendly logging (console only for Heroku)
