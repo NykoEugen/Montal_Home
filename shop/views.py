@@ -286,9 +286,23 @@ class PromotionsView(TemplateView):
     def get_context_data(self, **kwargs):
         """Provide full list of active promotional furniture items."""
         context = super().get_context_data(**kwargs)
-        context["promotional_items"] = list(
-            fetch_active_promotional_furniture().order_by("-created_at")
-        )
+        promotional_items = list(fetch_active_promotional_furniture().order_by("-created_at"))
+        items_by_category: dict[str, list[Furniture]] = defaultdict(list)
+        for item in promotional_items:
+            category = getattr(getattr(item, "sub_category", None), "category", None)
+            category_name = category.name if category else "Інші пропозиції"
+            items_by_category[category_name].append(item)
+
+        grouped_promotional_items = [
+            {
+                "category_name": category_name,
+                "items": items_by_category[category_name],
+                "count": len(items_by_category[category_name]),
+            }
+            for category_name in sorted(items_by_category.keys())
+        ]
+        context["promotional_items"] = promotional_items
+        context["grouped_promotional_items"] = grouped_promotional_items
         context.update(
             {
                 "meta_title": "Акції та знижки на меблі — Montal Home",

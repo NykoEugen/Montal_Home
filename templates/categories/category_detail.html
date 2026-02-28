@@ -50,29 +50,31 @@
             </div>
             <!-- Навігація пагінації -->
             {% if page_obj.has_other_pages %}
-                <div class="mt-8 flex justify-center space-x-2">
+                <div class="mt-8 flex justify-center">
+                    <nav class="pagination-nav" aria-label="Пагінація товарів">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}"
-                           class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
+                           class="pagination-link pagination-link--arrow">
                             Попередня
                         </a>
                     {% endif %}
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
-                            <span class="px-4 py-2 bg-brown-800 text-white rounded-md">{{ num }}</span>
+                            <span class="pagination-link pagination-link--active" aria-current="page">{{ num }}</span>
                         {% else %}
                             <a href="?page={{ num }}"
-                               class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
+                               class="pagination-link">
                                 {{ num }}
                             </a>
                         {% endif %}
                         {% endfor %}
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}"
-                           class="px-4 py-2 bg-beige-200 text-brown-800 rounded-md hover:bg-beige-700">
+                           class="pagination-link pagination-link--arrow">
                             Наступна
                         </a>
                     {% endif %}
+                    </nav>
                 </div>
             {% endif %}
         {% else %}
