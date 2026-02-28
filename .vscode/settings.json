@@ -1,4 +1,5 @@
 {
     "makefile.configureOnOpen": false,
-    "xml.symbols.maxItemsComputed": 20000
+    "xml.symbols.maxItemsComputed": 20000,
+    "postman.settings.dotenv-detection-notification-visibility": false
 }

@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
+from PIL import Image, UnidentifiedImageError
 
 from categories.models import Category
 from furniture.models import Furniture, FurnitureVariantImage, FurnitureSizeVariant, FurnitureImage
@@ -24,10 +25,175 @@ from sub_categories.models import SubCategory
 logger = logging.getLogger(__name__)
 
 
+
 DEFAULT_CATEGORY_NAMES = (
     "Корпусні меблі",
     "Комплекти меблів",
 )
+
+CATALOG_PROFILES = {
+    "furniture": {
+        "category_name": "Корпусні меблі",
+        "feed_categories": ("Корпусні меблі", "Комплекти меблів"),
+        "category_ids": (),
+        "subcategories": [
+            "Полиці (Антресоль)",
+            "Тумби",
+            "Пенал",
+            "Комоди",
+            "Столи",
+            "Подіуми",
+            "Шафи",
+            "Ергономічні елементи",
+            "Модульні системи",
+        ],
+        "keywords": [
+            ("Подіуми", ("подіум",)),
+            (
+                "Шафи",
+                ("шафа", "шаф ", "гардероб", "передпок", "прихож", "вітальн", "спальн", "шкаф распаш"),
+            ),
+            (
+                "Модульні системи",
+                ("модульна система", "модульний", "modular system", "color system"),
+            ),
+            (
+                "Ергономічні елементи",
+                (
+                    "вішал",
+                    "вешал",
+                    "лавка",
+                    "лавочка",
+                    "дзеркал",
+                    "полка-віш",
+                    "полка ",
+                ),
+            ),
+            ("Полиці (Антресоль)", ("полиц", "антрес", "навісн", "шафа навісна", "стелаж")),
+            ("Комоди", ("комод",)),
+            ("Тумби", ("тумб",)),
+            ("Пенали", ("пенал",)),
+            ("Столи", ("стіл", "стол", "столик")),
+        ],
+        "default_subcategory": None,
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
+        "name_field": None,
+        "description_field": "description",
+        "variant_param_fields": [],
+        "base_color_param": None,
+        "category_map": {},
+        "group_by_name": False,
+    },
+    "mattresses": {
+        "category_name": "Матраци",
+        "feed_categories": ("Ортопедичні матраци",),
+        "category_ids": ("99883323",),
+        "subcategories": [
+            "Матраци-топери",
+            "Матраци MatroRoll Flip",
+            "Матраци MatroRoll King/Queen/Like",
+            "Матраци MatroRoll Futon",
+            "Матраци Kokos",
+            "Матраци Aura",
+            "Матраци Granat",
+            "Матраци Sofia",
+            "Матраци Camelia",
+            "Матраци Boom/Red",
+            "Матраци Leeds",
+            "Матраци Mirage",
+            "Матраци Rulle",
+            "Матраци Kozak",
+            "Матраци інші",
+        ],
+        "keywords": [
+            ("Матраци-топери", ("топпер", "topper")),
+            ("Матраци MatroRoll Flip", ("flip",)),
+            ("Матраци MatroRoll King/Queen/Like", ("king", "queen", "like")),
+            ("Матраци MatroRoll Futon", ("futon", "футон")),
+            ("Матраци Kokos", ("kokos", "cocos", "кокос", "extra kokos")),
+            ("Матраци Aura", ("aura", "аура")),
+            ("Матраци Granat", ("granat", "гранат")),
+            ("Матраци Sofia", ("sofia", "соф", "софія")),
+            ("Матраци Camelia", ("camelia", "камел")),
+            ("Матраци Boom/Red", ("boom", "red")),
+            ("Матраци Leeds", ("leeds", "лідс")),
+            ("Матраци Mirage", ("mirage", "міраж")),
+            ("Матраци Rulle", ("rulle", "рулл")),
+            ("Матраци Kozak", ("kozak", "козак")),
+        ],
+        "default_subcategory": "Матраци інші",
+        "skip_parameters": set(),
+        "use_offer_size_variants": True,
+        "color_variants_enabled": False,
+        "name_field": None,
+        "description_field": "description",
+        "variant_param_fields": [],
+        "base_color_param": None,
+        "category_map": {},
+        "group_by_name": False,
+    },
+    "chairs": {
+        "category_name": "Стільці",
+        "feed_categories": ("Стільці", "Обідні стільці", "Обідні крісла"),
+        "category_ids": ("79", "98", "93", "102", "103", "104", "80", "94", "97", "87"),
+        "subcategories": [
+            "Обідні стільці",
+            "Напівбарні",
+            "Барні",
+            "Крісла",
+            "М'які крісла",
+        ],
+        "keywords": [],
+        "default_subcategory": "Обідні стільці",
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
+        "name_field": "name_ua",
+        "description_field": "description_ua",
+        "variant_param_fields": ["Колір", "Матеріал оббивки"],
+        "base_color_param": "Колір",
+        "category_map": {
+            "79": "Обідні стільці",
+            "98": "Обідні стільці",
+            "102": "Обідні стільці",
+            "103": "Обідні стільці",
+            "104": "Обідні стільці",
+            "93": "Обідні стільці",
+            "80": "Крісла",
+            "94": "М'які крісла",
+            "97": "Барні",
+            "87": "Напівбарні",
+        },
+        "group_by_name": True,
+    },
+    "tables": {
+        "category_name": "Столи",
+        "feed_categories": ("Столи обідні", "Журнальні столи", "Столи", "Столи кавові"),
+        "category_ids": ("77", "78", "101", "108"),
+        "subcategories": [
+            "Кухонні столи",
+            "Журнальні столи",
+        ],
+        "keywords": [],
+        "default_subcategory": "Кухонні столи",
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": True,
+        "name_field": "name_ua",
+        "description_field": "description_ua",
+        "variant_param_fields": ["Колір", "Матеріал стільниці"],
+        "base_color_param": "Колір",
+        "category_map": {
+            "77": "Кухонні столи",
+            "101": "Кухонні столи",
+            "78": "Журнальні столи",
+            "108": "Журнальні столи",
+        },
+        "group_by_name": True,
+    },
+}
 
 DIMENSION_PARAMS = {
     "width_mm": {"source": "Ширина, мм", "key": "width_cm", "label": "Ширина (см)"},
@@ -47,59 +213,43 @@ IMAGE_CACHE_DIR = "supplier_cache"
 
 SKIP_PARAMETER_NAMES = {"торгова марка", "готові кольорові рішення"}
 
-TARGET_SUBCATEGORY_NAMES = [
-    "Полиці",
-    "Тумби",
-    "Пенал",
-    "Комод",
-    "Столи",
-    "Подіуми",
-    "Шафи",
-    "Ергономічні елементи",
-    "Модульні системи",
-]
-
-SUBCATEGORY_KEYWORDS: List[Tuple[str, Tuple[str, ...]]] = [
-    ("Подіуми", ("подіум",)),
-    (
-        "Шафи",
-        (
-            "шафа",
-            "шаф ",
-            "гардероб",
-            "передпок",
-            "прихож",
-            "вітальн",
-            "спальн",
-            "шкаф распаш",
-        ),
-    ),
-    ("Модульні системи", ("модульна система", "модульний", "modular system")),
-    (
-        "Ергономічні елементи",
-        (
-            "вішал",
-            "вешал",
-            "лавка",
-            "лавочка",
-            "дзеркал",
-            "полка-віш",
-            "полка ",
-        ),
-    ),
-    ("Полиці", ("полиц", "антрес", "навісн", "шафа навісна", "стелаж")),
-    ("Комод", ("комод",)),
-    ("Тумби", ("тумб",)),
-    ("Пенал", ("пенал",)),
-    ("Столи", ("стіл", "стол", "столик")),
-]
-
 NAME_REPLACEMENTS = [
     ("Вешалка", "Вішалка"),
     ("вешалка", "вішалка"),
     ("Модульная система", "Модульна система"),
     ("модульная система", "модульна система"),
 ]
+
+NAME_NORMALIZATION_MAP = {
+    "а": "a",
+    "a": "a",
+    "о": "o",
+    "o": "o",
+    "с": "c",
+    "c": "c",
+    "р": "p",
+    "p": "p",
+    "х": "x",
+    "x": "x",
+    "к": "k",
+    "k": "k",
+    "в": "v",
+    "b": "b",
+    "е": "e",
+    "e": "e",
+    "н": "n",
+    "h": "h",
+    "м": "m",
+    "m": "m",
+    "т": "t",
+    "t": "t",
+    "і": "i",
+    "i": "i",
+    "ї": "i",
+    "й": "i",
+    "y": "y",
+    "у": "u",
+}
 
 CYRILLIC_MAP = {
     "а": "a",
@@ -147,6 +297,7 @@ class FeedOffer:
     offer_id: str
     raw_name: str
     base_name: str
+    normalized_name: str
     article_code: str
     group_id: Optional[str]
     description: str
@@ -159,7 +310,7 @@ class FeedOffer:
 
     @property
     def color_name(self) -> Optional[str]:
-        value = self.params.get(COLOR_PARAM_NAME)
+        value = self.params.get(COLOR_PARAM_NAME) or self.params.get("Колір")
         return value.strip() if value else None
 
 
@@ -258,12 +409,38 @@ class Command(BaseCommand):
                 "Перекриває мапінг за назвою."
             ),
         )
+        parser.add_argument(
+            "--profile",
+            choices=CATALOG_PROFILES.keys(),
+            default="furniture",
+            help="Який профіль каталогу обробляти (корпусні меблі або матраци).",
+        )
 
     def handle(self, *args, **options) -> None:  # pragma: no cover - CLI glue
         feed_url = options.get("feed_url")
         feed_file = options.get("feed_file")
         dry_run = options.get("dry_run")
-        categories = tuple(options.get("categories") or DEFAULT_CATEGORY_NAMES)
+        profile_key = options.get("profile") or "furniture"
+        if profile_key not in CATALOG_PROFILES:
+            raise CommandError(f"Невідомий профіль '{profile_key}'")
+        self.profile = CATALOG_PROFILES[profile_key]
+        self.target_category_name = self.profile["category_name"]
+        self.target_subcategory_names = self.profile["subcategories"]
+        self.subcategory_keywords = self.profile["keywords"]
+        self.default_subcategory_name = self.profile.get("default_subcategory")
+        self.skip_parameter_names = SKIP_PARAMETER_NAMES | set(self.profile.get("skip_parameters", []))
+        self.use_offer_size_variants = self.profile.get("use_offer_size_variants", False)
+        self.color_variants_enabled = self.profile.get("color_variants_enabled", True)
+        self.name_field = self.profile.get("name_field")
+        self.description_field = self.profile.get("description_field", "description")
+        self.variant_param_fields = self.profile.get("variant_param_fields", [])
+        self.base_color_param = self.profile.get("base_color_param")
+        self.category_map = {
+            str(key): value for key, value in (self.profile.get("category_map") or {}).items()
+        }
+        self.group_by_name = self.profile.get("group_by_name", False)
+
+        categories = tuple(options.get("categories") or self.profile["feed_categories"])
         limit = options.get("limit")
         category_overrides = self._parse_category_overrides(options.get("category_map"))
         category_id_overrides = self._parse_category_id_overrides(
@@ -284,10 +461,14 @@ class Command(BaseCommand):
         }
 
         category_lookup = self._build_category_lookup(root)
+        forced_ids = set(category_id_overrides.keys())
+        if self.profile.get("category_ids"):
+            forced_ids.update(str(cid) for cid in self.profile["category_ids"])
+
         category_targets = self._resolve_target_categories(
             category_lookup,
             categories,
-            forced_ids=set(category_id_overrides.keys()),
+            forced_ids=forced_ids,
         )
         if not category_targets:
             raise CommandError("Не знайдено жодної категорії, що відповідає заданим назвам.")
@@ -335,11 +516,19 @@ class Command(BaseCommand):
                 continue
 
             self._register_subcategory(sub_category)
-            key = (offer.base_name, offer.article_code, sub_category.id)
+            if self.group_by_name:
+                key = (offer.normalized_name, sub_category.id)
+            else:
+                key = (offer.base_name, offer.article_code, sub_category.id)
             grouped_offers.setdefault(key, []).append(offer)
 
         for idx, (group_key, variants) in enumerate(grouped_offers.items(), start=1):
-            base_name, article_code, sub_category_id = group_key
+            if self.group_by_name:
+                normalized_name, sub_category_id = group_key
+                canonical_article = variants[0].article_code
+                base_name = variants[0].base_name
+            else:
+                base_name, canonical_article, sub_category_id = group_key
             sub_category = self.subcategory_cache_by_id.get(sub_category_id)
             if not sub_category:
                 sub_category = SubCategory.objects.get(id=sub_category_id)
@@ -348,7 +537,7 @@ class Command(BaseCommand):
             if idx % 10 == 1 or len(grouped_offers) <= 10:
                 self.stdout.write(
                     f"[{idx}/{len(grouped_offers)}] Обробка '{base_name}' "
-                    f"({article_code}) — варіантів: {len(variants)}"
+                    f"({canonical_article}) — варіантів: {len(variants)}"
                 )
 
             furniture, created = self._get_or_create_furniture(
@@ -364,41 +553,72 @@ class Command(BaseCommand):
             if created:
                 stats["furniture_created"] += 1
 
+            is_commode = self._is_commode_subcategory(sub_category)
+            commode_overrides = self._build_commode_parameter_override(variants) if is_commode else None
             size_variants_created = 0
             if not dry_run:
-                slash_variants = self._extract_slashed_dimensions(primary_offer)
-                if slash_variants:
-                    variant_count = len(slash_variants["variants"])
-                    base_price = self._adjust_pricing_for_dimension_variants(
-                        furniture, variant_count + 1  # include основний розмір
-                    )
+                if not self.use_offer_size_variants and not is_commode:
+                    slash_variants = self._extract_slashed_dimensions(primary_offer)
+                    if slash_variants:
+                        variant_count = len(slash_variants["variants"])
+                        base_price = self._adjust_pricing_for_dimension_variants(
+                            furniture, variant_count + 1  # include основний розмір
+                        )
+                        self._sync_parameters(
+                            furniture,
+                            primary_offer,
+                            override_values=slash_variants["primary"],
+                        )
+                        size_variants_created = self._create_dimension_variants(
+                            furniture,
+                            primary_offer,
+                            slash_variants["variants"],
+                            base_price=base_price,
+                        )
+                    else:
+                        self._sync_parameters(furniture, primary_offer)
+                else:
                     self._sync_parameters(
                         furniture,
                         primary_offer,
-                        override_values=slash_variants["primary"],
+                        override_values=commode_overrides,
                     )
-                    size_variants_created = self._create_dimension_variants(
-                        furniture,
-                        primary_offer,
-                        slash_variants["variants"],
-                        base_price=base_price,
-                    )
-                else:
-                    self._sync_parameters(furniture, primary_offer)
                 self._sync_additional_parameters(furniture, primary_offer)
                 self._ensure_main_image(furniture, primary_offer)
                 self._sync_gallery_images(furniture, primary_offer)
 
-            variants_created = self._sync_variants(
-                furniture=furniture,
-                offers=variants,
-                dry_run=dry_run,
-            )
+            if is_commode:
+                size_variants_created += self._sync_commode_variants(
+                    furniture=furniture,
+                    offers=variants,
+                    dry_run=dry_run,
+                )
+
+            if self.use_offer_size_variants:
+                variants_created = self._sync_offer_size_variants(
+                    furniture=furniture,
+                    offers=variants,
+                )
+                variants_skipped = max(len(variants) - variants_created, 0)
+            elif is_commode:
+                variants_created = 0
+                variants_skipped = 0
+            elif self.color_variants_enabled:
+                variants_created = self._sync_variants(
+                    furniture=furniture,
+                    offers=variants,
+                    dry_run=dry_run,
+                )
+                variants_skipped = max(len(variants) - variants_created, 0)
+            else:
+                variants_created = 0
+                variants_skipped = 0
+
             stats["variants_created"] += variants_created
-            stats["variants_skipped"] += max(len(variants) - variants_created, 0)
+            stats["variants_skipped"] += variants_skipped
             if size_variants_created:
                 self.stdout.write(
-                    f"  + створено {size_variants_created} розмірних варіантів із параметрів"
+                    f"  + створено {size_variants_created} розмірних варіантів"
                 )
 
         self.stdout.write(
@@ -482,12 +702,25 @@ class Command(BaseCommand):
 
     def _parse_offer_element(self, offer_el: ET.Element, category_id: str) -> Optional[FeedOffer]:
         offer_id = offer_el.get("id") or str(uuid.uuid4())
-        name = _apply_name_replacements((offer_el.findtext("name") or "").strip())
-        model = (offer_el.findtext("model") or "").strip()
+        base_name_value = _apply_name_replacements((offer_el.findtext("name") or "").strip())
+        if self.name_field:
+            localized = _apply_name_replacements((offer_el.findtext(self.name_field) or "").strip())
+            if localized:
+                base_name_value = localized
+        model = (
+            offer_el.findtext("model")
+            or offer_el.findtext("vendorCode")
+            or offer_el.findtext("article")
+            or ""
+        ).strip()
         group_id = offer_el.get("group_id")
         price = self._parse_decimal(offer_el.findtext("price"))
         old_price = self._parse_decimal(offer_el.findtext("oldprice"))
-        description = (offer_el.findtext("description") or "").strip()
+        description = (
+            offer_el.findtext(self.description_field)
+            or offer_el.findtext("description")
+            or ""
+        ).strip()
         available = (offer_el.get("available") or "true").lower() == "true"
 
         params: Dict[str, str] = {}
@@ -499,22 +732,36 @@ class Command(BaseCommand):
 
         picture_urls = [pic.text.strip() for pic in offer_el.findall("picture") if pic.text]
 
-        base_name = self._extract_base_name(name)
+        variant_hints: List[str] = []
+        if self.base_color_param:
+            value = params.get(self.base_color_param)
+            if value:
+                variant_hints.append(value)
+        for field in self.variant_param_fields:
+            if field == self.base_color_param:
+                continue
+            value = params.get(field)
+            if value:
+                variant_hints.append(value)
+
+        base_name = self._extract_base_name(base_name_value, hints=variant_hints)
+        normalized_name = self._normalize_grouping_name(base_name)
         article_code = self._extract_article_code(model)
 
         if not base_name or not article_code:
             logger.warning(
                 "Пропозиція %s пропущена: відсутня назва або артикул (name=%s, model=%s)",
                 offer_id,
-                name,
+                base_name_value,
                 model,
             )
             return None
 
         return FeedOffer(
             offer_id=offer_id,
-            raw_name=name,
+            raw_name=base_name_value,
             base_name=base_name,
+            normalized_name=normalized_name,
             article_code=article_code,
             group_id=group_id,
             description=description,
@@ -527,10 +774,28 @@ class Command(BaseCommand):
         )
 
     @staticmethod
-    def _extract_base_name(raw_name: str) -> str:
+    def _extract_base_name(raw_name: str, hints: Optional[List[str]] = None) -> str:
         if not raw_name:
             return ""
-        return _apply_name_replacements(raw_name.split(",")[0].strip())
+        name = raw_name.split(",")[0].strip()
+        if hints:
+            for hint in hints:
+                hint_value = (hint or "").strip()
+                if not hint_value:
+                    continue
+                hint_lower = hint_value.lower()
+                while True:
+                    lowered = name.lower()
+                    idx = lowered.rfind(hint_lower)
+                    if idx == -1:
+                        break
+                    before = name[:idx].rstrip(" -/,")
+                    after_idx = idx + len(hint_lower)
+                    name = (before + name[after_idx:]).strip()
+        # Remove trailing connectors like "+ ..." or "/ ..."
+        name = re.split(r"\s+[+/]\s+|\s+\+\s*$", name)[0].strip()
+        name = name.rstrip("+-/, ")
+        return _apply_name_replacements(name)
 
     @staticmethod
     def _extract_article_code(raw_model: str) -> str:
@@ -626,19 +891,24 @@ class Command(BaseCommand):
         return resolved
 
     def _load_target_subcategories(self) -> Dict[str, SubCategory]:
-        category = Category.objects.filter(name__iexact="Корпусні меблі").first()
+        category = Category.objects.filter(name__iexact=self.target_category_name).first()
         if not category:
-            raise CommandError("Категорію 'Корпусні меблі' не знайдено.")
+            raise CommandError(f"Категорію '{self.target_category_name}' не знайдено.")
 
         subcategories = SubCategory.objects.filter(
-            category=category, name__in=TARGET_SUBCATEGORY_NAMES
+            category=category, name__in=self.target_subcategory_names
         )
         mapping = {subcat.name: subcat for subcat in subcategories}
-        missing = [name for name in TARGET_SUBCATEGORY_NAMES if name not in mapping]
+        missing = [name for name in self.target_subcategory_names if name not in mapping]
         if missing:
+            ensure_cmd = (
+                "ensure_corpus_subcategories"
+                if self.target_category_name == "Корпусні меблі"
+                else "ensure_mattress_subcategories"
+            )
             raise CommandError(
                 f"Не знайдено підкатегорії: {', '.join(missing)}. "
-                "Запустіть команду ensure_corpus_subcategories."
+                f"Запустіть команду {ensure_cmd}."
             )
         return mapping
 
@@ -652,6 +922,12 @@ class Command(BaseCommand):
         group_cache: Dict[str, str],
         category_overrides: Dict[str, SubCategory],
     ) -> Optional[SubCategory]:
+        mapped_by_id = self.category_map.get(offer.category_id)
+        if mapped_by_id:
+            sub_category = self.target_subcategories.get(mapped_by_id)
+            if sub_category:
+                return sub_category
+
         name_lower = offer.raw_name.lower()
         matched_name = self._match_subcategory_keyword(name_lower)
         if matched_name:
@@ -672,13 +948,41 @@ class Command(BaseCommand):
         if mapped:
             return mapped
 
+        if self.default_subcategory_name:
+            return self.target_subcategories.get(self.default_subcategory_name)
+
         return None
 
     def _match_subcategory_keyword(self, name_lower: str) -> Optional[str]:
-        for subcat_name, keywords in SUBCATEGORY_KEYWORDS:
+        for subcat_name, keywords in self.subcategory_keywords:
             if any(keyword in name_lower for keyword in keywords):
                 return subcat_name
         return None
+
+    def _is_commode_subcategory(self, sub_category: SubCategory) -> bool:
+        if not sub_category or not sub_category.name:
+            return False
+        return sub_category.name.strip().lower().startswith("комод")
+
+    def _build_commode_parameter_override(self, offers: List[FeedOffer]) -> Optional[Dict[str, str]]:
+        for offer in offers:
+            if self._is_commode_color_offer(offer):
+                continue
+            width_value = self._parse_dimension_value(offer.params.get("Ширина комода"))
+            if width_value is not None:
+                return {"width_mm": self._decimal_to_str(width_value)}
+        return None
+
+    def _normalize_grouping_name(self, value: str) -> str:
+        if not value:
+            return ""
+        result_chars: List[str] = []
+        for ch in value.lower():
+            result_chars.append(NAME_NORMALIZATION_MAP.get(ch, ch))
+        normalized = "".join(result_chars)
+        normalized = re.sub(r"[^a-z0-9а-яіїєґ ]+", " ", normalized)
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
 
     def _get_or_create_furniture(
         self,
@@ -686,7 +990,17 @@ class Command(BaseCommand):
         sub_category: SubCategory,
         dry_run: bool = False,
     ) -> Tuple[Optional[Furniture], bool]:
-        existing = Furniture.objects.filter(article_code=offer.article_code).first()
+        existing = None
+        if self.group_by_name:
+            existing = (
+                Furniture.objects.filter(sub_category=sub_category, name__iexact=offer.base_name)
+                .order_by("id")
+                .first()
+            )
+            if not existing:
+                existing = self._find_existing_by_normalized(sub_category, offer.normalized_name)
+        if not existing:
+            existing = Furniture.objects.filter(article_code=offer.article_code).first()
         if existing:
             self.stdout.write(
                 f"Скипнуто існуючий товар '{existing.name}' ({existing.article_code})"
@@ -773,7 +1087,7 @@ class Command(BaseCommand):
             if not clean_name:
                 continue
             name_lower = clean_name.lower()
-            if name_lower in SKIP_PARAMETER_NAMES:
+            if name_lower in self.skip_parameter_names:
                 continue
             if clean_name in DIMENSION_LABELS:
                 continue
@@ -822,7 +1136,7 @@ class Command(BaseCommand):
     ) -> int:
         created = 0
         for index, offer in enumerate(offers):
-            color_name = offer.color_name or ("Колір " + str(index + 1))
+            color_name = self._build_variant_name(offer, index)
             defaults = {
                 "stock_status": "in_stock" if offer.available else "on_order",
                 "is_default": index == 0,
@@ -851,9 +1165,143 @@ class Command(BaseCommand):
                 if cache_path:
                     variant.image.name = cache_path
                     variant.save(update_fields=["image"])
+                    self._attach_variant_image_to_gallery(furniture, cache_path, color_name, index)
             if index == 0 and not furniture.image and variant.image:
                 furniture.image.name = variant.image.name
                 furniture.save(update_fields=["image"])
+        return created
+
+    def _build_variant_name(self, offer: FeedOffer, index: int) -> str:
+        if self.base_color_param:
+            color_value = offer.params.get(self.base_color_param)
+            if color_value:
+                return color_value.strip()
+        parts: List[str] = []
+        for field in self.variant_param_fields:
+            value = offer.params.get(field)
+            if value:
+                parts.append(value.strip())
+        if parts:
+            return " ".join(parts).strip()
+        if offer.color_name:
+            return offer.color_name
+        return f"Колір {index + 1}"
+
+    def _sync_commode_variants(
+        self,
+        furniture: Furniture,
+        offers: List[FeedOffer],
+        dry_run: bool = False,
+    ) -> int:
+        created = 0
+        for offer in offers:
+            if self._is_commode_color_offer(offer):
+                continue
+
+            width = self._parse_dimension_value(offer.params.get("Ширина комода"))
+            if width is None:
+                continue
+            height = self._parse_dimension_value(offer.params.get("Висота, мм"))
+            depth = self._parse_dimension_value(offer.params.get("Глибина, мм"))
+
+            base_price, promo_price, _ = self._resolve_prices(offer)
+            if base_price is None:
+                continue
+
+            if dry_run:
+                self.stdout.write(
+                    f"[DRY-RUN] Додав би комод шириною {self._decimal_to_str(width)} см "
+                    f"({furniture.article_code})"
+                )
+                continue
+
+            resolved_height = height or Decimal("0")
+            resolved_length = depth or Decimal("0")
+            variant, was_created = FurnitureSizeVariant.objects.get_or_create(
+                furniture=furniture,
+                width=width,
+                length=resolved_length,
+                defaults={
+                    "height": resolved_height,
+                    "price": base_price,
+                    "promotional_price": promo_price,
+                    "is_promotional": bool(promo_price),
+                },
+            )
+
+            if was_created:
+                created += 1
+                continue
+
+            updates = {}
+            if variant.height != resolved_height:
+                updates["height"] = resolved_height
+            if variant.length != resolved_length:
+                updates["length"] = resolved_length
+            if variant.price != base_price:
+                updates["price"] = base_price
+            if variant.promotional_price != promo_price:
+                updates["promotional_price"] = promo_price
+            new_is_promotional = bool(promo_price)
+            if variant.is_promotional != new_is_promotional:
+                updates["is_promotional"] = new_is_promotional
+
+            if updates:
+                for field, value in updates.items():
+                    setattr(variant, field, value)
+                variant.save(update_fields=list(updates.keys()))
+
+        return created
+
+    def _sync_offer_size_variants(
+        self,
+        furniture: Furniture,
+        offers: List[FeedOffer],
+    ) -> int:
+        created = 0
+        for offer in offers:
+            dimensions = self._extract_offer_dimensions(offer)
+            if not dimensions:
+                continue
+
+            width = dimensions["width"]
+            length = dimensions["length"]
+            height = dimensions.get("height") or Decimal("0")
+
+            base_price, promo_price, is_promotional = self._resolve_prices(offer)
+            if base_price is None:
+                continue
+
+            variant, was_created = FurnitureSizeVariant.objects.get_or_create(
+                furniture=furniture,
+                width=width,
+                length=length,
+                defaults={
+                    "height": height,
+                    "price": base_price,
+                    "promotional_price": promo_price,
+                    "is_promotional": is_promotional,
+                },
+            )
+
+            updates = {}
+            if not was_created:
+                if variant.height != height and height:
+                    updates["height"] = height
+                if variant.price != base_price:
+                    updates["price"] = base_price
+                if variant.promotional_price != promo_price:
+                    updates["promotional_price"] = promo_price
+                new_is_promotional = bool(promo_price)
+                if variant.is_promotional != new_is_promotional:
+                    updates["is_promotional"] = new_is_promotional
+                if updates:
+                    for field, value in updates.items():
+                        setattr(variant, field, value)
+                    variant.save(update_fields=list(updates.keys()))
+            else:
+                created += 1
+
         return created
 
     def _convert_mm_to_cm(self, raw_value: Optional[str]) -> Optional[str]:
@@ -872,6 +1320,28 @@ class Command(BaseCommand):
         if "." in normalized:
             normalized = normalized.rstrip("0").rstrip(".")
         return normalized
+
+    def _parse_dimension_value(self, raw_value: Optional[str]) -> Optional[Decimal]:
+        if not raw_value:
+            return None
+        cleaned = raw_value.replace(",", ".").lower()
+        match = re.search(r"(\d+(?:\.\d+)?)", cleaned)
+        if not match:
+            return None
+        value = Decimal(match.group(1))
+        if "мм" in cleaned:
+            value = value / Decimal("10")
+        return value.quantize(Decimal("1"))
+
+    def _is_commode_color_offer(self, offer: FeedOffer) -> bool:
+        if offer.params.get(COLOR_PARAM_NAME):
+            return True
+        name_lower = offer.raw_name.lower()
+        return "готові кольорові рішення" in name_lower
+
+    def _decimal_to_str(self, value: Decimal) -> str:
+        normalized = value.quantize(Decimal("1"))
+        return format(normalized, "f")
 
     def _get_or_create_parameter(self, key: str, label: str) -> Parameter:
         parameter, _ = Parameter.objects.get_or_create(key=key, defaults={"label": label})
@@ -1018,6 +1488,13 @@ class Command(BaseCommand):
             return None
         return record.value
 
+    def _find_existing_by_normalized(self, sub_category: SubCategory, normalized_name: str) -> Optional[Furniture]:
+        candidates = Furniture.objects.filter(sub_category=sub_category).only("id", "name")
+        for candidate in candidates:
+            if self._normalize_grouping_name(candidate.name) == normalized_name:
+                return Furniture.objects.get(pk=candidate.pk)
+        return None
+
     def _create_size_variant(
         self,
         furniture: Furniture,
@@ -1054,7 +1531,50 @@ class Command(BaseCommand):
             variant.save(update_fields=["price"])
         return 1 if created else 0
 
+    def _extract_offer_dimensions(self, offer: FeedOffer) -> Optional[Dict[str, Decimal]]:
+        size_value = None
+        for key, value in offer.params.items():
+            if "розмір" in key.lower():
+                size_value = value
+                break
+        if not size_value:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+        else:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", size_value.lower())
+        if not match_in_name:
+            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+        if not match_in_name:
+            return None
+
+        width = Decimal(match_in_name.group(1)).quantize(Decimal("1"))
+        length = Decimal(match_in_name.group(2)).quantize(Decimal("1"))
+
+        height_value = None
+        for key, value in offer.params.items():
+            if "висота" in key.lower():
+                height_value = value
+                break
+        height = self._parse_height_value(height_value)
+
+        return {"width": width, "length": length, "height": height}
+
+    def _parse_height_value(self, raw_value: Optional[str]) -> Optional[Decimal]:
+        if not raw_value:
+            return None
+        cleaned = raw_value.replace(",", ".")
+        match = re.search(r"(\d+(?:\.\d+)?)", cleaned)
+        if not match:
+            return None
+        value = Decimal(match.group(1))
+        lower = raw_value.lower()
+        if "мм" in lower:
+            value = value / Decimal("10")
+        return value.quantize(Decimal("1"))
+
     def _get_or_create_generic_parameter(self, label: str) -> Parameter:
+        existing = Parameter.objects.filter(label__iexact=label).first()
+        if existing:
+            return existing
         key = self._parameter_key_from_name(label)
         parameter, created = Parameter.objects.get_or_create(key=key, defaults={"label": label})
         if not created and parameter.label != label:
@@ -1074,8 +1594,10 @@ class Command(BaseCommand):
         headers = {
             "User-Agent": USER_AGENT,
             "Accept": "image/*,*/*;q=0.8",
-            "Referer": url,
         }
+        referer = self._build_safe_referer(url)
+        if referer:
+            headers["Referer"] = referer
         try:
             response = self.http.get(url, headers=headers, timeout=60)
             response.raise_for_status()
@@ -1093,6 +1615,9 @@ class Command(BaseCommand):
         image_content = self._fetch_image(url)
         if not image_content:
             return None
+        if not self._is_valid_image_file(image_content):
+            logger.warning("Пропущено некоректне зображення %s", url)
+            return None
         default_storage.save(cache_path, image_content)
         return cache_path
 
@@ -1105,9 +1630,49 @@ class Command(BaseCommand):
         digest = hashlib.sha1(url.encode("utf-8")).hexdigest()
         return f"{IMAGE_CACHE_DIR}/{digest}{ext}"
 
+    def _build_safe_referer(self, url: str) -> Optional[str]:
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            return None
+        if not parsed.scheme or not parsed.netloc:
+            return None
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    def _is_valid_image_file(self, content: ContentFile) -> bool:
+        try:
+            content.seek(0)
+            with Image.open(content) as img:
+                img.verify()
+            content.seek(0)
+            return True
+        except (UnidentifiedImageError, OSError):
+            return False
+        except Exception:
+            content.seek(0)
+            return False
+
+    def _attach_variant_image_to_gallery(
+        self,
+        furniture: Furniture,
+        cache_path: str,
+        color_name: str,
+        index: int,
+    ) -> None:
+        existing = FurnitureImage.objects.filter(furniture=furniture, image=cache_path).exists()
+        if existing:
+            return
+        gallery_image = FurnitureImage(
+            furniture=furniture,
+            alt_text=f"{furniture.name} — колір {color_name}",
+            position=furniture.images.count() + index,
+        )
+        gallery_image.image.name = cache_path
+        gallery_image.save()
+
     def _build_http_session(self) -> requests.Session:
         session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=50, pool_maxsize=50)
+        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         return session

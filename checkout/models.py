@@ -303,6 +303,31 @@ class OrderItem(models.Model):
         blank=True,
         verbose_name="Надбавка за параметр",
     )
+    color_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="ID кольору палітри",
+    )
+    color_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Назва кольору",
+    )
+    color_palette_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Назва палітри кольорів",
+    )
+    color_hex = models.CharField(
+        max_length=7,
+        blank=True,
+        verbose_name="HEX код кольору",
+    )
+    color_image_url = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="URL зразка кольору",
+    )
 
     class Meta:
         verbose_name = "Елемент замовлення"
@@ -394,6 +419,15 @@ class OrderItem(models.Model):
         if not variant_image:
             return ""
         return variant_image.name
+
+    @property
+    def color_display(self) -> str:
+        """Human-readable representation of the selected palette color."""
+        if not self.color_name:
+            return ""
+        if self.color_palette_name:
+            return f"{self.color_palette_name}: {self.color_name}"
+        return self.color_name
 
 
 class LiqPayReceipt(models.Model):

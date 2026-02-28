@@ -3,13 +3,14 @@ from types import SimpleNamespace
 from typing import List, Set
 
 from django.conf import settings
+from django.db.models import Prefetch
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import strip_tags
 from django.utils.text import Truncator
-from fabric_category.models import FabricCategory
+from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture
 
 
@@ -111,6 +112,12 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
         fabric_categories = FabricCategory.objects.filter(
             brand=furniture.selected_fabric_brand
         )
+    color_palettes = furniture.color_palettes.filter(is_active=True).prefetch_related(
+        Prefetch(
+            "colors",
+            queryset=FabricColor.objects.filter(is_active=True).order_by("position", "id"),
+        )
+    )
     # Default to the new (v2) template; allow forcing old via ?v=1
     template_name = "furniture/furniture_detail_alt.html"
     if request.GET.get("v") == "1":
@@ -211,6 +218,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
         "variant_images": variant_images,
         "gallery_images": gallery_images,
         "fabric_categories": fabric_categories,
+        "color_palettes": color_palettes,
         "base_dimensions": combined_dimensions,
         "base_size_variant_id": base_size_variant_id,
         "initial_stock_status": initial_stock_status,
