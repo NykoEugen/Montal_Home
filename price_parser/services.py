@@ -390,6 +390,9 @@ class GoogleSheetsPriceUpdater:
 class SupplierOffer:
     offer_id: str
     name: str
+    name_ua: Optional[str]
+    description: Optional[str]
+    description_ua: Optional[str]
     model: Optional[str]
     price: Decimal
     old_price: Optional[Decimal]
@@ -465,6 +468,8 @@ class SupplierFeedPriceUpdater:
                         'offer_id': offer.offer_id,
                         'name': offer.name,
                         'model': offer.model,
+                        'name_ua': offer.name_ua,
+                        'article_candidates': self._article_candidates(offer.model) if offer.model else [],
                         'error': 'Не знайдено відповідний товар'
                     })
                     continue
@@ -524,14 +529,31 @@ class SupplierFeedPriceUpdater:
 
         offers: List[SupplierOffer] = []
         for offer_el in root.findall('.//offer'):
+            model_text = (
+                (offer_el.findtext('model') or '')
+                or (offer_el.findtext('article') or '')
+                or (offer_el.findtext('vendorCode') or '')
+            ).strip()
             price = self._parse_decimal(offer_el.findtext('price'))
             if price is None:
                 continue
-            old_price = self._parse_decimal(offer_el.findtext('oldprice'))
+            # support multiple tag spellings for old price
+            old_price = self._parse_decimal(
+                offer_el.findtext('oldprice')
+                or offer_el.findtext('old_price')
+                or offer_el.findtext('old-price')
+                or offer_el.findtext('old price')
+            )
+            name_ua = (offer_el.findtext('name_ua') or '').strip() or None
+            description = (offer_el.findtext('description') or '').strip() or None
+            description_ua = (offer_el.findtext('description_ua') or '').strip() or None
             offer = SupplierOffer(
-                offer_id=offer_el.get('id') or (offer_el.findtext('model') or '').strip() or (offer_el.findtext('name') or '').strip() or 'unknown',
+                offer_id=offer_el.get('id') or model_text or (offer_el.findtext('name') or '').strip() or 'unknown',
                 name=(offer_el.findtext('name') or '').strip(),
-                model=(offer_el.findtext('model') or '').strip() or None,
+                name_ua=name_ua,
+                description=description,
+                description_ua=description_ua,
+                model=model_text or None,
                 price=price,
                 old_price=old_price,
             )
@@ -557,15 +579,36 @@ class SupplierFeedPriceUpdater:
         index = self._get_furniture_index()
 
         if self.config.match_by_article and offer.model:
-            key = offer.model.strip().lower()
-            furniture = index['article'].get(key)
-            if furniture:
-                return furniture
+            candidates = self._article_candidates(offer.model)
+            for candidate in candidates:
+                furniture = index['article'].get(candidate)
+                if furniture:
+                    return furniture
+            # Soft prefix match: allow base code to match colored variants
+            article_index = index['article']
+            for candidate in candidates:
+                matches = {
+                    furniture
+                    for key, furniture in article_index.items()
+                    if key.startswith(candidate) or candidate.startswith(key)
+                }
+                if len(matches) == 1:
+                    return next(iter(matches))
 
-        if not (self.config.match_by_name and offer.name):
+        if not (self.config.match_by_name and offer.name_ua):
             return None
 
-        offer_variants = self._generate_name_variants(offer.name)
+        name_sources: List[str] = []
+        # Prefer UA name, but if порожнє — використати name як запасний варіант
+        if offer.name_ua:
+            name_sources.append(offer.name_ua)
+        elif offer.name:
+            name_sources.append(offer.name)
+
+        offer_variants: List[str] = []
+        for raw in name_sources:
+            offer_variants.extend(self._generate_name_variants(raw))
+
         candidates = self._collect_name_matches(offer_variants)
         if len(candidates) == 1:
             return candidates[0]
@@ -582,6 +625,22 @@ class SupplierFeedPriceUpdater:
         unique_partial = self._deduplicate(partial_candidates)
         if len(unique_partial) == 1:
             return unique_partial[0]
+
+        # Fallback 2: token-overlap similarity (helps UA/RU wording differences)
+        best_match = self._find_best_token_overlap(offer_variants, name_index)
+        if best_match:
+            return best_match
+
+        # Fallback 3: use description text (UA preferred)
+        description_variants: List[str] = []
+        if offer.description_ua:
+            description_variants.append(self._normalize_name(offer.description_ua))
+        elif offer.description:
+            description_variants.append(self._normalize_name(offer.description))
+
+        best_match_desc = self._find_best_token_overlap(description_variants, name_index)
+        if best_match_desc:
+            return best_match_desc
         return None
 
     def _collect_name_matches(self, offer_variants: List[str]) -> List[Furniture]:
@@ -624,6 +683,83 @@ class SupplierFeedPriceUpdater:
         value = re.sub(r'\s+', ' ', value)
         return value.strip()
 
+    def _normalize_article_code(self, value: str) -> str:
+        value = value.lower().strip()
+        # Remove any non-alphanumeric chars to align vendor formats:
+        # "R-63-black/ black" -> "r63blackblack"
+        return re.sub(r'[^a-z0-9]+', '', value)
+
+    def _article_candidates(self, raw: str) -> List[str]:
+        """Generate multiple article variants to bridge color/texture suffixes."""
+        candidates: List[str] = []
+        norm_full = self._normalize_article_code(raw)
+        if norm_full:
+            candidates.append(norm_full)
+
+        # Split by common separators and take prefixes
+        tokens = [t for t in re.split(r'[^a-z0-9]+', raw.lower()) if t]
+        if tokens:
+            for length in (1, 2, 3):
+                base = ''.join(tokens[:length])
+                if base:
+                    candidates.append(base)
+
+        # Before first slash/hyphen segment
+        slash_split = re.split(r'[\\/]', raw)
+        if slash_split:
+            first = slash_split[0]
+            norm_first = self._normalize_article_code(first)
+            if norm_first:
+                candidates.append(norm_first)
+
+        # Deduplicate preserving order
+        seen: set[str] = set()
+        result: List[str] = []
+        for cand in candidates:
+            if cand and cand not in seen:
+                seen.add(cand)
+                result.append(cand)
+        return result
+
+    def _find_best_token_overlap(
+        self,
+        offer_variants: List[str],
+        name_index: Dict[str, List[Furniture]],
+    ) -> Optional[Furniture]:
+        """Pick the best match by token overlap to bridge ru/ua wording differences."""
+        best_furniture: Optional[Furniture] = None
+        best_score: float = 0.0
+        ambiguous = False
+
+        for variant in offer_variants:
+            tokens_variant = variant.split()
+            if not tokens_variant:
+                continue
+            set_variant = set(tokens_variant)
+
+            for stored_name, furnitures in name_index.items():
+                tokens_stored = stored_name.split()
+                if not tokens_stored:
+                    continue
+                set_stored = set(tokens_stored)
+                overlap = len(set_variant & set_stored)
+                score = overlap / max(len(set_variant), len(set_stored))
+
+                if overlap < 2 or score < 0.6:
+                    continue
+
+                for furniture in furnitures:
+                    if score > best_score:
+                        best_furniture = furniture
+                        best_score = score
+                        ambiguous = False
+                    elif score == best_score:
+                        ambiguous = True
+
+        if ambiguous:
+            return None
+        return best_furniture
+
     def _get_furniture_index(self) -> Dict[str, Dict]:
         if self._furniture_index is not None:
             return self._furniture_index
@@ -633,7 +769,10 @@ class SupplierFeedPriceUpdater:
         furnitures = Furniture.objects.all().only('id', 'name', 'article_code', 'price', 'promotional_price', 'is_promotional')
         for furniture in furnitures:
             if furniture.article_code:
-                article_index[furniture.article_code.strip().lower()] = furniture
+                raw_key = furniture.article_code.strip().lower()
+                norm_key = self._normalize_article_code(raw_key)
+                article_index[raw_key] = furniture
+                article_index[norm_key] = furniture
             for variant in self._generate_name_variants(furniture.name):
                 if not variant:
                     continue

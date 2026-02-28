@@ -672,8 +672,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (card) {
                     const isMobileStack = scrollStack.classList.contains('scroll-stack--mobile');
                     const scrollOptions = isMobileStack
-                        ? { behavior: 'smooth', block: 'nearest', inline: 'center' }
-                        : { behavior: 'smooth', block: 'start' };
+                        ? { behavior: 'auto', block: 'nearest', inline: 'center' }
+                        : { behavior: 'auto', block: 'start' };
                     card.scrollIntoView(scrollOptions);
                     activateStackSection(target);
                 }
