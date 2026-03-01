@@ -11,8 +11,14 @@ from .models import (
     FurniturePriceCellMapping,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
+    SupplierWebConfig,
+    SupplierWebUpdateLog,
 )
-from .services import GoogleSheetsPriceUpdater, SupplierFeedPriceUpdater
+from .services import (
+    GoogleSheetsPriceUpdater,
+    SupplierFeedPriceUpdater,
+    SupplierWebPriceUpdater,
+)
 
 
 @admin.register(GoogleSheetConfig)
@@ -221,6 +227,138 @@ class SupplierFeedConfigAdmin(admin.ModelAdmin):
         return actions
 
 
+@admin.register(SupplierWebConfig)
+class SupplierWebConfigAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "supplier",
+        "category_hint",
+        "crawl_from_robots",
+        "use_selenium",
+        "is_active",
+        "updated_at",
+    ]
+    list_filter = ["is_active", "supplier", "crawl_from_robots", "use_selenium"]
+    search_fields = ["name", "supplier", "category_hint", "base_url"]
+    readonly_fields = ["created_at", "updated_at"]
+    filter_horizontal = ["target_categories"]
+
+    fieldsets = (
+        ("Основна інформація", {"fields": ("name", "supplier", "category_hint", "is_active")}),
+        (
+            "Фільтр товарів",
+            {
+                "fields": ("target_categories",),
+                "description": "Обмежте оновлення цінами лише для вибраних категорій. Якщо порожньо — оновлюються всі товари.",
+            },
+        ),
+        (
+            "Джерело",
+            {
+                "fields": ("base_url", "search_path_template", "crawl_from_robots", "max_urls_to_scan"),
+                "description": "Базовий URL постачальника і правила пошуку сторінок товарів.",
+            },
+        ),
+        (
+            "Пошук і парсинг",
+            {
+                "fields": ("match_by_article", "match_by_name", "request_timeout"),
+            },
+        ),
+        (
+            "Selenium (опційно)",
+            {
+                "fields": ("use_selenium", "selenium_wait_seconds"),
+            },
+        ),
+        (
+            "Налаштування цін",
+            {
+                "fields": ("price_multiplier",),
+            },
+        ),
+        (
+            "Системна інформація",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:config_id>/update-prices/",
+                self.admin_site.admin_view(self.update_prices_view),
+                name="price_parser_supplierwebconfig_update_prices",
+            ),
+            path(
+                "<int:config_id>/test-parse/",
+                self.admin_site.admin_view(self.test_parse_view),
+                name="price_parser_supplierwebconfig_test_parse",
+            ),
+        ]
+        return custom_urls + urls
+
+    def update_prices_view(self, request, config_id):
+        try:
+            config = SupplierWebConfig.objects.get(id=config_id)
+            updater = SupplierWebPriceUpdater(config)
+            result = updater.update_prices()
+            if result.get("success"):
+                messages.success(
+                    request,
+                    "Оновлено {updated} товарів (збігів {matched}, перевірено {processed}).".format(
+                        updated=result.get("items_updated", 0),
+                        matched=result.get("items_matched", 0),
+                        processed=result.get("items_processed", 0),
+                    ),
+                )
+            else:
+                messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+        except SupplierWebConfig.DoesNotExist:
+            messages.error(request, "Конфігурація не знайдена")
+        except Exception as exc:
+            messages.error(request, f"Помилка: {exc}")
+
+        return HttpResponseRedirect("../")
+
+    def test_parse_view(self, request, config_id):
+        try:
+            config = SupplierWebConfig.objects.get(id=config_id)
+            updater = SupplierWebPriceUpdater(config)
+            result = updater.test_parse()
+            if result.get("success"):
+                messages.success(
+                    request,
+                    f"Тест виконано. Зібрано URL: {result.get('urls_total', 0)}",
+                )
+            else:
+                messages.error(request, f"Помилка тесту: {result.get('error', 'Невідома помилка')}")
+        except SupplierWebConfig.DoesNotExist:
+            messages.error(request, "Конфігурація не знайдена")
+        except Exception as exc:
+            messages.error(request, f"Помилка: {exc}")
+
+        return HttpResponseRedirect("../")
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions["update_supplier_web"] = (
+            update_supplier_web_action,
+            "update_supplier_web",
+            "Оновити ціни для вибраних веб-конфігурацій",
+        )
+        actions["test_supplier_web"] = (
+            test_supplier_web_action,
+            "test_supplier_web",
+            "Тестувати вибрані веб-конфігурації",
+        )
+        return actions
+
+
 def update_prices_action(modeladmin, request, queryset):
     """Admin action to update prices for selected configs."""
     updated_count = 0
@@ -307,6 +445,48 @@ def test_supplier_feeds_action(modeladmin, request, queryset):
     )
 
 
+def update_supplier_web_action(modeladmin, request, queryset):
+    updated_count = 0
+    for config in queryset:
+        try:
+            updater = SupplierWebPriceUpdater(config)
+            result = updater.update_prices()
+            if result.get("success"):
+                updated_count += 1
+        except Exception as exc:
+            modeladmin.message_user(
+                request,
+                f"Помилка оновлення {config.name}: {exc}",
+                messages.ERROR,
+            )
+
+    modeladmin.message_user(
+        request,
+        f"Оновлення виконано для {updated_count} веб-конфігурацій",
+    )
+
+
+def test_supplier_web_action(modeladmin, request, queryset):
+    tested_count = 0
+    for config in queryset:
+        try:
+            updater = SupplierWebPriceUpdater(config)
+            result = updater.test_parse()
+            if result.get("success"):
+                tested_count += 1
+        except Exception as exc:
+            modeladmin.message_user(
+                request,
+                f"Помилка тестування {config.name}: {exc}",
+                messages.ERROR,
+            )
+
+    modeladmin.message_user(
+        request,
+        f"Успішно протестовано {tested_count} веб-конфігурацій",
+    )
+
+
 @admin.register(PriceUpdateLog)
 class PriceUpdateLogAdmin(admin.ModelAdmin):
     list_display = [
@@ -359,6 +539,47 @@ class SupplierFeedUpdateLogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
     
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SupplierWebUpdateLog)
+class SupplierWebUpdateLogAdmin(admin.ModelAdmin):
+    list_display = [
+        "config",
+        "status",
+        "started_at",
+        "completed_at",
+        "items_processed",
+        "items_matched",
+        "items_updated",
+        "duration",
+    ]
+    list_filter = ["status", "started_at", "config"]
+    readonly_fields = [
+        "config",
+        "status",
+        "started_at",
+        "completed_at",
+        "items_processed",
+        "items_matched",
+        "items_updated",
+        "errors",
+        "log_details",
+    ]
+    search_fields = ["config__name"]
+
+    def duration(self, obj):
+        if obj.completed_at:
+            duration = obj.completed_at - obj.started_at
+            return f"{duration.total_seconds():.1f} сек"
+        return "В процесі"
+
+    duration.short_description = "Тривалість"
+
+    def has_add_permission(self, request):
+        return False
+
     def has_change_permission(self, request, obj=None):
         return False
 

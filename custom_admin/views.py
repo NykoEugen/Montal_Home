@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import FieldError
+from django.db import close_old_connections
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
@@ -22,8 +23,12 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from checkout.models import Order
 from checkout.invoice import generate_and_upload_invoice
-from price_parser.models import GoogleSheetConfig, SupplierFeedConfig
-from price_parser.services import GoogleSheetsPriceUpdater, SupplierFeedPriceUpdater
+from price_parser.models import GoogleSheetConfig, SupplierFeedConfig, SupplierWebConfig
+from price_parser.services import (
+    GoogleSheetsPriceUpdater,
+    SupplierFeedPriceUpdater,
+    SupplierWebPriceUpdater,
+)
 from sub_categories.models import SubCategory
 
 from .forms import (
@@ -226,6 +231,17 @@ class SectionListView(SectionMixin, ListView):
                 "test_label": "Перевірити фід",
                 "title": "Групові дії",
                 "description": "Виберіть потрібні фіди, щоб оновити ціни або протестувати парсер.",
+            }
+        if self.section.slug == "supplier-web":
+            return {
+                "url": reverse("custom_admin:supplier_web_bulk_action"),
+                "selected_field": "selected_web_configs",
+                "select_all_id": "select-all-web-configs",
+                "checkbox_class": "supplier-web-config-checkbox",
+                "update_label": "Оновити ціни",
+                "test_label": "Тестувати парсер",
+                "title": "Групові дії",
+                "description": "Виберіть потрібні веб-конфігурації для оновлення цін або тестового запуску.",
             }
         return None
 
@@ -693,6 +709,127 @@ def supplier_feed_bulk_action(request):
         messages.success(
             request,
             f"{action_label.capitalize()} успішно для {success_count} конфігурацій.",
+        )
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def update_supplier_web_prices(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierWebConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    try:
+        updater = SupplierWebPriceUpdater(config)
+        result = updater.update_prices()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося оновити ціни: {exc}")
+        return redirect(redirect_url)
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        messages.success(
+            request,
+            "Оновлено {updated} товарів (збігів {matched}, перевірено {processed}).".format(
+                updated=result.get("items_updated", 0),
+                matched=result.get("items_matched", 0),
+                processed=result.get("items_processed", 0),
+            ),
+        )
+    else:
+        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def test_supplier_web_parse(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierWebConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    try:
+        updater = SupplierWebPriceUpdater(config)
+        result = updater.test_parse()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося виконати тестовий парсинг: {exc}")
+        return redirect(redirect_url)
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Тестовий парсинг успішний. Зібрано URL: {result.get('urls_total', 0)}.",
+        )
+    else:
+        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def supplier_web_bulk_action(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    action = request.POST.get("action")
+    selected_ids = request.POST.getlist("selected_web_configs")
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    if not selected_ids:
+        messages.warning(request, "Будь ласка, виберіть хоча б одну веб-конфігурацію.")
+        return redirect(redirect_url)
+
+    configs = SupplierWebConfig.objects.filter(pk__in=selected_ids)
+    if not configs.exists():
+        messages.error(request, "Обрані веб-конфігурації не знайдено.")
+        return redirect(redirect_url)
+
+    success_count = 0
+    errors: list[str] = []
+    action_label = "оновлення" if action == "update" else "тестування"
+
+    for config in configs:
+        try:
+            updater = SupplierWebPriceUpdater(config)
+            if action == "update":
+                result = updater.update_prices()
+            elif action == "test":
+                result = updater.test_parse()
+            else:
+                messages.error(request, "Невідома дія.")
+                return redirect(redirect_url)
+
+            if result.get("success"):
+                success_count += 1
+            else:
+                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+        except Exception as exc:
+            errors.append(f"{config.name}: {exc}")
+        finally:
+            close_old_connections()
+
+    total = configs.count()
+    if errors:
+        messages.warning(
+            request,
+            f"{action_label.capitalize()} виконано частково — успішно {success_count} з {total}.",
+        )
+        preview = " ; ".join(errors[:3])
+        if len(errors) > 3:
+            preview += " ..."
+        messages.error(request, preview)
+    else:
+        messages.success(
+            request,
+            f"{action_label.capitalize()} успішно для {success_count} веб-конфігурацій.",
         )
     return redirect(redirect_url)
 

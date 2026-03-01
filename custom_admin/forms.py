@@ -25,6 +25,8 @@ from price_parser.models import (
     PriceUpdateLog,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
+    SupplierWebConfig,
+    SupplierWebUpdateLog,
 )
 from sub_categories.models import SubCategory
 from shop.models import SeasonalSettings
@@ -351,6 +353,33 @@ class SupplierFeedConfigForm(StyledModelForm):
         ]
 
 
+class SupplierWebConfigForm(StyledModelForm):
+    class Meta:
+        model = SupplierWebConfig
+        fields = [
+            "name",
+            "supplier",
+            "category_hint",
+            "target_categories",
+            "base_url",
+            "search_path_template",
+            "crawl_from_robots",
+            "max_urls_to_scan",
+            "match_by_article",
+            "match_by_name",
+            "request_timeout",
+            "use_selenium",
+            "selenium_wait_seconds",
+            "price_multiplier",
+            "is_active",
+        ]
+        widgets = {
+            "target_categories": forms.CheckboxSelectMultiple(
+                attrs={"class": "grid grid-cols-1 md:grid-cols-2 gap-2"}
+            ),
+        }
+
+
 class PriceUpdateLogForm(StyledModelForm):
     class Meta:
         model = PriceUpdateLog
@@ -402,6 +431,51 @@ class SupplierFeedUpdateLogForm(StyledModelForm):
             "config",
             "status",
             "offers_processed",
+            "items_matched",
+            "items_updated",
+            "log_details",
+            "errors",
+        ]
+        widgets = {
+            "log_details": forms.Textarea(attrs={"rows": 4}),
+            "errors": forms.Textarea(attrs={"rows": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["started_at"] = forms.DateTimeField(
+            label="Початок",
+            required=False,
+            initial=getattr(self.instance, "started_at", None),
+        )
+        self.fields["completed_at"] = forms.DateTimeField(
+            label="Завершення",
+            required=False,
+            initial=getattr(self.instance, "completed_at", None),
+        )
+        for field in self.fields.values():
+            field.disabled = True
+            classes = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{classes} bg-beige-50 cursor-not-allowed".strip()
+
+        if self.instance:
+            if self.instance.log_details:
+                self.fields["log_details"].initial = self.instance.log_details
+            if self.instance.errors:
+                try:
+                    pretty = json.dumps(self.instance.errors, ensure_ascii=False, indent=2)
+                except (TypeError, ValueError):
+                    pretty = str(self.instance.errors)
+                self.fields["errors"].initial = pretty
+
+
+class SupplierWebUpdateLogForm(StyledModelForm):
+    class Meta:
+        model = SupplierWebUpdateLog
+        fields = [
+            "config",
+            "status",
+            "items_processed",
             "items_matched",
             "items_updated",
             "log_details",
