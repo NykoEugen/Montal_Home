@@ -41,8 +41,10 @@ class Command(BaseCommand):
                 # <model> може містити суфікси кольору — тому читаємо vendorCode.
                 "article_tag_name": "vendorCode",
                 "article_prefix_parts": 0,
-                # Дивани не мають варіантів за розміром у цьому фіді.
-                "update_size_variants": False,
+                # Дивани не мають варіантів за розміром — ціна на Furniture.
+                # Ліжка з різними розмірами мають vendor_code на FurnitureSizeVariant —
+                # прайс-парсер знаходить варіант напряму через _get_variant_vendor_index().
+                "update_size_variants": True,
                 "size_param_name": "",
             },
         )

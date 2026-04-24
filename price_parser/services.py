@@ -410,6 +410,7 @@ class SupplierFeedPriceUpdater:
         self.config = config
         self.log: Optional[SupplierFeedUpdateLog] = None
         self._furniture_index: Optional[Dict[str, Dict]] = None
+        self._variant_vendor_index: Optional[Dict[str, FurnitureSizeVariant]] = None
 
     def test_parse(self) -> Dict:
         """Preview first offers without applying changes."""
@@ -460,6 +461,38 @@ class SupplierFeedPriceUpdater:
             seen_pairs: set = set()
 
             for offer in offers:
+                # --- Крок 1: пряме зіставлення з розмірним варіантом по vendor_code ---
+                # Якщо offer.model є в індексі variant_vendor_code → оновлюємо варіант
+                # напряму (не шукаємо Furniture через article_code / name).
+                direct_variant: Optional[FurnitureSizeVariant] = None
+                if offer.model:
+                    variant_index = self._get_variant_vendor_index()
+                    vkey = self._normalize_article(offer.model)
+                    direct_variant = variant_index.get(vkey)
+
+                if direct_variant is not None:
+                    furniture = direct_variant.furniture
+                    size_variant = direct_variant
+                    items_matched += 1
+                    pair = (furniture.pk, size_variant.pk)
+                    if pair in seen_pairs:
+                        continue
+                    try:
+                        changed = self._apply_offer_prices(furniture, offer, size_variant=size_variant)
+                    except Exception as exc:
+                        errors.append({
+                            'offer_id': offer.offer_id,
+                            'name': offer.name,
+                            'model': offer.model,
+                            'error': f'Не вдалося оновити ціну варіанту: {exc}',
+                        })
+                        continue
+                    seen_pairs.add(pair)
+                    if changed:
+                        items_updated += 1
+                    continue
+
+                # --- Крок 2: стандартне зіставлення через Furniture ---
                 try:
                     furniture = self._match_offer_to_furniture(offer)
                 except Exception as exc:  # Defensive to log unexpected parsing issues
@@ -706,6 +739,23 @@ class SupplierFeedPriceUpdater:
                 name_index.setdefault(variant, []).append(furniture)
         self._furniture_index = {'article': article_index, 'names': name_index}
         return self._furniture_index
+
+    def _get_variant_vendor_index(self) -> Dict[str, FurnitureSizeVariant]:
+        """Lazy-built index: vendor_code → FurnitureSizeVariant.
+
+        Дозволяє знаходити конкретний розмірний варіант напряму за кодом
+        постачальника без необхідності проходити через Furniture.
+        """
+        if self._variant_vendor_index is not None:
+            return self._variant_vendor_index
+
+        index: Dict[str, FurnitureSizeVariant] = {}
+        variants_qs = FurnitureSizeVariant.objects.exclude(vendor_code='').select_related('furniture')
+        for variant in variants_qs:
+            key = self._normalize_article(variant.vendor_code)
+            index[key] = variant
+        self._variant_vendor_index = index
+        return self._variant_vendor_index
 
     def _apply_offer_prices(
         self,

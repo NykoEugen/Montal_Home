@@ -364,3 +364,122 @@ class TestSupplierFeedApplyPrices(TestCase):
         changed = updater._apply_offer_prices(furniture, offer)
         self.assertFalse(changed)
         furniture.save.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Vendor-code index: size variant direct matching (beds yml7)
+# ---------------------------------------------------------------------------
+
+BED_YML_FIXTURE = """<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="2024-01-01 12:00">
+  <shop>
+    <categories>
+      <category id="99883327">Ліжка</category>
+    </categories>
+    <offers>
+      <offer id="34648" available="true">
+        <name>Ліжко кутове Midas/Мідас (800х2000)</name>
+        <vendorCode>1636</vendorCode>
+        <price>18537</price>
+        <categoryId>99883327</categoryId>
+      </offer>
+      <offer id="34786" available="true">
+        <name>Ліжко кутове Brimo/Брімо (80х200)</name>
+        <vendorCode>1638</vendorCode>
+        <price>19069</price>
+        <categoryId>99883327</categoryId>
+      </offer>
+      <offer id="34787" available="true">
+        <name>Ліжко кутове Percy/Персі (800х2000)</name>
+        <vendorCode>1639</vendorCode>
+        <price>15137</price>
+        <oldprice>16650</oldprice>
+        <categoryId>99883327</categoryId>
+      </offer>
+    </offers>
+  </shop>
+</yml_catalog>
+"""
+
+
+class TestVariantVendorIndex(TestCase):
+    """Tests for _get_variant_vendor_index and the two-step matching in update loop."""
+
+    def _updater(self):
+        return SupplierFeedPriceUpdater(_make_config())
+
+    def _make_variant(self, pk, vendor_code, price=Decimal("18000")):
+        variant = MagicMock()
+        variant.pk = pk
+        variant.vendor_code = vendor_code
+        variant.price = price
+        variant.promotional_price = None
+        variant.is_promotional = False
+        furn = MagicMock()
+        furn.pk = 100 + pk
+        variant.furniture = furn
+        return variant
+
+    def test_variant_found_by_vendor_code(self):
+        updater = self._updater()
+        v1 = self._make_variant(1, "1636")
+        v2 = self._make_variant(2, "1638")
+        updater._variant_vendor_index = {
+            updater._normalize_article("1636"): v1,
+            updater._normalize_article("1638"): v2,
+        }
+
+        idx = updater._get_variant_vendor_index()
+        self.assertIn("1636", idx)
+        self.assertIs(idx["1636"], v1)
+        self.assertIn("1638", idx)
+
+    def test_normalize_article_used_for_lookup(self):
+        updater = self._updater()
+        # Vendor codes with slashes/spaces should normalize the same way
+        updater._variant_vendor_index = {
+            updater._normalize_article("6508-21"): self._make_variant(3, "6508-21"),
+        }
+        key = updater._normalize_article("6508-21")
+        self.assertIn(key, updater._get_variant_vendor_index())
+
+    @patch("price_parser.services.requests.get")
+    def test_bed_offers_parsed_from_yml_fixture(self, mock_get):
+        mock_get.return_value.content = BED_YML_FIXTURE.encode("utf-8")
+        mock_get.return_value.raise_for_status = MagicMock()
+
+        updater = self._updater()
+        offers = updater._fetch_offers()
+
+        self.assertEqual(len(offers), 3)
+        codes = [o.model for o in offers]
+        self.assertIn("1636", codes)
+        self.assertIn("1638", codes)
+        self.assertIn("1639", codes)
+
+    def test_apply_prices_on_variant_updates_variant_not_furniture(self):
+        """When size_variant is passed, furniture fields must NOT change."""
+        updater = self._updater()
+        furniture = MagicMock()
+        furniture.price = Decimal("20000")
+        furniture.promotional_price = None
+        furniture.is_promotional = False
+
+        variant = MagicMock()
+        variant.price = Decimal("10000")
+        variant.promotional_price = None
+        variant.is_promotional = False
+
+        offer = SupplierOffer(
+            offer_id="34648",
+            name="Ліжко кутове Midas",
+            model="1636",
+            price=Decimal("18537"),
+            old_price=None,
+        )
+        changed = updater._apply_offer_prices(furniture, offer, size_variant=variant)
+        self.assertTrue(changed)
+        self.assertEqual(variant.price, Decimal("18537.00"))
+        # furniture.save must NOT be called — only variant.save
+        furniture.save.assert_not_called()
+        variant.save.assert_called_once()
