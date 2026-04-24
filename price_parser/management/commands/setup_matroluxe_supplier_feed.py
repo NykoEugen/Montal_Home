@@ -36,6 +36,11 @@ class Command(BaseCommand):
                 "match_by_article": True,
                 "match_by_name": True,
                 "is_active": True,
+                # Каталог Matro має N офферів (кольори) на один товар.
+                # <vendorCode> містить чистий артикул (наприклад, "53054-5"),
+                # <model> забруднено суфіксом кольору — тому використовуємо vendorCode.
+                "article_tag_name": "vendorCode",
+                "article_prefix_parts": 0,
             },
         )
 
