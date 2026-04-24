@@ -349,6 +349,8 @@ class SupplierFeedConfigForm(StyledModelForm):
             "price_multiplier",
             "article_tag_name",
             "article_prefix_parts",
+            "update_size_variants",
+            "size_param_name",
             "match_by_article",
             "match_by_name",
             "is_active",

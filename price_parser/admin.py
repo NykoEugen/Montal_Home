@@ -141,8 +141,15 @@ class SupplierFeedConfigAdmin(admin.ModelAdmin):
         ('Налаштування пошуку', {
             'fields': ('match_by_article', 'match_by_name', 'article_tag_name', 'article_prefix_parts'),
             'description': (
-                'article_tag_name: XML-тег для читання артикулу (зазвичай "model", для Vetro — "article"). '
+                'article_tag_name: XML-тег для читання артикулу (зазвичай "model", для Vetro — "article", для Matro — "vendorCode"). '
                 'article_prefix_parts: скільки частин через "-" брати як базовий код (0 = повний артикул).'
+            )
+        }),
+        ('Розміри товару', {
+            'fields': ('update_size_variants', 'size_param_name'),
+            'description': (
+                'Увімкніть, якщо фід містить розміри (матраці тощо). '
+                'size_param_name: атрибут name тегу <param> з розміром, напр. "Розмір матрацу (ШхД)".'
             )
         }),
         ('Налаштування цін', {

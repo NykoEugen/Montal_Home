@@ -212,6 +212,24 @@ class SupplierFeedConfig(models.Model):
             "Наприклад: для 'S-120-cappuccino-velvet' з значенням 2 отримаємо 'S-120'."
         )
     )
+    update_size_variants = models.BooleanField(
+        default=False,
+        verbose_name="Оновлювати розміри товару",
+        help_text=(
+            "Якщо увімкнено, парсер оновлює ціни окремих розмірів (FurnitureSizeVariant), "
+            "а не базову ціну товару. Потрібно вказати 'Назва XML-параметру розміру'."
+        )
+    )
+    size_param_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name="Назва XML-параметру розміру",
+        help_text=(
+            "Атрибут name тегу <param>, який містить розмір у форматі 'ШхД' (напр. '70x190'). "
+            "Для матраців Matro: 'Розмір матрацу (ШхД)'."
+        )
+    )
     match_by_article = models.BooleanField(
         default=True,
         verbose_name="Шукати за артикулом",
