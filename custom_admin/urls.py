@@ -40,6 +40,21 @@ urlpatterns = [
         views.supplier_feed_bulk_action,
         name="supplier_feed_bulk_action",
     ),
+    path(
+        "supplier-web/<int:pk>/update-prices/",
+        views.update_supplier_web_prices,
+        name="supplier_web_update_prices",
+    ),
+    path(
+        "supplier-web/<int:pk>/test-parse/",
+        views.test_supplier_web_parse,
+        name="supplier_web_test_parse",
+    ),
+    path(
+        "supplier-web/bulk-action/",
+        views.supplier_web_bulk_action,
+        name="supplier_web_bulk_action",
+    ),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
     path("<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"),
     path(

@@ -6,9 +6,13 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urljoin, urlparse
 
 import csv
 import requests
+from bs4 import BeautifulSoup
+from django.db import close_old_connections
+from django.db.utils import InterfaceError, OperationalError
 from django.utils import timezone
 
 from .models import (
@@ -17,6 +21,8 @@ from .models import (
     FurniturePriceCellMapping,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
+    SupplierWebConfig,
+    SupplierWebUpdateLog,
 )
 from furniture.models import Furniture, FurnitureSizeVariant
 
@@ -715,3 +721,576 @@ class SupplierFeedPriceUpdater:
             f"помилок: {len(errors)}"
         )
         self.log.save()
+
+
+class SupplierWebPriceUpdater:
+    """Service for updating prices by scraping supplier web pages."""
+
+    def __init__(self, config: SupplierWebConfig):
+        self.config = config
+        self.log: Optional[SupplierWebUpdateLog] = None
+        self._session = requests.Session()
+        self._session.headers.update(
+            {
+                "User-Agent": DEFAULT_FEED_HEADERS["User-Agent"],
+                "Accept-Language": "uk-UA,uk;q=0.9,en;q=0.8",
+            }
+        )
+        self._sitemap_urls_cache: Optional[List[str]] = None
+        self._page_cache: Dict[str, str] = {}
+        self._domain = urlparse(self.config.base_url).netloc.lower()
+
+    def _progress(self, message: str) -> None:
+        """Emit progress to both logger and stdout for long-running manual runs."""
+        prefix = f"[SupplierWeb:{self.config.name}]"
+        text = f"{prefix} {message}"
+        logger.info(text)
+        print(text, flush=True)
+
+    def _run_db_with_retry(self, func, label: str = "db operation"):
+        """Run DB operation with one reconnect+retry on dropped connection."""
+        close_old_connections()
+        try:
+            return func()
+        except (InterfaceError, OperationalError) as exc:
+            self._progress(f"{label}: DB connection issue, retrying once ({exc})")
+            close_old_connections()
+            return func()
+
+    def test_parse(self) -> Dict:
+        """Preview collected URLs and try parsing prices from a few pages."""
+        try:
+            urls = self._collect_candidate_urls()
+        except Exception as exc:
+            logger.error("Supplier web test failed for %s: %s", self.config.name, exc)
+            return {"success": False, "error": str(exc)}
+
+        preview: List[Dict[str, str]] = []
+        for url in urls[:5]:
+            try:
+                html = self._fetch_page_content(url)
+                base_price, promo_price = self._extract_prices(html)
+            except Exception:
+                base_price = None
+                promo_price = None
+            preview.append(
+                {
+                    "url": url,
+                    "base_price": str(base_price) if base_price is not None else "",
+                    "promo_price": str(promo_price) if promo_price is not None else "",
+                }
+            )
+
+        return {
+            "success": True,
+            "urls_total": len(urls),
+            "preview": preview,
+        }
+
+    def update_prices(self) -> Dict:
+        if not self.config.is_active:
+            return {"success": False, "error": "Конфігурація неактивна"}
+
+        self._progress("Start update_prices")
+        self.log = self._run_db_with_retry(
+            lambda: SupplierWebUpdateLog.objects.create(
+                config=self.config,
+                status="success",
+                started_at=timezone.now(),
+            ),
+            label="create web update log",
+        )
+
+        try:
+            candidates = self._collect_candidate_urls()
+            self._progress(f"Collected candidate URLs: {len(candidates)}")
+            furnitures_qs = Furniture.objects.all()
+            close_old_connections()
+            selected_categories = self.config.target_categories.all()
+            if selected_categories.exists():
+                category_names = ", ".join(selected_categories.values_list("name", flat=True))
+                self._progress(f"Filter by categories: {category_names}")
+                furnitures_qs = furnitures_qs.filter(
+                    sub_category__category__in=selected_categories
+                )
+
+            close_old_connections()
+            furnitures = list(
+                furnitures_qs.only(
+                    "id",
+                    "name",
+                    "article_code",
+                    "price",
+                    "promotional_price",
+                    "is_promotional",
+                )
+            )
+            self._progress(f"Furniture items to process: {len(furnitures)}")
+
+            items_processed = len(furnitures)
+            items_matched = 0
+            items_updated = 0
+            errors: List[Dict[str, str]] = []
+
+            for index, furniture in enumerate(furnitures, start=1):
+                close_old_connections()
+                self._progress(f"[{index}/{items_processed}] Processing: {furniture.name} ({furniture.article_code})")
+                try:
+                    matched_url = self._find_best_url_for_furniture(furniture, candidates)
+                except Exception as exc:
+                    self._progress(f"[{index}/{items_processed}] URL lookup error: {exc}")
+                    errors.append(
+                        {
+                            "furniture_id": str(furniture.id),
+                            "furniture_name": furniture.name,
+                            "error": f"Помилка пошуку URL: {exc}",
+                        }
+                    )
+                    continue
+
+                if not matched_url:
+                    self._progress(f"[{index}/{items_processed}] Not found on supplier site")
+                    continue
+
+                items_matched += 1
+                self._progress(f"[{index}/{items_processed}] Matched URL: {matched_url}")
+                try:
+                    html = self._fetch_page_content(matched_url)
+                    base_price, promo_price = self._extract_prices(html)
+                    if base_price is None:
+                        self._progress(f"[{index}/{items_processed}] Price not found in markup")
+                        errors.append(
+                            {
+                                "furniture_id": str(furniture.id),
+                                "furniture_name": furniture.name,
+                                "url": matched_url,
+                                "error": "Не вдалося знайти ціну на сторінці",
+                            }
+                        )
+                        continue
+
+                    self._progress(
+                        f"[{index}/{items_processed}] Parsed prices -> base: {base_price}, promo: {promo_price}"
+                    )
+                    changed = self._apply_prices(furniture, base_price, promo_price)
+                    if changed:
+                        items_updated += 1
+                        self._progress(f"[{index}/{items_processed}] DB updated")
+                    else:
+                        self._progress(f"[{index}/{items_processed}] No price changes")
+                except Exception as exc:
+                    self._progress(f"[{index}/{items_processed}] Parse/update error: {exc}")
+                    errors.append(
+                        {
+                            "furniture_id": str(furniture.id),
+                            "furniture_name": furniture.name,
+                            "url": matched_url,
+                            "error": str(exc),
+                        }
+                    )
+
+            self._finalize_web_log(
+                items_processed=items_processed,
+                items_matched=items_matched,
+                items_updated=items_updated,
+                errors=errors,
+            )
+            self._progress(
+                f"Finished update_prices: processed={items_processed}, matched={items_matched}, "
+                f"updated={items_updated}, errors={len(errors)}"
+            )
+
+            success = not errors or items_updated > 0
+            return {
+                "success": success,
+                "items_processed": items_processed,
+                "items_matched": items_matched,
+                "items_updated": items_updated,
+                "errors": errors,
+            }
+        except Exception as exc:
+            logger.exception("Supplier web update failed for %s", self.config.name)
+            self._progress(f"Fatal error: {exc}")
+            self._finalize_web_log(errors=[{"error": str(exc)}], force_status="error")
+            return {"success": False, "error": str(exc)}
+
+    def _collect_candidate_urls(self) -> List[str]:
+        if self._sitemap_urls_cache is not None:
+            self._progress(f"Using cached URLs: {len(self._sitemap_urls_cache)}")
+            return self._sitemap_urls_cache
+
+        urls: List[str] = []
+        if self.config.crawl_from_robots:
+            self._progress("Collect URLs from robots/sitemap")
+            urls = self._collect_urls_from_robots_and_sitemaps()
+
+        if not urls:
+            # Fallback to base URL only (search fallback will still work).
+            self._progress("No sitemap URLs found, fallback to base URL")
+            urls = [self.config.base_url]
+
+        normalized: List[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not self._is_same_domain(url):
+                continue
+            cleaned = url.split("#")[0]
+            if cleaned not in seen:
+                seen.add(cleaned)
+                normalized.append(cleaned)
+            if len(normalized) >= self.config.max_urls_to_scan:
+                break
+
+        self._progress(f"Prepared normalized candidate URLs: {len(normalized)}")
+        self._sitemap_urls_cache = normalized
+        return normalized
+
+    def _collect_urls_from_robots_and_sitemaps(self) -> List[str]:
+        base = self.config.base_url.rstrip("/")
+        robots_url = f"{base}/robots.txt"
+        self._progress(f"Fetch robots.txt: {robots_url}")
+        sitemaps = self._extract_sitemaps_from_robots(robots_url)
+        if not sitemaps:
+            sitemaps = [f"{base}/sitemap.xml"]
+            self._progress("No sitemap in robots.txt, fallback to /sitemap.xml")
+        else:
+            self._progress(f"Sitemaps discovered: {len(sitemaps)}")
+
+        urls: List[str] = []
+        for sitemap_url in sitemaps:
+            try:
+                self._progress(f"Parse sitemap: {sitemap_url}")
+                urls.extend(self._parse_sitemap_recursive(sitemap_url))
+            except Exception:
+                logger.warning("Failed to parse sitemap %s", sitemap_url, exc_info=True)
+            if len(urls) >= self.config.max_urls_to_scan:
+                break
+        self._progress(f"URLs collected from sitemaps: {len(urls[: self.config.max_urls_to_scan])}")
+        return urls[: self.config.max_urls_to_scan]
+
+    def _extract_sitemaps_from_robots(self, robots_url: str) -> List[str]:
+        timeout = max(5, int(self.config.request_timeout))
+        sitemaps: List[str] = []
+        try:
+            response = self._session.get(robots_url, timeout=timeout)
+            if response.status_code >= 400:
+                return []
+            for line in response.text.splitlines():
+                if line.lower().startswith("sitemap:"):
+                    value = line.split(":", 1)[1].strip()
+                    if value:
+                        sitemaps.append(value)
+        except Exception:
+            return []
+        return sitemaps
+
+    def _parse_sitemap_recursive(self, sitemap_url: str) -> List[str]:
+        timeout = max(5, int(self.config.request_timeout))
+        response = self._session.get(sitemap_url, timeout=timeout)
+        response.raise_for_status()
+        root = ET.fromstring(response.content)
+        ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+        if root.tag.endswith("sitemapindex"):
+            urls: List[str] = []
+            for sitemap_el in root.findall("sm:sitemap", ns):
+                loc = sitemap_el.findtext("sm:loc", default="", namespaces=ns).strip()
+                if not loc:
+                    continue
+                urls.extend(self._parse_sitemap_recursive(loc))
+                if len(urls) >= self.config.max_urls_to_scan:
+                    break
+            return urls
+
+        urls = []
+        for url_el in root.findall("sm:url", ns):
+            loc = url_el.findtext("sm:loc", default="", namespaces=ns).strip()
+            if loc:
+                urls.append(loc)
+            if len(urls) >= self.config.max_urls_to_scan:
+                break
+        return urls
+
+    def _find_best_url_for_furniture(self, furniture: Furniture, urls: List[str]) -> Optional[str]:
+        article = self._normalize_text(furniture.article_code)
+        name = self._normalize_text(furniture.name)
+
+        article_matches: List[str] = []
+        name_matches: List[str] = []
+        for url in urls:
+            norm_url = self._normalize_text(url)
+            if self.config.match_by_article and article and article in norm_url:
+                article_matches.append(url)
+            if self.config.match_by_name and name and self._name_matches_in_url(name, norm_url):
+                name_matches.append(url)
+
+        for candidate in article_matches[:10]:
+            if self._page_seems_related(candidate, furniture):
+                return candidate
+
+        for candidate in name_matches[:10]:
+            if self._page_seems_related(candidate, furniture):
+                return candidate
+
+        query_terms = []
+        if self.config.match_by_article and furniture.article_code:
+            query_terms.append(furniture.article_code)
+        if self.config.match_by_name and furniture.name:
+            query_terms.append(furniture.name)
+
+        for query in query_terms:
+            search_url = self._build_search_url(query)
+            if not search_url:
+                continue
+            self._progress(f"Search fallback for '{query}' -> {search_url}")
+            found = self._extract_first_product_link_from_search(search_url, furniture)
+            if found:
+                return found
+
+        return None
+
+    def _build_search_url(self, query: str) -> Optional[str]:
+        template = (self.config.search_path_template or "").strip()
+        if not template:
+            return None
+        # Keep readable search text in URL template; requests/browser layer will
+        # handle transport encoding of non-ASCII safely.
+        search_query = self._prepare_search_query(query)
+        path = template.replace("{query}", search_query)
+        return urljoin(self.config.base_url, path)
+
+    def _prepare_search_query(self, query: str) -> str:
+        """Normalize search text to avoid accidental duplicated/dirty queries."""
+        cleaned = re.sub(r"\s+", " ", (query or "")).strip()
+        if not cleaned:
+            return ""
+
+        # Guard against accidental full duplication: "abcabc" -> "abc".
+        if len(cleaned) % 2 == 0:
+            half = len(cleaned) // 2
+            if cleaned[:half] == cleaned[half:]:
+                cleaned = cleaned[:half].strip()
+
+        return cleaned
+
+    def _extract_first_product_link_from_search(self, search_url: str, furniture: Furniture) -> Optional[str]:
+        html = self._fetch_page_content(search_url)
+        soup = BeautifulSoup(html, "html.parser")
+        links = soup.select("a[href]")
+        for link in links:
+            href = (link.get("href") or "").strip()
+            if not href:
+                continue
+            url = urljoin(search_url, href)
+            if not self._is_same_domain(url):
+                continue
+            text = self._normalize_text(link.get_text(" ", strip=True))
+            if furniture.article_code and self._normalize_text(furniture.article_code) in text:
+                return url
+            if self._name_matches_in_url(self._normalize_text(furniture.name), text):
+                return url
+        return None
+
+    def _page_seems_related(self, url: str, furniture: Furniture) -> bool:
+        try:
+            html = self._fetch_page_content(url)
+        except Exception:
+            return False
+
+        text_norm = self._normalize_text(html)
+        if self.config.match_by_article and furniture.article_code:
+            if self._normalize_text(furniture.article_code) in text_norm:
+                return True
+        if self.config.match_by_name and furniture.name:
+            if self._name_matches_in_url(self._normalize_text(furniture.name), text_norm):
+                return True
+        return False
+
+    def _fetch_page_content(self, url: str) -> str:
+        if url in self._page_cache:
+            return self._page_cache[url]
+
+        timeout = max(5, int(self.config.request_timeout))
+        if self.config.use_selenium:
+            try:
+                html = self._fetch_with_selenium(url)
+                self._page_cache[url] = html
+                return html
+            except Exception:
+                logger.warning("Selenium fetch failed for %s, fallback to requests", url, exc_info=True)
+
+        response = self._session.get(url, timeout=timeout)
+        response.raise_for_status()
+        self._page_cache[url] = response.text
+        return response.text
+
+    def _fetch_with_selenium(self, url: str) -> str:
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+        except ImportError as exc:
+            raise RuntimeError(
+                "Selenium не встановлено. Додайте пакет 'selenium' у середовище або вимкніть use_selenium."
+            ) from exc
+
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=1400,1200")
+
+        driver = webdriver.Chrome(options=options)
+        try:
+            driver.get(url)
+            wait_seconds = max(1, int(self.config.selenium_wait_seconds))
+            driver.implicitly_wait(wait_seconds)
+            return driver.page_source
+        finally:
+            driver.quit()
+
+    def _extract_prices(self, html: str) -> Tuple[Optional[Decimal], Optional[Decimal]]:
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Primary selector based on provided markup.
+        price_block = soup.select_one("div.price.hp_price")
+        if price_block:
+            del_node = price_block.find("del")
+            ins_node = price_block.find("ins")
+            del_price = self._parse_decimal_from_text(del_node.get_text(" ", strip=True)) if del_node else None
+            ins_price = self._parse_decimal_from_text(ins_node.get_text(" ", strip=True)) if ins_node else None
+
+            if del_price is not None and ins_price is not None:
+                return self._apply_multiplier(del_price), self._apply_multiplier(ins_price)
+            if del_price is not None and ins_price is None:
+                return self._apply_multiplier(del_price), None
+            if del_price is None and ins_price is not None:
+                # Rule from user: if no <del>, <ins> is base price.
+                return self._apply_multiplier(ins_price), None
+
+        # Fallback to known classes.
+        base_tag = soup.select_one(".autocalc-product-price")
+        promo_tag = soup.select_one(".autocalc-product-special")
+        base_price = self._parse_decimal_from_text(base_tag.get_text(" ", strip=True)) if base_tag else None
+        promo_price = self._parse_decimal_from_text(promo_tag.get_text(" ", strip=True)) if promo_tag else None
+
+        if base_price is None and promo_price is not None:
+            return self._apply_multiplier(promo_price), None
+        if base_price is not None:
+            return self._apply_multiplier(base_price), self._apply_multiplier(promo_price) if promo_price else None
+        return None, None
+
+    def _parse_decimal_from_text(self, value: str) -> Optional[Decimal]:
+        if not value:
+            return None
+        cleaned = re.sub(r"[^0-9,.\s-]", "", value)
+        cleaned = cleaned.replace("\xa0", " ").replace(" ", "")
+        if not cleaned:
+            return None
+        if cleaned.count(",") == 1 and cleaned.count(".") == 0:
+            cleaned = cleaned.replace(",", ".")
+        elif cleaned.count(",") > 0 and cleaned.count(".") > 0:
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        try:
+            return Decimal(cleaned)
+        except InvalidOperation:
+            return None
+
+    def _apply_prices(self, furniture: Furniture, base_price: Decimal, promo_price: Optional[Decimal]) -> bool:
+        changed = False
+        updated_fields: List[str] = []
+
+        if furniture.price != base_price:
+            furniture.price = base_price
+            updated_fields.append("price")
+            changed = True
+
+        if promo_price is not None and promo_price < base_price:
+            if furniture.promotional_price != promo_price:
+                furniture.promotional_price = promo_price
+                updated_fields.append("promotional_price")
+                changed = True
+            if not furniture.is_promotional:
+                furniture.is_promotional = True
+                updated_fields.append("is_promotional")
+                changed = True
+        else:
+            if furniture.promotional_price is not None:
+                furniture.promotional_price = None
+                updated_fields.append("promotional_price")
+                changed = True
+            if furniture.is_promotional:
+                furniture.is_promotional = False
+                updated_fields.append("is_promotional")
+                changed = True
+
+        if changed:
+            self._run_db_with_retry(
+                lambda: furniture.save(update_fields=list(dict.fromkeys(updated_fields))),
+                label=f"save furniture {furniture.id}",
+            )
+        return changed
+
+    def _apply_multiplier(self, value: Optional[Decimal]) -> Optional[Decimal]:
+        if value is None:
+            return None
+        multiplier = self.config.price_multiplier or Decimal("1")
+        try:
+            result = value * multiplier
+        except (InvalidOperation, TypeError):
+            result = value
+        return result.quantize(Decimal("0.01"))
+
+    def _normalize_text(self, value: str) -> str:
+        value = (value or "").lower()
+        value = value.replace("ё", "е").replace("ї", "і").replace("є", "е").replace("ґ", "г")
+        value = re.sub(r"[^a-z0-9а-яіїєґ]+", " ", value)
+        return re.sub(r"\s+", " ", value).strip()
+
+    def _name_matches_in_url(self, name_norm: str, target_norm: str) -> bool:
+        if not name_norm or not target_norm:
+            return False
+        if name_norm in target_norm:
+            return True
+        name_parts = [part for part in name_norm.split(" ") if len(part) >= 4]
+        if not name_parts:
+            return False
+        matches = sum(1 for part in name_parts if part in target_norm)
+        return matches >= min(2, len(name_parts))
+
+    def _is_same_domain(self, url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        if not parsed.netloc:
+            return True
+        return parsed.netloc.lower().endswith(self._domain)
+
+    def _finalize_web_log(
+        self,
+        items_processed: int = 0,
+        items_matched: int = 0,
+        items_updated: int = 0,
+        errors: Optional[List[Dict]] = None,
+        force_status: Optional[str] = None,
+    ) -> None:
+        if not self.log:
+            return
+
+        errors = errors or []
+        status = force_status or ("success" if not errors else ("partial" if items_updated or items_matched else "error"))
+        self.log.status = status
+        self.log.items_processed = items_processed
+        self.log.items_matched = items_matched
+        self.log.items_updated = items_updated
+        self.log.errors = errors
+        self.log.completed_at = timezone.now()
+        self.log.log_details = (
+            f"Перевірено: {items_processed}, знайдено: {items_matched}, "
+            f"оновлено: {items_updated}, помилок: {len(errors)}"
+        )
+        try:
+            self._run_db_with_retry(self.log.save, label="finalize web update log")
+        except Exception as exc:
+            # Never crash request on log write failure.
+            self._progress(f"WARNING: failed to save web update log: {exc}")
