@@ -429,6 +429,14 @@ class FurnitureSizeVariant(models.Model):
         verbose_name="Значення параметра",
         help_text="Відображатиметься замість основного значення параметра при виборі цього розміру",
     )
+    vendor_code = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name="Код постачальника",
+        help_text="vendorCode з фіду постачальника для цього розміру (використовується для автооновлення цін)",
+    )
 
     class Meta:
         db_table = "furniture_size_variants"
