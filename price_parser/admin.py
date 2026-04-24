@@ -139,7 +139,11 @@ class SupplierFeedConfigAdmin(admin.ModelAdmin):
             'description': 'Посилання на XML/YML фід постачальника'
         }),
         ('Налаштування пошуку', {
-            'fields': ('match_by_article', 'match_by_name')
+            'fields': ('match_by_article', 'match_by_name', 'article_tag_name', 'article_prefix_parts'),
+            'description': (
+                'article_tag_name: XML-тег для читання артикулу (зазвичай "model", для Vetro — "article"). '
+                'article_prefix_parts: скільки частин через "-" брати як базовий код (0 = повний артикул).'
+            )
         }),
         ('Налаштування цін', {
             'fields': ('price_multiplier',),
@@ -255,7 +259,13 @@ class SupplierWebConfigAdmin(admin.ModelAdmin):
         (
             "Джерело",
             {
-                "fields": ("base_url", "search_path_template", "crawl_from_robots", "max_urls_to_scan"),
+                "fields": (
+                    "base_url",
+                    "search_path_template",
+                    "crawl_from_robots",
+                    "price_block_selector",
+                    "max_urls_to_scan",
+                ),
                 "description": "Базовий URL постачальника і правила пошуку сторінок товарів.",
             },
         ),
