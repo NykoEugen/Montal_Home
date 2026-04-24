@@ -3,6 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ---
+## Робота з базою даних
+Викристовувати psycopg2
 
 ## Швидкі команди
 
@@ -22,6 +24,7 @@ Settings module: `store.settings`. Env змінні: `.env` в корені пр
 ---
 
 ## Документація в Obsidian
+Робити записи в Obsidian при зміні фіч та основних функцій.
 
 **Vault**: `~/Documents/Claude/Obsidian/montal home/`  
 **MCP сервер**: `obsidian-montal` (глобальний, завантажений автоматично)
