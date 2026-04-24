@@ -194,10 +194,28 @@ class SupplierFeedConfig(models.Model):
         verbose_name="Множник ціни",
         help_text="Наприклад, 1.0 для гривні або курс валюти"
     )
+    article_tag_name = models.CharField(
+        max_length=50,
+        default='model',
+        verbose_name="XML тег артикулу",
+        help_text=(
+            "Назва XML-тегу, з якого читати артикул товару. "
+            "Для більшості фідів: 'model'. Для Vetro: 'article'."
+        )
+    )
+    article_prefix_parts = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Кількість частин артикулу (prefix)",
+        help_text=(
+            "Кількість частин артикулу через '-' для зіставлення з базовим кодом товару. "
+            "0 = використовувати повний артикул. "
+            "Наприклад: для 'S-120-cappuccino-velvet' з значенням 2 отримаємо 'S-120'."
+        )
+    )
     match_by_article = models.BooleanField(
         default=True,
         verbose_name="Шукати за артикулом",
-        help_text="Використовувати значення <model>"
+        help_text="Використовувати значення з вказаного XML-тегу артикулу"
     )
     match_by_name = models.BooleanField(
         default=True,
@@ -338,6 +356,16 @@ class SupplierWebConfig(models.Model):
         default=True,
         verbose_name="Брати URL з robots/sitemap",
         help_text="Спробувати отримати перелік сторінок із robots.txt та sitemap.xml",
+    )
+    price_block_selector = models.CharField(
+        max_length=255,
+        blank=True,
+        default="div.price.hp_price",
+        verbose_name="CSS селектор блоку ціни",
+        help_text=(
+            "CSS-селектор контейнера, в якому шукати ціну (наприклад: 'div.price.hp_price'). "
+            "Усередині блоку застосовується правило: del=базова, ins=акційна; якщо del немає — ins як базова."
+        ),
     )
     max_urls_to_scan = models.PositiveIntegerField(
         default=500,

@@ -528,16 +528,25 @@ class SupplierFeedPriceUpdater:
         response.raise_for_status()
         root = ET.fromstring(response.content)
 
+        article_tag = (self.config.article_tag_name or 'model').strip()
+        prefix_parts = self.config.article_prefix_parts or 0
+
         offers: List[SupplierOffer] = []
         for offer_el in root.findall('.//offer'):
             price = self._parse_decimal(offer_el.findtext('price'))
             if price is None:
                 continue
             old_price = self._parse_decimal(offer_el.findtext('oldprice'))
+
+            raw_article = (offer_el.findtext(article_tag) or '').strip() or None
+            if raw_article and prefix_parts > 0:
+                parts = raw_article.split('-')
+                raw_article = '-'.join(parts[:prefix_parts])
+
             offer = SupplierOffer(
-                offer_id=offer_el.get('id') or (offer_el.findtext('model') or '').strip() or (offer_el.findtext('name') or '').strip() or 'unknown',
+                offer_id=offer_el.get('id') or raw_article or (offer_el.findtext('name') or '').strip() or 'unknown',
                 name=(offer_el.findtext('name') or '').strip(),
-                model=(offer_el.findtext('model') or '').strip() or None,
+                model=raw_article,
                 price=price,
                 old_price=old_price,
             )
@@ -1151,8 +1160,11 @@ class SupplierWebPriceUpdater:
     def _extract_prices(self, html: str) -> Tuple[Optional[Decimal], Optional[Decimal]]:
         soup = BeautifulSoup(html, "html.parser")
 
-        # Primary selector based on provided markup.
-        price_block = soup.select_one("div.price.hp_price")
+        # Primary selector is configurable to make parser reusable for different suppliers.
+        block_selector = (self.config.price_block_selector or "").strip()
+        if not block_selector:
+            block_selector = "div.price.hp_price"
+        price_block = soup.select_one(block_selector)
         if price_block:
             del_node = price_block.find("del")
             ins_node = price_block.find("ins")
@@ -1166,6 +1178,10 @@ class SupplierWebPriceUpdater:
             if del_price is None and ins_price is not None:
                 # Rule from user: if no <del>, <ins> is base price.
                 return self._apply_multiplier(ins_price), None
+            # Fallback inside configured block: first parseable number as base.
+            plain_block_price = self._parse_decimal_from_text(price_block.get_text(" ", strip=True))
+            if plain_block_price is not None:
+                return self._apply_multiplier(plain_block_price), None
 
         # Fallback to known classes.
         base_tag = soup.select_one(".autocalc-product-price")
