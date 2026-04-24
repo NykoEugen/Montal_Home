@@ -200,7 +200,7 @@ class SupplierFeedConfig(models.Model):
         verbose_name="XML тег артикулу",
         help_text=(
             "Назва XML-тегу, з якого читати артикул товару. "
-            "Для більшості фідів: 'model'. Для Vetro: 'article'."
+            "Для більшості фідів: 'model'. Для Vetro: 'article'. Для Matro: 'vendorCode'."
         )
     )
     article_prefix_parts = models.PositiveIntegerField(
