@@ -399,6 +399,8 @@ class SupplierOffer:
     model: Optional[str]
     price: Decimal
     old_price: Optional[Decimal]
+    size_width: Optional[int] = None
+    size_length: Optional[int] = None
 
 
 class SupplierFeedPriceUpdater:
@@ -453,7 +455,9 @@ class SupplierFeedPriceUpdater:
             items_matched = 0
             items_updated = 0
             errors: List[Dict[str, str]] = []
-            seen_furniture: set[int] = set()
+            # De-duplicate by (furniture.pk, size_variant.pk or None) so that
+            # color-variant duplicates are skipped but different sizes are each processed.
+            seen_pairs: set = set()
 
             for offer in offers:
                 try:
@@ -477,12 +481,16 @@ class SupplierFeedPriceUpdater:
 
                 items_matched += 1
 
-                if furniture.pk in seen_furniture:
-                    # Avoid double updates for дублікати offerів на один товар
+                size_variant = None
+                if self.config.update_size_variants:
+                    size_variant = self._match_offer_to_size_variant(furniture, offer)
+
+                pair = (furniture.pk, size_variant.pk if size_variant else None)
+                if pair in seen_pairs:
                     continue
 
                 try:
-                    changed = self._apply_offer_prices(furniture, offer)
+                    changed = self._apply_offer_prices(furniture, offer, size_variant=size_variant)
                 except Exception as exc:
                     errors.append({
                         'offer_id': offer.offer_id,
@@ -492,7 +500,7 @@ class SupplierFeedPriceUpdater:
                     })
                     continue
 
-                seen_furniture.add(furniture.pk)
+                seen_pairs.add(pair)
                 if changed:
                     items_updated += 1
 
@@ -530,6 +538,7 @@ class SupplierFeedPriceUpdater:
 
         article_tag = (self.config.article_tag_name or 'model').strip()
         prefix_parts = self.config.article_prefix_parts or 0
+        size_param = (self.config.size_param_name or '').strip()
 
         offers: List[SupplierOffer] = []
         for offer_el in root.findall('.//offer'):
@@ -543,15 +552,44 @@ class SupplierFeedPriceUpdater:
                 parts = raw_article.split('-')
                 raw_article = '-'.join(parts[:prefix_parts])
 
+            size_width: Optional[int] = None
+            size_length: Optional[int] = None
+            if size_param:
+                for param_el in offer_el.findall('param'):
+                    if param_el.get('name') == size_param:
+                        size_width, size_length = self._parse_size(param_el.text or '')
+                        break
+
             offer = SupplierOffer(
                 offer_id=offer_el.get('id') or raw_article or (offer_el.findtext('name') or '').strip() or 'unknown',
                 name=(offer_el.findtext('name') or '').strip(),
                 model=raw_article,
                 price=price,
                 old_price=old_price,
+                size_width=size_width,
+                size_length=size_length,
             )
             offers.append(offer)
         return offers
+
+    def _parse_size(self, value: str) -> Tuple[Optional[int], Optional[int]]:
+        """Parse '70x190' or '70х190' (Cyrillic х) → (70, 190) as (width, length)."""
+        m = re.match(r'^(\d+)[xхХX×](\d+)$', value.strip())
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        return None, None
+
+    def _match_offer_to_size_variant(
+        self, furniture: 'Furniture', offer: SupplierOffer
+    ) -> Optional['FurnitureSizeVariant']:
+        """Return the FurnitureSizeVariant matching offer's size, or None."""
+        if offer.size_width is None or offer.size_length is None:
+            return None
+        return FurnitureSizeVariant.objects.filter(
+            furniture=furniture,
+            width=offer.size_width,
+            length=offer.size_length,
+        ).first()
 
     def _parse_decimal(self, value: Optional[str]) -> Optional[Decimal]:
         if not value:
@@ -669,10 +707,19 @@ class SupplierFeedPriceUpdater:
         self._furniture_index = {'article': article_index, 'names': name_index}
         return self._furniture_index
 
-    def _apply_offer_prices(self, furniture: Furniture, offer: SupplierOffer) -> bool:
+    def _apply_offer_prices(
+        self,
+        furniture: Furniture,
+        offer: SupplierOffer,
+        *,
+        size_variant: Optional[FurnitureSizeVariant] = None,
+    ) -> bool:
         base_price, promo_price = self._resolve_prices(offer)
         if base_price is None:
             raise ValueError('Не вдалося визначити ціну')
+
+        if size_variant is not None:
+            return self._apply_size_variant_prices(size_variant, base_price, promo_price)
 
         updated_fields: List[str] = []
         changed = False
@@ -697,6 +744,38 @@ class SupplierFeedPriceUpdater:
 
         if changed:
             furniture.save(update_fields=list(dict.fromkeys(updated_fields)))
+
+        return changed
+
+    def _apply_size_variant_prices(
+        self,
+        variant: FurnitureSizeVariant,
+        base_price: Decimal,
+        promo_price: Optional[Decimal],
+    ) -> bool:
+        updated_fields: List[str] = []
+        changed = False
+
+        if variant.price != base_price:
+            variant.price = base_price
+            updated_fields.append('price')
+            changed = True
+
+        if promo_price is not None:
+            if (variant.promotional_price != promo_price) or (not variant.is_promotional):
+                variant.promotional_price = promo_price
+                variant.is_promotional = True
+                updated_fields.extend(['promotional_price', 'is_promotional'])
+                changed = True
+        else:
+            if variant.is_promotional or variant.promotional_price is not None:
+                variant.is_promotional = False
+                variant.promotional_price = None
+                updated_fields.extend(['is_promotional', 'promotional_price'])
+                changed = True
+
+        if changed:
+            variant.save(update_fields=list(dict.fromkeys(updated_fields)))
 
         return changed
 
