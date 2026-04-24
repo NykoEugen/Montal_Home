@@ -572,7 +572,7 @@ class SupplierFeedPriceUpdater:
         index = self._get_furniture_index()
 
         if self.config.match_by_article and offer.model:
-            key = offer.model.strip().lower()
+            key = self._normalize_article(offer.model)
             furniture = index['article'].get(key)
             if furniture:
                 return furniture
@@ -639,6 +639,18 @@ class SupplierFeedPriceUpdater:
         value = re.sub(r'\s+', ' ', value)
         return value.strip()
 
+    def _normalize_article(self, value: str) -> str:
+        """Normalize article code for comparison.
+
+        Replaces slashes, spaces and other separators with dashes so that
+        'R-63-cappuccino/ black' and 'R-63-cappuccino-black' are treated
+        as the same key.
+        """
+        value = value.strip().lower()
+        value = re.sub(r'[\s/\\|,;]+', '-', value)
+        value = re.sub(r'-{2,}', '-', value)
+        return value.strip('-')
+
     def _get_furniture_index(self) -> Dict[str, Dict]:
         if self._furniture_index is not None:
             return self._furniture_index
@@ -648,7 +660,8 @@ class SupplierFeedPriceUpdater:
         furnitures = Furniture.objects.all().only('id', 'name', 'article_code', 'price', 'promotional_price', 'is_promotional')
         for furniture in furnitures:
             if furniture.article_code:
-                article_index[furniture.article_code.strip().lower()] = furniture
+                key = self._normalize_article(furniture.article_code)
+                article_index[key] = furniture
             for variant in self._generate_name_variants(furniture.name):
                 if not variant:
                     continue
