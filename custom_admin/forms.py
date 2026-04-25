@@ -13,7 +13,6 @@ from fabric_category.models import (
 )
 from furniture.models import (
     Bed,
-    BedSizeVariant,
     Furniture,
     FurnitureCustomOption,
     FurnitureImage,
@@ -573,37 +572,6 @@ class FurnitureSizeVariantForm(StyledModelForm):
             self.initial["sale_end_date"] = self.instance.sale_end_date.strftime("%Y-%m-%dT%H:%M")
 
 
-class BedSizeVariantForm(StyledModelForm):
-    class Meta:
-        model = BedSizeVariant
-        fields = [
-            "furniture",
-            "sleeping_width",
-            "sleeping_length",
-            "price",
-            "promotional_price",
-            "is_promotional",
-            "sale_end_date",
-            "vendor_code",
-        ]
-        widgets = {
-            "sale_end_date": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format="%Y-%m-%dT%H:%M",
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.sale_end_date:
-            self.initial["sale_end_date"] = self.instance.sale_end_date.strftime("%Y-%m-%dT%H:%M")
-
-
-class BedSizeVariantInlineForm(BedSizeVariantForm):
-    class Meta(BedSizeVariantForm.Meta):
-        fields = [f for f in BedSizeVariantForm.Meta.fields if f != "furniture"]
-
-
 class SeasonalSettingsForm(StyledModelForm):
     class Meta:
         model = SeasonalSettings
@@ -758,14 +726,6 @@ FurnitureImageFormSet = inlineformset_factory(
     Furniture,
     FurnitureImage,
     form=FurnitureImageInlineForm,
-    extra=0,
-    can_delete=True,
-)
-
-BedSizeVariantFormSet = inlineformset_factory(
-    Furniture,
-    BedSizeVariant,
-    form=BedSizeVariantInlineForm,
     extra=0,
     can_delete=True,
 )
