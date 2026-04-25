@@ -468,10 +468,32 @@ class SupplierFeedUpdateLogForm(StyledModelForm):
                 self.fields["log_details"].initial = self.instance.log_details
             if self.instance.errors:
                 try:
-                    pretty = json.dumps(self.instance.errors, ensure_ascii=False, indent=2)
-                except (TypeError, ValueError):
-                    pretty = str(self.instance.errors)
-                self.fields["errors"].initial = pretty
+                    lines = []
+                    for i, e in enumerate(self.instance.errors, 1):
+                        step = e.get('крок', '')
+                        name = e.get('name', '')
+                        vendor = e.get('vendorCode', '')
+                        size = e.get('розмір', '')
+                        error_text = e.get('error', '')
+                        parts = [f"[{i}]"]
+                        if step:
+                            parts.append(f"[{step}]")
+                        if name:
+                            parts.append(f'"{name}"')
+                        if vendor:
+                            parts.append(f"vendorCode={vendor}")
+                        if size:
+                            parts.append(f"розмір={size}")
+                        parts.append(f"→ {error_text}")
+                        lines.append(" ".join(parts))
+                    self.fields["errors"].initial = "\n".join(lines)
+                except (TypeError, ValueError, AttributeError):
+                    try:
+                        self.fields["errors"].initial = json.dumps(
+                            self.instance.errors, ensure_ascii=False, indent=2
+                        )
+                    except Exception:
+                        self.fields["errors"].initial = str(self.instance.errors)
 
 
 class SupplierWebUpdateLogForm(StyledModelForm):

@@ -461,6 +461,11 @@ class SupplierFeedPriceUpdater:
             seen_pairs: set = set()
 
             for offer in offers:
+                size_str = (
+                    f"{offer.size_width}×{offer.size_length}"
+                    if offer.size_width is not None else None
+                )
+
                 # --- Крок 1: пряме зіставлення з розмірним варіантом по vendor_code ---
                 # Якщо offer.model є в індексі variant_vendor_code → оновлюємо варіант
                 # напряму (не шукаємо Furniture через article_code / name).
@@ -481,9 +486,13 @@ class SupplierFeedPriceUpdater:
                         changed = self._apply_offer_prices(furniture, offer, size_variant=size_variant)
                     except Exception as exc:
                         errors.append({
+                            'крок': '1-variant-index',
                             'offer_id': offer.offer_id,
                             'name': offer.name,
-                            'model': offer.model,
+                            'vendorCode': offer.model,
+                            'розмір': size_str,
+                            'меблі': furniture.name,
+                            'варіант_id': size_variant.pk,
                             'error': f'Не вдалося оновити ціну варіанту: {exc}',
                         })
                         continue
@@ -497,18 +506,35 @@ class SupplierFeedPriceUpdater:
                     furniture = self._match_offer_to_furniture(offer)
                 except Exception as exc:  # Defensive to log unexpected parsing issues
                     errors.append({
+                        'крок': '2-furniture-match',
                         'offer_id': offer.offer_id,
                         'name': offer.name,
-                        'error': f'Помилка підбору товару: {exc}'
+                        'vendorCode': offer.model,
+                        'розмір': size_str,
+                        'error': f'Помилка підбору товару: {exc}',
                     })
                     continue
 
                 if not furniture:
+                    article_hint = (
+                        f'артикул "{offer.model}" (норм: "{self._normalize_article(offer.model)}")'
+                        if offer.model else 'vendorCode порожній'
+                    )
+                    name_variants = self._generate_name_variants(offer.name)[:4]
                     errors.append({
+                        'крок': '2-furniture-not-found',
                         'offer_id': offer.offer_id,
                         'name': offer.name,
-                        'model': offer.model,
-                        'error': 'Не знайдено відповідний товар'
+                        'vendorCode': offer.model,
+                        'розмір': size_str,
+                        'article_info': article_hint,
+                        'name_variants': name_variants,
+                        'error': (
+                            'Товар не знайдено в БД. '
+                            f'{article_hint}. '
+                            f'Спробував назви: {name_variants[:2]}. '
+                            'Перевірте article_code меблів або запустіть імпорт.'
+                        ),
                     })
                     continue
 
@@ -517,6 +543,40 @@ class SupplierFeedPriceUpdater:
                 size_variant = None
                 if self.config.update_size_variants:
                     size_variant = self._match_offer_to_size_variant(furniture, offer)
+                    # Warn when update_size_variants=True but variant not matched.
+                    # This usually means vendor_code is not set on FurnitureSizeVariant
+                    # (sofas imported before vendor_code field) or dimensions mismatch.
+                    if size_variant is None and offer.size_width is not None:
+                        errors.append({
+                            'крок': '2-variant-not-found',
+                            'offer_id': offer.offer_id,
+                            'name': offer.name,
+                            'vendorCode': offer.model,
+                            'розмір': size_str,
+                            'меблі': furniture.name,
+                            'меблі_id': furniture.pk,
+                            'error': (
+                                f'Товар "{furniture.name}" знайдено (id={furniture.pk}), '
+                                f'але варіант {size_str} см не знайдено серед FurnitureSizeVariant. '
+                                'Запустіть import для оновлення варіантів.'
+                            ),
+                        })
+                        # Fallback: update furniture-level price so data is not lost
+                    elif size_variant is None and self.config.update_size_variants:
+                        # No size in offer at all — note that furniture.price will be updated
+                        errors.append({
+                            'крок': '2-no-size-in-offer',
+                            'offer_id': offer.offer_id,
+                            'name': offer.name,
+                            'vendorCode': offer.model,
+                            'меблі': furniture.name,
+                            'error': (
+                                f'update_size_variants=True, але розмір не знайдено в оффері '
+                                f'(немає <param> і немає WxL у назві). '
+                                f'Оновлюється ціна меблів "{furniture.name}" напряму. '
+                                'Для диванів з розміром у назві (1.1/1.3) — встановіть vendor_code на варіантах.'
+                            ),
+                        })
 
                 pair = (furniture.pk, size_variant.pk if size_variant else None)
                 if pair in seen_pairs:
@@ -526,10 +586,13 @@ class SupplierFeedPriceUpdater:
                     changed = self._apply_offer_prices(furniture, offer, size_variant=size_variant)
                 except Exception as exc:
                     errors.append({
+                        'крок': '2-apply-prices',
                         'offer_id': offer.offer_id,
                         'name': offer.name,
-                        'model': offer.model,
-                        'error': f'Не вдалося оновити ціну: {exc}'
+                        'vendorCode': offer.model,
+                        'розмір': size_str,
+                        'меблі': furniture.name,
+                        'error': f'Не вдалося оновити ціну: {exc}',
                     })
                     continue
 
@@ -882,9 +945,33 @@ class SupplierFeedPriceUpdater:
         self.log.items_updated = items_updated
         self.log.errors = errors
         self.log.completed_at = timezone.now()
+
+        # Build human-readable log_details with error breakdown by step type.
+        step_counts: Dict[str, int] = {}
+        for e in errors:
+            step = e.get('крок', 'unknown')
+            step_counts[step] = step_counts.get(step, 0) + 1
+
+        step_labels = {
+            '2-furniture-not-found': 'товар не знайдено в БД',
+            '2-variant-not-found': 'варіант за розміром не знайдено',
+            '2-no-size-in-offer': 'розмір відсутній в оффері (потрібен vendor_code)',
+            '1-variant-index': 'помилка оновлення варіанту (крок 1)',
+            '2-apply-prices': 'помилка запису ціни',
+            '2-furniture-match': 'помилка підбору товару',
+        }
+        breakdown_lines = [
+            f"  • {step_labels.get(step, step)}: {cnt}"
+            for step, cnt in sorted(step_counts.items())
+        ]
+        breakdown = ("\nРозбивка помилок:\n" + "\n".join(breakdown_lines)) if breakdown_lines else ""
+
         self.log.log_details = (
-            f"Матчів: {items_matched}, оновлено: {items_updated}, "
-            f"помилок: {len(errors)}"
+            f"Оброблено оферів: {offers_processed}\n"
+            f"Збігів знайдено: {items_matched}\n"
+            f"Цін оновлено: {items_updated}\n"
+            f"Помилок: {len(errors)}"
+            f"{breakdown}"
         )
         self.log.save()
 
