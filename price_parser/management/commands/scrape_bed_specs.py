@@ -4,7 +4,7 @@ from price_parser.services import MatroluxeSpecScraper
 
 
 class Command(BaseCommand):
-    help = "Scrape bed specifications from matroluxe.ua/ua/krovati using Selenium"
+    help = "Scrape bed specifications from matroluxe.ua/ua/krovati"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,23 +18,14 @@ class Command(BaseCommand):
             help="Print matched specs without saving to DB",
         )
         parser.add_argument(
-            "--selenium-wait",
-            type=int,
-            default=2,
-            help="Implicit Selenium wait in seconds (default: 2)",
-        )
-        parser.add_argument(
-            "--page-load-timeout",
+            "--timeout",
             type=int,
             default=20,
-            help="Max seconds to wait for a page to load before giving up (default: 20)",
+            help="Request timeout in seconds (default: 20)",
         )
 
     def handle(self, *args, **options):
-        scraper = MatroluxeSpecScraper(
-            selenium_wait=options["selenium_wait"],
-            page_load_timeout=options["page_load_timeout"],
-        )
+        scraper = MatroluxeSpecScraper(request_timeout=options["timeout"])
 
         result = scraper.scrape_beds(
             dry_run=options["dry_run"],
