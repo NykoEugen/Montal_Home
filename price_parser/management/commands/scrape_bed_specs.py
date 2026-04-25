@@ -23,9 +23,18 @@ class Command(BaseCommand):
             default=2,
             help="Implicit Selenium wait in seconds (default: 2)",
         )
+        parser.add_argument(
+            "--page-load-timeout",
+            type=int,
+            default=20,
+            help="Max seconds to wait for a page to load before giving up (default: 20)",
+        )
 
     def handle(self, *args, **options):
-        scraper = MatroluxeSpecScraper(selenium_wait=options["selenium_wait"])
+        scraper = MatroluxeSpecScraper(
+            selenium_wait=options["selenium_wait"],
+            page_load_timeout=options["page_load_timeout"],
+        )
 
         result = scraper.scrape_beds(
             dry_run=options["dry_run"],

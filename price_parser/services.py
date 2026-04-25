@@ -1576,8 +1576,9 @@ class MatroluxeSpecScraper:
         "ш": "sh", "щ": "shch", "ь": "", "ю": "yu", "я": "ya",
     }
 
-    def __init__(self, selenium_wait: int = 2) -> None:
+    def __init__(self, selenium_wait: int = 2, page_load_timeout: int = 20) -> None:
         self.selenium_wait = selenium_wait
+        self.page_load_timeout = page_load_timeout
         self._driver = None
         self._page_cache: Dict[str, str] = {}
 
@@ -1689,6 +1690,8 @@ class MatroluxeSpecScraper:
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
         )
         self._driver = webdriver.Chrome(options=options)
+        self._driver.set_page_load_timeout(self.page_load_timeout)
+        self._driver.set_script_timeout(self.page_load_timeout)
         self._driver.implicitly_wait(self.selenium_wait)
 
     def _quit_driver(self) -> None:
@@ -1702,7 +1705,12 @@ class MatroluxeSpecScraper:
     def _fetch_page(self, url: str) -> str:
         if url in self._page_cache:
             return self._page_cache[url]
-        self._driver.get(url)
+        try:
+            from selenium.common.exceptions import TimeoutException
+            self._driver.get(url)
+        except TimeoutException:
+            # Page load timed out — grab whatever partial HTML was loaded.
+            self._progress(f"  page load timeout, using partial HTML: {url}")
         html = self._driver.page_source
         self._page_cache[url] = html
         return html
@@ -1714,6 +1722,7 @@ class MatroluxeSpecScraper:
     def _collect_product_urls(self) -> List[str]:
         """Navigate catalog pages and collect unique product detail URLs."""
         from selenium.webdriver.common.by import By
+        from selenium.common.exceptions import TimeoutException
 
         urls: List[str] = []
         seen: set = set()
@@ -1722,7 +1731,10 @@ class MatroluxeSpecScraper:
         while True:
             catalog_url = self.CATALOG_URL if page == 1 else f"{self.CATALOG_URL}?page={page}"
             self._progress(f"Catalog page {page}: {catalog_url}")
-            self._driver.get(catalog_url)
+            try:
+                self._driver.get(catalog_url)
+            except TimeoutException:
+                self._progress(f"  catalog page load timeout, using partial HTML")
 
             page_links = self._driver.find_elements(By.CSS_SELECTOR, "a[href]")
             found_on_page = 0
