@@ -1629,7 +1629,7 @@ class MatroluxeSpecScraper:
                     if not specs:
                         continue
 
-                    page_article = self._find_article_in_specs(specs)
+                    page_article = self._find_article_on_page(html)
                     if not page_article:
                         continue
 
@@ -1788,9 +1788,16 @@ class MatroluxeSpecScraper:
                     specs[label] = value
         return specs
 
-    def _find_article_in_specs(self, specs: Dict[str, str]) -> Optional[str]:
-        """Find the article/vendor code value from the spec table."""
-        for label, value in specs.items():
+    def _find_article_on_page(self, html: str) -> Optional[str]:
+        """Extract article code from <font id="product_model">...</font>."""
+        soup = BeautifulSoup(html, "html.parser")
+        el = soup.find(id="product_model")
+        if el:
+            value = el.get_text(strip=True)
+            if value:
+                return value
+        # Fallback: look for "Артикул" row in spec table.
+        for label, value in self._extract_specs(html).items():
             if label.lower().strip() in self.ARTICLE_LABELS:
                 return value.strip()
         return None
