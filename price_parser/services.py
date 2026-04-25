@@ -1549,3 +1549,286 @@ class SupplierWebPriceUpdater:
         except Exception as exc:
             # Never crash request on log write failure.
             self._progress(f"WARNING: failed to save web update log: {exc}")
+
+
+class MatroluxeSpecScraper:
+    """Scrapes bed specifications from matroluxe.ua/ua/krovati using Selenium.
+
+    Algorithm:
+    1. Navigate catalog pages, collect all product URLs.
+    2. For each product page: parse spec table, find "Артикул" row.
+    3. If article code matches a Furniture in our DB → save all specs as FurnitureParameter.
+    4. Ensure every new Parameter is added to SubCategory("Ліжка").allowed_params.
+    """
+
+    CATALOG_URL = "https://matroluxe.ua/ua/krovati"
+    SPEC_TABLE_SELECTOR = "div.product_tab_content.tab-specification table"
+    # Labels that contain the article/vendor code on matroluxe.ua product pages.
+    ARTICLE_LABELS = {"артикул", "код товару", "модель", "sku", "article", "код"}
+    BED_SUBCATEGORY_NAME = "Ліжка"
+
+    # Ukrainian → Latin transliteration for stable slug keys.
+    _UA_TRANSLIT: Dict[str, str] = {
+        "а": "a", "б": "b", "в": "v", "г": "h", "ґ": "g", "д": "d", "е": "e",
+        "є": "ye", "ж": "zh", "з": "z", "и": "y", "і": "i", "ї": "yi", "й": "y",
+        "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r",
+        "с": "s", "т": "t", "у": "u", "ф": "f", "х": "kh", "ц": "ts", "ч": "ch",
+        "ш": "sh", "щ": "shch", "ь": "", "ю": "yu", "я": "ya",
+    }
+
+    def __init__(self, selenium_wait: int = 2) -> None:
+        self.selenium_wait = selenium_wait
+        self._driver = None
+        self._page_cache: Dict[str, str] = {}
+
+    def _progress(self, msg: str) -> None:
+        text = f"[MatroluxeSpec] {msg}"
+        logger.info(text)
+        print(text, flush=True)
+
+    # ------------------------------------------------------------------ #
+    # Public API                                                           #
+    # ------------------------------------------------------------------ #
+
+    def scrape_beds(self, dry_run: bool = False, article_code: Optional[str] = None) -> Dict:
+        """Main entry point. Returns summary dict."""
+        from sub_categories.models import SubCategory
+        from params.models import Parameter, FurnitureParameter  # noqa: F401
+
+        try:
+            bed_subcat = SubCategory.objects.get(name=self.BED_SUBCATEGORY_NAME)
+        except SubCategory.DoesNotExist:
+            return {"success": False, "error": f"Підкатегорія '{self.BED_SUBCATEGORY_NAME}' не знайдена"}
+
+        beds_qs = Furniture.objects.filter(sub_category=bed_subcat)
+        if article_code:
+            beds_qs = beds_qs.filter(article_code=article_code)
+
+        # Build lookup index: article_code (lower) → Furniture
+        article_index: Dict[str, Furniture] = {
+            f.article_code.lower().strip(): f for f in beds_qs if f.article_code
+        }
+        if not article_index:
+            return {"success": False, "error": "Ліжок не знайдено за заданими критеріями"}
+
+        self._progress(f"Beds to match: {len(article_index)}")
+
+        try:
+            self._init_driver()
+            product_urls = self._collect_product_urls()
+            self._progress(f"Product URLs collected: {len(product_urls)}")
+
+            processed = matched = updated = 0
+            errors: List[Dict] = []
+
+            for idx, url in enumerate(product_urls, 1):
+                self._progress(f"[{idx}/{len(product_urls)}] {url}")
+                try:
+                    html = self._fetch_page(url)
+                    specs = self._extract_specs(html)
+                    if not specs:
+                        continue
+
+                    page_article = self._find_article_in_specs(specs)
+                    if not page_article:
+                        continue
+
+                    processed += 1
+                    furniture = article_index.get(page_article.lower().strip())
+                    if not furniture:
+                        self._progress(f"  article '{page_article}' not in our DB — skip")
+                        continue
+
+                    matched += 1
+                    self._progress(f"  matched → {furniture.name}")
+
+                    if dry_run:
+                        self._progress(f"  DRY RUN specs: {specs}")
+                    else:
+                        saved = self._save_specs(furniture, specs, bed_subcat)
+                        self._progress(f"  saved {saved} parameters")
+
+                    updated += 1
+
+                except Exception as exc:
+                    logger.exception("MatroluxeSpec: error on %s", url)
+                    errors.append({"url": url, "error": str(exc)})
+
+        finally:
+            self._quit_driver()
+
+        return {
+            "success": True,
+            "product_pages_visited": len(product_urls),
+            "pages_with_article": processed,
+            "matched": matched,
+            "updated": updated,
+            "errors": errors,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Selenium helpers                                                     #
+    # ------------------------------------------------------------------ #
+
+    def _init_driver(self) -> None:
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+        except ImportError as exc:
+            raise RuntimeError(
+                "selenium не встановлено. Встанови: pip install selenium"
+            ) from exc
+
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=1400,900")
+        options.add_argument(
+            "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+        )
+        self._driver = webdriver.Chrome(options=options)
+        self._driver.implicitly_wait(self.selenium_wait)
+
+    def _quit_driver(self) -> None:
+        if self._driver:
+            try:
+                self._driver.quit()
+            except Exception:
+                pass
+            self._driver = None
+
+    def _fetch_page(self, url: str) -> str:
+        if url in self._page_cache:
+            return self._page_cache[url]
+        self._driver.get(url)
+        html = self._driver.page_source
+        self._page_cache[url] = html
+        return html
+
+    # ------------------------------------------------------------------ #
+    # Catalog pagination                                                   #
+    # ------------------------------------------------------------------ #
+
+    def _collect_product_urls(self) -> List[str]:
+        """Navigate catalog pages and collect unique product detail URLs."""
+        from selenium.webdriver.common.by import By
+
+        urls: List[str] = []
+        seen: set = set()
+        page = 1
+
+        while True:
+            catalog_url = self.CATALOG_URL if page == 1 else f"{self.CATALOG_URL}?page={page}"
+            self._progress(f"Catalog page {page}: {catalog_url}")
+            self._driver.get(catalog_url)
+
+            page_links = self._driver.find_elements(By.CSS_SELECTOR, "a[href]")
+            found_on_page = 0
+            for el in page_links:
+                href = (el.get_attribute("href") or "").strip().split("?")[0].split("#")[0]
+                if not href or href in seen:
+                    continue
+                if self._is_product_url(href):
+                    seen.add(href)
+                    urls.append(href)
+                    found_on_page += 1
+
+            self._progress(f"  found {found_on_page} new product URLs on page {page}")
+
+            if found_on_page == 0:
+                break
+
+            # Check if there is a next page link.
+            next_links = self._driver.find_elements(
+                By.CSS_SELECTOR, "a.next, a[rel='next'], .pagination a"
+            )
+            has_next = any(
+                f"page={page + 1}" in (el.get_attribute("href") or "")
+                for el in next_links
+            )
+            if not has_next:
+                break
+            page += 1
+
+        return urls
+
+    def _is_product_url(self, url: str) -> bool:
+        """Heuristic: matroluxe.ua product pages are /ua/<slug> with no sub-path."""
+        if not url.startswith("https://matroluxe.ua/ua/"):
+            return False
+        path = url.replace("https://matroluxe.ua/ua/", "").strip("/")
+        # Skip empty, multi-segment paths (category pages), and known non-product paths.
+        if not path or "/" in path:
+            return False
+        skip_prefixes = (
+            "krovati", "matras", "divan", "podushk", "topper", "futon",
+            "blog", "dostavka", "kontakt", "o-kompan", "vakansi", "market",
+            "aktsii", "wishlist", "compare", "dlya-dyzayn", "cart", "checkout",
+        )
+        return not any(path.startswith(p) for p in skip_prefixes)
+
+    # ------------------------------------------------------------------ #
+    # Spec extraction                                                      #
+    # ------------------------------------------------------------------ #
+
+    def _extract_specs(self, html: str) -> Dict[str, str]:
+        soup = BeautifulSoup(html, "html.parser")
+        table = soup.select_one(self.SPEC_TABLE_SELECTOR)
+        if not table:
+            return {}
+        specs: Dict[str, str] = {}
+        for row in table.find_all("tr"):
+            cells = row.find_all(["td", "th"])
+            if len(cells) >= 2:
+                label = cells[0].get_text(strip=True)
+                value = cells[1].get_text(strip=True)
+                if label and value:
+                    specs[label] = value
+        return specs
+
+    def _find_article_in_specs(self, specs: Dict[str, str]) -> Optional[str]:
+        """Find the article/vendor code value from the spec table."""
+        for label, value in specs.items():
+            if label.lower().strip() in self.ARTICLE_LABELS:
+                return value.strip()
+        return None
+
+    # ------------------------------------------------------------------ #
+    # Persistence                                                          #
+    # ------------------------------------------------------------------ #
+
+    def _label_to_key(self, label: str) -> str:
+        text = label.lower().strip()
+        chars = [self._UA_TRANSLIT.get(ch, ch) for ch in text]
+        key = re.sub(r"[^a-z0-9]+", "-", "".join(chars)).strip("-")
+        return key[:90] or "param"
+
+    def _save_specs(self, furniture: Furniture, specs: Dict[str, str], subcat) -> int:
+        from params.models import Parameter, FurnitureParameter
+
+        saved = 0
+        for label, value in specs.items():
+            # Skip the article/vendor code row itself — it's identity, not a characteristic.
+            if label.lower().strip() in self.ARTICLE_LABELS:
+                continue
+
+            key = self._label_to_key(label)
+            if not key:
+                continue
+
+            param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": label})
+
+            if not subcat.allowed_params.filter(pk=param.pk).exists():
+                subcat.allowed_params.add(param)
+                self._progress(f"    → new param in allowed_params: '{param.label}'")
+
+            FurnitureParameter.objects.update_or_create(
+                furniture=furniture,
+                parameter=param,
+                defaults={"value": value},
+            )
+            saved += 1
+
+        return saved
