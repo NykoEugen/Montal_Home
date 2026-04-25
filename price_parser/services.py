@@ -1683,8 +1683,15 @@ class MatroluxeSpecScraper:
 
             soup = BeautifulSoup(html, "html.parser")
             found_on_page = 0
-            for a in soup.find_all("a", href=True):
-                href = a["href"].strip().split("?")[0].split("#")[0]
+            # Collect only product links from catalog cards, not nav/footer links.
+            hrefs: List[str] = []
+            for a in soup.select("div.product_name a[href], .catalog__item a[href]"):
+                hrefs.append(a["href"])
+            # Also grab data-href on product option lists (alternative source).
+            for el in soup.select("[data-href]"):
+                hrefs.append(el["data-href"])
+            for href in hrefs:
+                href = href.strip().split("?")[0].split("#")[0]
                 if not href or href in seen:
                     continue
                 full = href if href.startswith("http") else f"https://matroluxe.ua{href}"
