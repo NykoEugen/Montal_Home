@@ -521,6 +521,95 @@ class FurnitureSizeVariant(models.Model):
         return timezone.now() < self.sale_end_date
 
 
+class Bed(Furniture):
+    """Proxy model for bed products — provides dedicated admin and queryset."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "Ліжко"
+        verbose_name_plural = "Ліжка"
+
+
+class BedSizeVariant(models.Model):
+    """Size variant specific to beds: sleeping dimensions + bed-specific fields."""
+
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name="bed_size_variants",
+        verbose_name="Ліжко",
+    )
+    sleeping_width = models.PositiveIntegerField(
+        verbose_name="Ширина спального місця (см)",
+        help_text="Наприклад: 80, 90, 120, 140, 160, 180, 200",
+    )
+    sleeping_length = models.PositiveIntegerField(
+        verbose_name="Довжина спального місця (см)",
+        help_text="Наприклад: 190, 200",
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name="Ціна",
+    )
+    promotional_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Акційна ціна",
+    )
+    is_promotional = models.BooleanField(
+        default=False,
+        verbose_name="Акційний розмір",
+    )
+    sale_end_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата закінчення акції",
+    )
+    vendor_code = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="Код постачальника",
+        help_text="vendorCode з фіду постачальника (для автооновлення цін)",
+    )
+
+    class Meta:
+        db_table = "furniture_bed_size_variants"
+        verbose_name = "Розмірний варіант ліжка"
+        verbose_name_plural = "Розмірні варіанти ліжок"
+        ordering = ["sleeping_width", "sleeping_length"]
+        unique_together = [("furniture", "sleeping_width", "sleeping_length")]
+
+    def __str__(self) -> str:
+        return f"{self.furniture.name} {self.sleeping_width}x{self.sleeping_length} см"
+
+    @property
+    def size_label(self) -> str:
+        return f"{self.sleeping_width}x{self.sleeping_length}"
+
+    @property
+    def is_sale_active(self) -> bool:
+        if not self.is_promotional or not self.promotional_price:
+            return False
+        if not self.sale_end_date:
+            return True
+        return timezone.now() < self.sale_end_date
+
+    @property
+    def current_price(self):
+        if self.is_promotional and self.promotional_price and self.is_sale_active:
+            return self.promotional_price
+        if self.furniture.is_promotional and self.furniture.promotional_price and self.furniture.is_sale_active:
+            return self.furniture.promotional_price
+        return self.price
+
+
 class FurnitureVariantImage(models.Model):
     """Variant images for furniture items with optional links."""
     

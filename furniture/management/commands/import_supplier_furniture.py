@@ -18,7 +18,7 @@ from django.utils.text import slugify
 from PIL import Image, UnidentifiedImageError
 
 from categories.models import Category
-from furniture.models import Furniture, FurnitureVariantImage, FurnitureSizeVariant, FurnitureImage
+from furniture.models import Furniture, FurnitureVariantImage, FurnitureSizeVariant, FurnitureImage, BedSizeVariant
 from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
@@ -206,7 +206,8 @@ CATALOG_PROFILES = {
         "keywords": [],
         "default_subcategory": "Ліжка",
         "skip_parameters": set(),
-        "use_offer_size_variants": True,
+        "use_offer_size_variants": False,
+        "use_bed_size_variants": True,
         "color_variants_enabled": False,
         "name_field": None,
         "description_field": "description",
@@ -455,6 +456,7 @@ class Command(BaseCommand):
         self.default_subcategory_name = self.profile.get("default_subcategory")
         self.skip_parameter_names = SKIP_PARAMETER_NAMES | set(self.profile.get("skip_parameters", []))
         self.use_offer_size_variants = self.profile.get("use_offer_size_variants", False)
+        self.use_bed_size_variants = self.profile.get("use_bed_size_variants", False)
         self.color_variants_enabled = self.profile.get("color_variants_enabled", True)
         self.name_field = self.profile.get("name_field")
         self.description_field = self.profile.get("description_field", "description")
@@ -620,7 +622,13 @@ class Command(BaseCommand):
                     dry_run=dry_run,
                 )
 
-            if self.use_offer_size_variants:
+            if self.use_bed_size_variants:
+                variants_created = self._sync_bed_size_variants(
+                    furniture=furniture,
+                    offers=variants,
+                )
+                variants_skipped = max(len(variants) - variants_created, 0)
+            elif self.use_offer_size_variants:
                 variants_created = self._sync_offer_size_variants(
                     furniture=furniture,
                     offers=variants,
@@ -1339,6 +1347,57 @@ class Command(BaseCommand):
                 if variant.is_promotional != new_is_promotional:
                     updates["is_promotional"] = new_is_promotional
                 # Завжди оновлюємо vendor_code якщо він змінився або ще не збережений
+                if vendor_code and variant.vendor_code != vendor_code:
+                    updates["vendor_code"] = vendor_code
+                if updates:
+                    for field, value in updates.items():
+                        setattr(variant, field, value)
+                    variant.save(update_fields=list(updates.keys()))
+            else:
+                created += 1
+
+        return created
+
+    def _sync_bed_size_variants(
+        self,
+        furniture: Furniture,
+        offers: List[FeedOffer],
+    ) -> int:
+        created = 0
+        for offer in offers:
+            dimensions = self._extract_offer_dimensions(offer)
+            if not dimensions:
+                continue
+
+            sleeping_width = int(dimensions["width"])
+            sleeping_length = int(dimensions["length"])
+            vendor_code = offer.article_code or ""
+
+            base_price, promo_price, is_promotional = self._resolve_prices(offer)
+            if base_price is None:
+                continue
+
+            variant, was_created = BedSizeVariant.objects.get_or_create(
+                furniture=furniture,
+                sleeping_width=sleeping_width,
+                sleeping_length=sleeping_length,
+                defaults={
+                    "price": base_price,
+                    "promotional_price": promo_price,
+                    "is_promotional": is_promotional,
+                    "vendor_code": vendor_code,
+                },
+            )
+
+            if not was_created:
+                updates = {}
+                if variant.price != base_price:
+                    updates["price"] = base_price
+                if variant.promotional_price != promo_price:
+                    updates["promotional_price"] = promo_price
+                new_is_promotional = bool(promo_price)
+                if variant.is_promotional != new_is_promotional:
+                    updates["is_promotional"] = new_is_promotional
                 if vendor_code and variant.vendor_code != vendor_code:
                     updates["vendor_code"] = vendor_code
                 if updates:
