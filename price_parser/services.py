@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 import csv
@@ -24,7 +24,7 @@ from .models import (
     SupplierWebConfig,
     SupplierWebUpdateLog,
 )
-from furniture.models import Furniture, FurnitureSizeVariant, BedSizeVariant
+from furniture.models import Furniture, FurnitureSizeVariant
 
 logger = logging.getLogger(__name__)
 
@@ -410,7 +410,7 @@ class SupplierFeedPriceUpdater:
         self.config = config
         self.log: Optional[SupplierFeedUpdateLog] = None
         self._furniture_index: Optional[Dict[str, Dict]] = None
-        self._variant_vendor_index: Optional[Dict[str, Union[FurnitureSizeVariant, BedSizeVariant]]] = None
+        self._variant_vendor_index: Optional[Dict[str, FurnitureSizeVariant]] = None
 
     def test_parse(self) -> Dict:
         """Preview first offers without applying changes."""
@@ -469,7 +469,7 @@ class SupplierFeedPriceUpdater:
                 # --- Крок 1: пряме зіставлення з розмірним варіантом по vendor_code ---
                 # Якщо offer.model є в індексі variant_vendor_code → оновлюємо варіант
                 # напряму (не шукаємо Furniture через article_code / name).
-                direct_variant: Optional[Union[FurnitureSizeVariant, BedSizeVariant]] = None
+                direct_variant: Optional[FurnitureSizeVariant] = None
                 if offer.model:
                     variant_index = self._get_variant_vendor_index()
                     vkey = self._normalize_article(offer.model)
@@ -692,7 +692,7 @@ class SupplierFeedPriceUpdater:
 
     def _match_offer_to_size_variant(
         self, furniture: 'Furniture', offer: SupplierOffer
-    ) -> Optional[Union['FurnitureSizeVariant', 'BedSizeVariant']]:
+    ) -> Optional['FurnitureSizeVariant']:
         """Return the FurnitureSizeVariant or BedSizeVariant matching offer's size, or None."""
         if offer.size_width is None or offer.size_length is None:
             return None
@@ -818,20 +818,13 @@ class SupplierFeedPriceUpdater:
         self._furniture_index = {'article': article_index, 'names': name_index}
         return self._furniture_index
 
-    def _get_variant_vendor_index(self) -> Dict[str, Union[FurnitureSizeVariant, BedSizeVariant]]:
-        """Lazy-built index: vendor_code → FurnitureSizeVariant or BedSizeVariant.
-
-        Дозволяє знаходити конкретний розмірний варіант напряму за кодом
-        постачальника без необхідності проходити через Furniture.
-        """
+    def _get_variant_vendor_index(self) -> Dict[str, FurnitureSizeVariant]:
+        """Lazy-built index: vendor_code → FurnitureSizeVariant."""
         if self._variant_vendor_index is not None:
             return self._variant_vendor_index
 
-        index: Dict[str, Union[FurnitureSizeVariant, BedSizeVariant]] = {}
+        index: Dict[str, FurnitureSizeVariant] = {}
         for variant in FurnitureSizeVariant.objects.exclude(vendor_code='').select_related('furniture'):
-            key = self._normalize_article(variant.vendor_code)
-            index[key] = variant
-        for variant in BedSizeVariant.objects.exclude(vendor_code='').select_related('furniture'):
             key = self._normalize_article(variant.vendor_code)
             index[key] = variant
         self._variant_vendor_index = index
@@ -842,7 +835,7 @@ class SupplierFeedPriceUpdater:
         furniture: Furniture,
         offer: SupplierOffer,
         *,
-        size_variant: Optional[Union[FurnitureSizeVariant, BedSizeVariant]] = None,
+        size_variant: Optional[FurnitureSizeVariant] = None,
     ) -> bool:
         base_price, promo_price = self._resolve_prices(offer)
         if base_price is None:
@@ -879,7 +872,7 @@ class SupplierFeedPriceUpdater:
 
     def _apply_size_variant_prices(
         self,
-        variant: Union[FurnitureSizeVariant, BedSizeVariant],
+        variant: FurnitureSizeVariant,
         base_price: Decimal,
         promo_price: Optional[Decimal],
     ) -> bool:
