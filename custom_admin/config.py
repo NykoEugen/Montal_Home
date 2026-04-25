@@ -1,7 +1,7 @@
 from categories.models import Category
 from checkout.models import Order, OrderItem, OrderStatus
 from fabric_category.models import FabricBrand, FabricCategory, FabricColor, FabricColorPalette
-from furniture.models import Furniture
+from furniture.models import Bed, BedSizeVariant, Furniture
 from params.models import Parameter
 from price_parser.models import (
     FurniturePriceCellMapping,
@@ -16,6 +16,7 @@ from sub_categories.models import SubCategory
 from shop.models import SeasonalSettings
 
 from .forms import (
+    BedSizeVariantForm,
     CategoryForm,
     FurnitureForm,
     FurniturePriceCellMappingForm,
@@ -159,6 +160,64 @@ def register_default_sections() -> None:
             title="Меблі",
             description="Повний CRUD по товарах каталогу.",
             icon="fa-couch",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="beds",
+            model=Bed,
+            form_class=FurnitureForm,
+            list_display=(
+                "name",
+                "article_code",
+                "sub_category",
+                "stock_status",
+                "price",
+                "is_promotional",
+                "updated_at",
+            ),
+            list_display_labels=(
+                "Назва",
+                "Артикул",
+                "Підкатегорія",
+                "Наявність",
+                "Ціна",
+                "Акція",
+                "Оновлено",
+            ),
+            search_fields=("name", "article_code"),
+            ordering=("-updated_at",),
+            title="Ліжка",
+            description="Керування ліжками (proxy Furniture).",
+            icon="fa-bed",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="bed-size-variants",
+            model=BedSizeVariant,
+            form_class=BedSizeVariantForm,
+            list_display=(
+                "furniture",
+                "sleeping_width",
+                "sleeping_length",
+                "price",
+                "is_promotional",
+                "vendor_code",
+            ),
+            list_display_labels=(
+                "Ліжко",
+                "Ширина (см)",
+                "Довжина (см)",
+                "Ціна",
+                "Акція",
+                "Код постачальника",
+            ),
+            search_fields=("furniture__name", "vendor_code"),
+            ordering=("furniture__name", "sleeping_width", "sleeping_length"),
+            title="Розміри ліжок",
+            description="Розмірні варіанти ліжок зі спальними розмірами та цінами.",
+            icon="fa-ruler-combined",
         )
     )
     registry.register(
