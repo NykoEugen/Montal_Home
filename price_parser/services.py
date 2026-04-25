@@ -593,6 +593,21 @@ class SupplierFeedPriceUpdater:
                         size_width, size_length = self._parse_size(param_el.text or '')
                         break
 
+            # Fallback: extract size from offer name when not found in params.
+            # Handles beds like "Ліжко Luna/Луна, Розмір ліжка 140х200".
+            # Sofas without WxL in name → None, no change.
+            if size_width is None:
+                offer_name_for_size = (offer_el.findtext('name') or '')
+                m = re.search(r'(\d+)\s*[хxХX×]\s*(\d+)', offer_name_for_size)
+                if m:
+                    w, l = int(m.group(1)), int(m.group(2))
+                    # mm→cm: beds written in mm (e.g. 1400х2000) → 140×200 cm
+                    if w > 300:
+                        w = w // 10
+                    if l > 300:
+                        l = l // 10
+                    size_width, size_length = w, l
+
             offer = SupplierOffer(
                 offer_id=offer_el.get('id') or raw_article or (offer_el.findtext('name') or '').strip() or 'unknown',
                 name=(offer_el.findtext('name') or '').strip(),
