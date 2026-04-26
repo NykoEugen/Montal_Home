@@ -299,6 +299,16 @@
                     quill.root.innerHTML = descTextarea.value;
                 }
 
+                // Якщо вставляють сирий HTML — рендерити як форматований текст
+                quill.root.addEventListener("paste", (e) => {
+                    const text = e.clipboardData.getData("text/plain");
+                    if (/<[a-z][\s\S]*>/i.test(text)) {
+                        e.preventDefault();
+                        const range = quill.getSelection(true);
+                        quill.clipboard.dangerouslyPasteHTML(range.index, text);
+                    }
+                });
+
                 descTextarea.closest("form").addEventListener("submit", () => {
                     descTextarea.value = quill.root.innerHTML;
                 });
