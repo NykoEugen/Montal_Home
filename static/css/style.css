@@ -2432,39 +2432,56 @@ input[type="submit"].btn-grad {
 }
 
 .scroll-card__rich-text strong {
-    font-weight: 600;
+    font-weight: 600 !important;
 }
 
 .scroll-card__rich-text em {
-    font-style: italic;
+    font-style: italic !important;
 }
 
+/* Quill 2 використовує <ol> для обох типів списків,
+   розрізняє їх через data-list на <li> */
+.scroll-card__rich-text ol,
 .scroll-card__rich-text ul {
-    list-style: disc;
-    padding-left: 1.5rem;
+    padding-left: 1.5rem !important;
     margin-bottom: 0.75rem;
 }
 
-.scroll-card__rich-text ol {
-    list-style: decimal;
-    padding-left: 1.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.scroll-card__rich-text li {
+.scroll-card__rich-text li[data-list="bullet"] {
+    list-style-type: disc !important;
+    display: list-item !important;
     margin-bottom: 0.25rem;
 }
 
+.scroll-card__rich-text li[data-list="ordered"] {
+    list-style-type: decimal !important;
+    display: list-item !important;
+    margin-bottom: 0.25rem;
+}
+
+.scroll-card__rich-text li {
+    display: list-item !important;
+    margin-bottom: 0.25rem;
+}
+
+/* Приховати Quill-внутрішній span що рендериться на фронті */
+.scroll-card__rich-text .ql-ui {
+    display: none !important;
+}
+
+/* Tailwind Preflight скидає font-size/weight на заголовках — перевизначаємо */
 .scroll-card__rich-text h2 {
-    font-size: 1.15rem;
-    font-weight: 600;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
     margin-bottom: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .scroll-card__rich-text h3 {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
     margin-bottom: 0.4rem;
+    margin-top: 0.6rem;
 }
 
 .scroll-card__table-wrapper {
