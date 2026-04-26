@@ -85,9 +85,9 @@
 {% elif furniture_bulk_edit_url %}
 <form method="post" action="{{ furniture_bulk_edit_url }}" id="furniture-bulk-form" class="space-y-4">
     {% csrf_token %}
-    <div id="furniture-bulk-bar" class="hidden bg-white border border-beige-300 rounded-xl shadow-sm p-4 flex items-center justify-between">
+    <div id="furniture-bulk-bar" style="display:none" class="bg-white border border-beige-300 rounded-xl shadow-sm p-4 items-center justify-between gap-3">
         <span class="text-brown-700 font-medium">Вибрано: <span id="furniture-selected-count">0</span></span>
-        <button type="submit" class="inline-flex items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2">
+        <button type="submit" class="inline-flex items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2 whitespace-nowrap">
             <i class="fa-solid fa-pen-to-square mr-2"></i> Масове редагування
         </button>
     </div>
@@ -213,11 +213,7 @@
         function updateBar() {
             const checked = document.querySelectorAll('.furniture-checkbox:checked').length;
             countEl.textContent = checked;
-            if (checked > 0) {
-                bulkBar.classList.remove('hidden');
-            } else {
-                bulkBar.classList.add('hidden');
-            }
+            bulkBar.style.display = checked > 0 ? 'flex' : 'none';
         }
 
         if (selectAll) {
