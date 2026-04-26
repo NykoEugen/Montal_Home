@@ -82,6 +82,15 @@
             </button>
         </div>
     </div>
+{% elif furniture_bulk_edit_url %}
+<form method="post" action="{{ furniture_bulk_edit_url }}" id="furniture-bulk-form" class="space-y-4">
+    {% csrf_token %}
+    <div id="furniture-bulk-bar" class="hidden bg-white border border-beige-300 rounded-xl shadow-sm p-4 flex items-center justify-between">
+        <span class="text-brown-700 font-medium">Вибрано: <span id="furniture-selected-count">0</span></span>
+        <button type="submit" class="inline-flex items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2">
+            <i class="fa-solid fa-pen-to-square mr-2"></i> Масове редагування
+        </button>
+    </div>
 {% endif %}
 
 <div class="bg-white rounded-xl shadow-sm border border-beige-300 overflow-hidden">
@@ -92,6 +101,10 @@
                     {% if bulk_action %}
                         <th scope="col" class="px-4 py-3 w-12">
                             <input type="checkbox" id="{{ bulk_action.select_all_id }}" class="rounded border-beige-300 text-brown-600 focus:ring-brown-500">
+                        </th>
+                    {% elif furniture_bulk_edit_url %}
+                        <th scope="col" class="px-4 py-3 w-12">
+                            <input type="checkbox" id="select-all-furniture" class="rounded border-beige-300 text-brown-600 focus:ring-brown-500">
                         </th>
                     {% endif %}
                     {% for header in list_headers %}
@@ -108,6 +121,10 @@
                         {% if bulk_action %}
                             <td class="px-4 py-4 text-center">
                                 <input type="checkbox" name="{{ bulk_action.selected_field }}" value="{{ obj.pk }}" class="{{ bulk_action.checkbox_class }} rounded border-beige-300 text-brown-600 focus:ring-brown-500">
+                            </td>
+                        {% elif furniture_bulk_edit_url %}
+                            <td class="px-4 py-4 text-center">
+                                <input type="checkbox" name="selected_furniture" value="{{ obj.pk }}" class="furniture-checkbox rounded border-beige-300 text-brown-600 focus:ring-brown-500">
                             </td>
                         {% endif %}
                         {% for column in list_display %}
@@ -182,6 +199,38 @@
             document.querySelectorAll('.{{ bulk_action.checkbox_class }}').forEach(function (checkbox) {
                 checkbox.checked = selectAll.checked;
             });
+        });
+    });
+</script>
+{% elif furniture_bulk_edit_url %}
+</form>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('select-all-furniture');
+        const bulkBar = document.getElementById('furniture-bulk-bar');
+        const countEl = document.getElementById('furniture-selected-count');
+
+        function updateBar() {
+            const checked = document.querySelectorAll('.furniture-checkbox:checked').length;
+            countEl.textContent = checked;
+            if (checked > 0) {
+                bulkBar.classList.remove('hidden');
+            } else {
+                bulkBar.classList.add('hidden');
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.furniture-checkbox').forEach(function (cb) {
+                    cb.checked = selectAll.checked;
+                });
+                updateBar();
+            });
+        }
+
+        document.querySelectorAll('.furniture-checkbox').forEach(function (cb) {
+            cb.addEventListener('change', updateBar);
         });
     });
 </script>

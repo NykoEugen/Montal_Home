@@ -11,7 +11,7 @@ from django.core.exceptions import FieldError
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -202,6 +202,8 @@ class SectionListView(SectionMixin, ListView):
                 "stock_choices": getattr(self.section.model, "STOCK_STATUS_CHOICES", []),
                 "selected_stock_status": self.request.GET.get("stock_status", ""),
             }
+            context["furniture_bulk_edit_url"] = reverse("custom_admin:furniture_bulk_edit")
+            context["column_span"] += 1
         return context
 
     def _get_bulk_action_context(self) -> Optional[dict[str, str]]:
@@ -695,6 +697,210 @@ def supplier_feed_bulk_action(request):
             f"{action_label.capitalize()} успішно для {success_count} конфігурацій.",
         )
     return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def update_supplier_web_prices(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierWebConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    try:
+        updater = SupplierWebPriceUpdater(config)
+        result = updater.update_prices()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося оновити ціни: {exc}")
+        return redirect(redirect_url)
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        messages.success(
+            request,
+            "Оновлено {updated} товарів (збігів {matched}, перевірено {processed}).".format(
+                updated=result.get("items_updated", 0),
+                matched=result.get("items_matched", 0),
+                processed=result.get("items_processed", 0),
+            ),
+        )
+    else:
+        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def test_supplier_web_parse(request, pk: int):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    config = get_object_or_404(SupplierWebConfig, pk=pk)
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    try:
+        updater = SupplierWebPriceUpdater(config)
+        result = updater.test_parse()
+    except Exception as exc:
+        messages.error(request, f"Не вдалося виконати тестовий парсинг: {exc}")
+        return redirect(redirect_url)
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Тестовий парсинг успішний. Зібрано URL: {result.get('urls_total', 0)}.",
+        )
+    else:
+        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
+def supplier_web_bulk_action(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    action = request.POST.get("action")
+    selected_ids = request.POST.getlist("selected_web_configs")
+    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
+
+    if not selected_ids:
+        messages.warning(request, "Будь ласка, виберіть хоча б одну веб-конфігурацію.")
+        return redirect(redirect_url)
+
+    configs = SupplierWebConfig.objects.filter(pk__in=selected_ids)
+    if not configs.exists():
+        messages.error(request, "Обрані веб-конфігурації не знайдено.")
+        return redirect(redirect_url)
+
+    success_count = 0
+    errors: list[str] = []
+    action_label = "оновлення" if action == "update" else "тестування"
+
+    for config in configs:
+        try:
+            updater = SupplierWebPriceUpdater(config)
+            if action == "update":
+                result = updater.update_prices()
+            elif action == "test":
+                result = updater.test_parse()
+            else:
+                messages.error(request, "Невідома дія.")
+                return redirect(redirect_url)
+
+            if result.get("success"):
+                success_count += 1
+            else:
+                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+        except Exception as exc:
+            errors.append(f"{config.name}: {exc}")
+        finally:
+            close_old_connections()
+
+    total = configs.count()
+    if errors:
+        messages.warning(
+            request,
+            f"{action_label.capitalize()} виконано частково — успішно {success_count} з {total}.",
+        )
+        preview = " ; ".join(errors[:3])
+        if len(errors) > 3:
+            preview += " ..."
+        messages.error(request, preview)
+    else:
+        messages.success(
+            request,
+            f"{action_label.capitalize()} успішно для {success_count} веб-конфігурацій.",
+        )
+    return redirect(redirect_url)
+
+
+@login_required
+def furniture_bulk_edit(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+    from params.models import FurnitureParameter
+
+    if request.method != "POST" or "selected_furniture" not in request.POST:
+        return redirect("custom_admin:list", section_slug="furniture")
+
+    selected_ids = request.POST.getlist("selected_furniture")
+    if not selected_ids:
+        messages.warning(request, "Будь ласка, виберіть хоча б один товар.")
+        return redirect("custom_admin:list", section_slug="furniture")
+
+    furniture_qs = (
+        Furniture.objects.filter(pk__in=selected_ids)
+        .prefetch_related("parameters__parameter")
+        .select_related("sub_category")
+        .order_by("name")
+    )
+    sub_categories = SubCategory.objects.order_by("name")
+
+    return render(
+        request,
+        "custom_admin/furniture_bulk_edit.html",
+        {
+            "furniture_list": furniture_qs,
+            "selected_ids": selected_ids,
+            "sub_categories": sub_categories,
+            "sections": list(registry.all()),
+        },
+    )
+
+
+@login_required
+@require_POST
+def furniture_bulk_edit_apply(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+    from params.models import FurnitureParameter
+
+    selected_ids = request.POST.getlist("selected_ids")
+    furniture_qs = Furniture.objects.filter(pk__in=selected_ids).prefetch_related("parameters")
+
+    updated_count = 0
+
+    with transaction.atomic():
+        for furniture in furniture_qs:
+            fid = str(furniture.pk)
+            changed = False
+
+            new_sub_cat_id = request.POST.get(f"sub_category_{fid}")
+            if new_sub_cat_id:
+                try:
+                    new_sub_cat_id = int(new_sub_cat_id)
+                    if furniture.sub_category_id != new_sub_cat_id:
+                        furniture.sub_category_id = new_sub_cat_id
+                        changed = True
+                except (ValueError, TypeError):
+                    pass
+
+            if changed:
+                furniture.save(update_fields=["sub_category"])
+                updated_count += 1
+
+            for fp in furniture.parameters.all():
+                pid = str(fp.pk)
+                if request.POST.get(f"param_{fid}_{pid}_delete"):
+                    fp.delete()
+                    continue
+                new_value = request.POST.get(f"param_{fid}_{pid}_value")
+                if new_value is not None and new_value.strip() != fp.value:
+                    fp.value = new_value.strip()
+                    fp.save(update_fields=["value"])
+
+    messages.success(request, f"Зміни збережено для {len(selected_ids)} товарів.")
+    return redirect("custom_admin:list", section_slug="furniture")
 
 
 def redirect_to_dashboard(request):
