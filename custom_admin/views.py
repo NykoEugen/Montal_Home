@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import FieldError
+from django.db import close_old_connections
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
@@ -22,8 +23,12 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from checkout.models import Order
 from checkout.invoice import generate_and_upload_invoice
-from price_parser.models import GoogleSheetConfig, SupplierFeedConfig
-from price_parser.services import GoogleSheetsPriceUpdater, SupplierFeedPriceUpdater
+from price_parser.models import GoogleSheetConfig, SupplierFeedConfig, SupplierWebConfig
+from price_parser.services import (
+    GoogleSheetsPriceUpdater,
+    SupplierFeedPriceUpdater,
+    SupplierWebPriceUpdater,
+)
 from sub_categories.models import SubCategory
 
 from .forms import (
@@ -228,6 +233,17 @@ class SectionListView(SectionMixin, ListView):
                 "test_label": "Перевірити фід",
                 "title": "Групові дії",
                 "description": "Виберіть потрібні фіди, щоб оновити ціни або протестувати парсер.",
+            }
+        if self.section.slug == "supplier-web":
+            return {
+                "url": reverse("custom_admin:supplier_web_bulk_action"),
+                "selected_field": "selected_web_configs",
+                "select_all_id": "select-all-web-configs",
+                "checkbox_class": "supplier-web-config-checkbox",
+                "update_label": "Оновити ціни",
+                "test_label": "Тестувати парсер",
+                "title": "Групові дії",
+                "description": "Виберіть потрібні веб-конфігурації для оновлення цін або тестового запуску.",
             }
         return None
 

@@ -429,6 +429,14 @@ class FurnitureSizeVariant(models.Model):
         verbose_name="Значення параметра",
         help_text="Відображатиметься замість основного значення параметра при виборі цього розміру",
     )
+    vendor_code = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name="Код постачальника",
+        help_text="vendorCode з фіду постачальника для цього розміру (використовується для автооновлення цін)",
+    )
 
     class Meta:
         db_table = "furniture_size_variants"
@@ -511,6 +519,17 @@ class FurnitureSizeVariant(models.Model):
         if not self.sale_end_date:
             return True  # Permanent sale (no end date)
         return timezone.now() < self.sale_end_date
+
+
+class Bed(Furniture):
+    """Proxy model for bed products — provides dedicated admin and queryset."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "Ліжко"
+        verbose_name_plural = "Ліжка"
+
+
 
 
 class FurnitureVariantImage(models.Model):

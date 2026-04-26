@@ -2427,6 +2427,63 @@ input[type="submit"].btn-grad {
     margin-top: 0.9rem;
 }
 
+.scroll-card__rich-text p {
+    margin-bottom: 0.5rem;
+}
+
+.scroll-card__rich-text strong {
+    font-weight: 600 !important;
+}
+
+.scroll-card__rich-text em {
+    font-style: italic !important;
+}
+
+/* Quill 2 використовує <ol> для обох типів списків,
+   розрізняє їх через data-list на <li> */
+.scroll-card__rich-text ol,
+.scroll-card__rich-text ul {
+    padding-left: 1.5rem !important;
+    margin-bottom: 0.75rem;
+}
+
+.scroll-card__rich-text li[data-list="bullet"] {
+    list-style-type: disc !important;
+    display: list-item !important;
+    margin-bottom: 0.25rem;
+}
+
+.scroll-card__rich-text li[data-list="ordered"] {
+    list-style-type: decimal !important;
+    display: list-item !important;
+    margin-bottom: 0.25rem;
+}
+
+.scroll-card__rich-text li {
+    display: list-item !important;
+    margin-bottom: 0.25rem;
+}
+
+/* Приховати Quill-внутрішній span що рендериться на фронті */
+.scroll-card__rich-text .ql-ui {
+    display: none !important;
+}
+
+/* Tailwind Preflight скидає font-size/weight на заголовках — перевизначаємо */
+.scroll-card__rich-text h2 {
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.scroll-card__rich-text h3 {
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.4rem;
+    margin-top: 0.6rem;
+}
+
 .scroll-card__table-wrapper {
     overflow-x: auto;
 }
@@ -2566,4 +2623,57 @@ input[type="submit"].btn-grad {
     .scroll-stack:not(.scroll-stack--mobile) .scroll-card {
         transform: none;
     }
+}
+
+/* Shared pagination styles */
+.pagination-nav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.pagination-link {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 0.9rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(106, 63, 31, 0.2);
+    background: #f4ede6;
+    color: #5b3a20;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-decoration: none;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.pagination-link:hover {
+    background: #dec8b1;
+    color: #3c2514;
+    border-color: rgba(106, 63, 31, 0.45);
+    transform: translateY(-1px);
+}
+
+.pagination-link:focus-visible {
+    outline: 2px solid #8a5a33;
+    outline-offset: 2px;
+}
+
+.pagination-link--active {
+    background: #6a3f1f;
+    color: #fff;
+    border-color: #6a3f1f;
+    box-shadow: 0 10px 20px -14px rgba(38, 20, 8, 0.9);
+    cursor: default;
+    pointer-events: none;
+}
+
+.pagination-link--arrow {
+    min-width: 3.2rem;
+    padding: 0 1rem;
 }

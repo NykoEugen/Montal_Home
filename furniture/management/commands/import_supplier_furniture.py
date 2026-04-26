@@ -193,6 +193,24 @@ CATALOG_PROFILES = {
         },
         "group_by_name": True,
     },
+    "beds": {
+        "category_name": "Ліжка",
+        "feed_categories": ("Ліжка",),
+        "category_ids": ("99883327",),
+        "subcategories": ["Ліжка"],
+        "keywords": [],
+        "default_subcategory": "Ліжка",
+        "skip_parameters": set(),
+        "use_offer_size_variants": False,
+        "color_variants_enabled": False,
+        "name_field": None,
+        "description_field": "description",
+        "variant_param_fields": [],
+        "base_color_param": None,
+        "category_map": {},
+        "group_by_name": False,
+        "strip_size_from_name": False,
+    },
 }
 
 DIMENSION_PARAMS = {
@@ -439,6 +457,7 @@ class Command(BaseCommand):
             str(key): value for key, value in (self.profile.get("category_map") or {}).items()
         }
         self.group_by_name = self.profile.get("group_by_name", False)
+        self.strip_size_from_name = self.profile.get("strip_size_from_name", False)
 
         categories = tuple(options.get("categories") or self.profile["feed_categories"])
         limit = options.get("limit")
@@ -744,7 +763,11 @@ class Command(BaseCommand):
             if value:
                 variant_hints.append(value)
 
-        base_name = self._extract_base_name(base_name_value, hints=variant_hints)
+        base_name = self._extract_base_name(
+            base_name_value,
+            hints=variant_hints,
+            strip_size=self.strip_size_from_name,
+        )
         normalized_name = self._normalize_grouping_name(base_name)
         article_code = self._extract_article_code(model)
 
@@ -774,7 +797,11 @@ class Command(BaseCommand):
         )
 
     @staticmethod
-    def _extract_base_name(raw_name: str, hints: Optional[List[str]] = None) -> str:
+    def _extract_base_name(
+        raw_name: str,
+        hints: Optional[List[str]] = None,
+        strip_size: bool = False,
+    ) -> str:
         if not raw_name:
             return ""
         name = raw_name.split(",")[0].strip()
@@ -795,6 +822,13 @@ class Command(BaseCommand):
         # Remove trailing connectors like "+ ..." or "/ ..."
         name = re.split(r"\s+[+/]\s+|\s+\+\s*$", name)[0].strip()
         name = name.rstrip("+-/, ")
+        # Strip trailing size like "(140х200)", "(1400х1900/2000)", "(80 х 200)"
+        if strip_size:
+            name = re.sub(
+                r'\s*\(\s*\d+\s*[хxХX×]\s*\d+(?:/\d+)?\s*\)\s*$',
+                '',
+                name,
+            ).strip()
         return _apply_name_replacements(name)
 
     @staticmethod
@@ -1002,9 +1036,25 @@ class Command(BaseCommand):
         if not existing:
             existing = Furniture.objects.filter(article_code=offer.article_code).first()
         if existing:
-            self.stdout.write(
-                f"Скипнуто існуючий товар '{existing.name}' ({existing.article_code})"
-            )
+            base_price, promo_price, is_promotional = self._resolve_prices(offer)
+            updates = {}
+            if base_price and existing.price != base_price:
+                updates["price"] = base_price
+            if existing.promotional_price != promo_price:
+                updates["promotional_price"] = promo_price
+            if existing.is_promotional != is_promotional:
+                updates["is_promotional"] = is_promotional
+            if updates:
+                for field, value in updates.items():
+                    setattr(existing, field, value)
+                existing.save(update_fields=list(updates.keys()))
+                self.stdout.write(
+                    f"Оновлено ціну '{existing.name}' ({existing.article_code})"
+                )
+            else:
+                self.stdout.write(
+                    f"Без змін '{existing.name}' ({existing.article_code})"
+                )
             return existing, False
 
         base_price, promo_price, is_promotional = self._resolve_prices(offer)
@@ -1267,6 +1317,7 @@ class Command(BaseCommand):
             width = dimensions["width"]
             length = dimensions["length"]
             height = dimensions.get("height") or Decimal("0")
+            vendor_code = offer.article_code or ""
 
             base_price, promo_price, is_promotional = self._resolve_prices(offer)
             if base_price is None:
@@ -1281,6 +1332,7 @@ class Command(BaseCommand):
                     "price": base_price,
                     "promotional_price": promo_price,
                     "is_promotional": is_promotional,
+                    "vendor_code": vendor_code,
                 },
             )
 
@@ -1295,6 +1347,9 @@ class Command(BaseCommand):
                 new_is_promotional = bool(promo_price)
                 if variant.is_promotional != new_is_promotional:
                     updates["is_promotional"] = new_is_promotional
+                # Завжди оновлюємо vendor_code якщо він змінився або ще не збережений
+                if vendor_code and variant.vendor_code != vendor_code:
+                    updates["vendor_code"] = vendor_code
                 if updates:
                     for field, value in updates.items():
                         setattr(variant, field, value)
@@ -1538,16 +1593,23 @@ class Command(BaseCommand):
                 size_value = value
                 break
         if not size_value:
-            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+            match_in_name = re.search(r"(\d+)\s*[xхХX×]\s*(\d+)", offer.raw_name)
         else:
-            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", size_value.lower())
+            match_in_name = re.search(r"(\d+)\s*[xхХX×]\s*(\d+)", size_value)
         if not match_in_name:
-            match_in_name = re.search(r"(\d+)\s*[xх]\s*(\d+)", offer.raw_name.lower())
+            match_in_name = re.search(r"(\d+)\s*[xхХX×]\s*(\d+)", offer.raw_name)
         if not match_in_name:
             return None
 
         width = Decimal(match_in_name.group(1)).quantize(Decimal("1"))
         length = Decimal(match_in_name.group(2)).quantize(Decimal("1"))
+
+        # Нормалізація: якщо > 300 — значення у мм, переводимо в см.
+        # Ліжка 80-200 см. Якщо зустрічаємо 800х2000 — це мм (80×200 см).
+        if width > Decimal("300"):
+            width = (width / Decimal("10")).quantize(Decimal("1"))
+        if length > Decimal("300"):
+            length = (length / Decimal("10")).quantize(Decimal("1"))
 
         height_value = None
         for key, value in offer.params.items():

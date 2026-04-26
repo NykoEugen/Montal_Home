@@ -1,7 +1,7 @@
 from categories.models import Category
 from checkout.models import Order, OrderItem, OrderStatus
 from fabric_category.models import FabricBrand, FabricCategory, FabricColor, FabricColorPalette
-from furniture.models import Furniture
+from furniture.models import Bed, Furniture
 from params.models import Parameter
 from price_parser.models import (
     FurniturePriceCellMapping,
@@ -9,6 +9,8 @@ from price_parser.models import (
     PriceUpdateLog,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
+    SupplierWebConfig,
+    SupplierWebUpdateLog,
 )
 from sub_categories.models import SubCategory
 from shop.models import SeasonalSettings
@@ -25,6 +27,8 @@ from .forms import (
     PriceUpdateLogForm,
     SupplierFeedConfigForm,
     SupplierFeedUpdateLogForm,
+    SupplierWebConfigForm,
+    SupplierWebUpdateLogForm,
     OrderForm,
     OrderStatusForm,
     OrderItemForm,
@@ -155,6 +159,36 @@ def register_default_sections() -> None:
             title="Меблі",
             description="Повний CRUD по товарах каталогу.",
             icon="fa-couch",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="beds",
+            model=Bed,
+            form_class=FurnitureForm,
+            list_display=(
+                "name",
+                "article_code",
+                "sub_category",
+                "stock_status",
+                "price",
+                "is_promotional",
+                "updated_at",
+            ),
+            list_display_labels=(
+                "Назва",
+                "Артикул",
+                "Підкатегорія",
+                "Наявність",
+                "Ціна",
+                "Акція",
+                "Оновлено",
+            ),
+            search_fields=("name", "article_code"),
+            ordering=("-updated_at",),
+            title="Ліжка",
+            description="Керування ліжками (proxy Furniture).",
+            icon="fa-bed",
         )
     )
     registry.register(
@@ -291,6 +325,34 @@ def register_default_sections() -> None:
     )
     registry.register(
         AdminSection(
+            slug="supplier-web",
+            model=SupplierWebConfig,
+            form_class=SupplierWebConfigForm,
+            list_display=(
+                "name",
+                "supplier",
+                "category_hint",
+                "base_url",
+                "is_active",
+                "updated_at",
+            ),
+            list_display_labels=(
+                "Назва",
+                "Постачальник",
+                "Категорія",
+                "Базовий URL",
+                "Активний",
+                "Оновлено",
+            ),
+            search_fields=("name", "supplier", "category_hint", "base_url"),
+            ordering=("-updated_at",),
+            title="Веб-парсер постачальників",
+            description="Пошук товарів на сайті постачальника та оновлення цін із веб-сторінок.",
+            icon="fa-globe",
+        )
+    )
+    registry.register(
+        AdminSection(
             slug="price-mappings",
             model=FurniturePriceCellMapping,
             form_class=FurniturePriceCellMappingForm,
@@ -343,6 +405,38 @@ def register_default_sections() -> None:
             title="Логи фідів постачальників",
             description="Історія запусків XML/YML парсерів.",
             icon="fa-clipboard-list",
+            allow_create=False,
+            allow_edit=False,
+            allow_delete=False,
+            read_only=True,
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="supplier-web-logs",
+            model=SupplierWebUpdateLog,
+            form_class=SupplierWebUpdateLogForm,
+            list_display=(
+                "config",
+                "status",
+                "items_processed",
+                "items_matched",
+                "items_updated",
+                "started_at",
+            ),
+            list_display_labels=(
+                "Конфігурація",
+                "Статус",
+                "Перевірено",
+                "Знайдено",
+                "Оновлено",
+                "Початок",
+            ),
+            search_fields=("config__name",),
+            ordering=("-started_at",),
+            title="Логи веб-парсерів",
+            description="Історія запусків веб-парсерів постачальників.",
+            icon="fa-clipboard-check",
             allow_create=False,
             allow_edit=False,
             allow_delete=False,

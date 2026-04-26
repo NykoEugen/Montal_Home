@@ -85,20 +85,20 @@
     <!-- Pagination -->
     {% if furniture.has_other_pages %}
         <div class="mt-8 flex justify-center">
-            <nav class="flex items-center space-x-2">
+            <nav class="pagination-nav" aria-label="Пагінація пошуку">
                 {% if furniture.has_previous %}
                     <a href="?q={{ search_query }}&page={{ furniture.previous_page_number }}" 
-                       class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                       class="pagination-link pagination-link--arrow">
                         <i class="fas fa-chevron-left"></i>
                     </a>
                 {% endif %}
                 
                 {% for num in furniture.paginator.page_range %}
                     {% if furniture.number == num %}
-                        <span class="px-3 py-2 bg-brown-600 text-white rounded">{{ num }}</span>
+                        <span class="pagination-link pagination-link--active" aria-current="page">{{ num }}</span>
                     {% elif num > furniture.number|add:'-3' and num < furniture.number|add:'3' %}
                         <a href="?q={{ search_query }}&page={{ num }}" 
-                           class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                           class="pagination-link">
                             {{ num }}
                         </a>
                     {% endif %}
@@ -106,7 +106,7 @@
                 
                 {% if furniture.has_next %}
                     <a href="?q={{ search_query }}&page={{ furniture.next_page_number }}" 
-                       class="px-3 py-2 text-brown-600 hover:text-brown-800 transition">
+                       class="pagination-link pagination-link--arrow">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 {% endif %}
