@@ -296,18 +296,21 @@
                 });
 
                 if (descTextarea.value) {
-                    quill.root.innerHTML = descTextarea.value;
+                    quill.clipboard.dangerouslyPasteHTML(0, descTextarea.value);
                 }
 
-                // Якщо вставляють сирий HTML — рендерити як форматований текст
+                // Якщо вставляють сирий HTML — рендерити як форматований текст.
+                // capture:true — спрацьовує ДО Quill's clipboard handler,
+                // stopImmediatePropagation — не дає Quill вставити plain text паралельно.
                 quill.root.addEventListener("paste", (e) => {
                     const text = e.clipboardData.getData("text/plain");
                     if (/<[a-z][\s\S]*>/i.test(text)) {
                         e.preventDefault();
+                        e.stopImmediatePropagation();
                         const range = quill.getSelection(true);
                         quill.clipboard.dangerouslyPasteHTML(range.index, text);
                     }
-                });
+                }, true);
 
                 descTextarea.closest("form").addEventListener("submit", () => {
                     descTextarea.value = quill.root.innerHTML;
