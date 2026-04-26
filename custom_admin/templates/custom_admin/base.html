@@ -7,6 +7,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Custom Admin{% endblock %} · Montal Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brown: {
+                            100: '#f5ede5',
+                            200: '#dfc8b8',
+                            300: '#ac8e66',
+                            400: '#7d6348',
+                            500: '#5a4137',
+                            600: '#513b24',
+                            700: '#403125',
+                            800: '#3e3427',
+                            900: '#2d2218',
+                        },
+                        beige: {
+                            50:  '#faf8f5',
+                            100: '#efefeb',
+                            200: '#dad3d1',
+                            300: '#d1c5bd',
+                            400: '#c8b8ae',
+                            700: '#c1b0a3',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
