@@ -312,7 +312,7 @@
             {{ furniture.sub_category.name }} створена, щоб доповнити ваш простір, працювати і як акцент, і як спокійний фон.
           </p>
           <div class="scroll-card__rich-text">
-            {{ furniture.description|default:'Уточнюйте детальний опис у консультанта Montal Home.' }}
+            {{ furniture.description|default:'Уточнюйте детальний опис у консультанта Montal Home.'|safe }}
           </div>
         </div>
       </article>

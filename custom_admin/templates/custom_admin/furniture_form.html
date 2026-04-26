@@ -3,6 +3,17 @@
 
 {% block title %}{{ section.get_title }} · {{ object.name }}{% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+<style>
+  #quill-description .ql-editor { min-height: 140px; font-size: 0.9rem; }
+  #quill-description { border-radius: 0.5rem; border: 1px solid #d6cfc6; background: #fff; }
+  #quill-description .ql-toolbar { border-radius: 0.5rem 0.5rem 0 0; border-color: #d6cfc6; }
+  #quill-description .ql-container { border-radius: 0 0 0.5rem 0.5rem; border-color: #d6cfc6; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-8">
     <div>
@@ -261,6 +272,36 @@
                     btn.addEventListener("click", () => activateTab(btn.dataset.tabTarget));
                 });
                 activateTab(tabTriggers[0].dataset.tabTarget);
+            }
+
+            // Quill rich text editor for description field
+            const descTextarea = document.getElementById("id_description");
+            if (descTextarea && typeof Quill !== "undefined") {
+                descTextarea.style.display = "none";
+
+                const editorEl = document.createElement("div");
+                editorEl.id = "quill-description";
+                descTextarea.parentNode.insertBefore(editorEl, descTextarea);
+
+                const quill = new Quill("#quill-description", {
+                    theme: "snow",
+                    modules: {
+                        toolbar: [
+                            ["bold", "italic"],
+                            [{ list: "ordered" }, { list: "bullet" }],
+                            [{ header: [2, 3, false] }],
+                            ["clean"],
+                        ],
+                    },
+                });
+
+                if (descTextarea.value) {
+                    quill.root.innerHTML = descTextarea.value;
+                }
+
+                descTextarea.closest("form").addEventListener("submit", () => {
+                    descTextarea.value = quill.root.innerHTML;
+                });
             }
         });
     </script>
