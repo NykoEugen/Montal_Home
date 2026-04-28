@@ -57,6 +57,9 @@ urlpatterns = [
     ),
     path("furniture/bulk-edit/", views.furniture_bulk_edit, name="furniture_bulk_edit"),
     path("furniture/bulk-edit/apply/", views.furniture_bulk_edit_apply, name="furniture_bulk_edit_apply"),
+    path("kreslalux/", views.kreslalux_page, name="kreslalux"),
+    path("kreslalux/import/", views.kreslalux_import, name="kreslalux_import"),
+    path("kreslalux/update-prices/", views.kreslalux_update_prices, name="kreslalux_update_prices"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
     path("<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"),
     path(
