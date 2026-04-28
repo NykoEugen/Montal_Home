@@ -923,3 +923,98 @@ def redirect_to_dashboard(request):
     if request.user.is_authenticated and request.user.is_staff:
         return redirect("custom_admin:dashboard")
     return redirect("custom_admin:login")
+
+
+# ── Kreslalux scraper views ───────────────────────────────────────────────────
+
+@login_required
+def kreslalux_page(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+
+    sub_cat_furniture = Furniture.objects.filter(
+        sub_category__slug="ortopedichni-krisla"
+    ).order_by("-updated_at")
+
+    return render(request, "custom_admin/kreslalux.html", {
+        "sections": list(registry.all()),
+        "furniture_count": sub_cat_furniture.count(),
+        "recent_furniture": sub_cat_furniture[:10],
+    })
+
+
+@login_required
+@require_POST
+def kreslalux_import(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from decimal import Decimal
+    from price_parser.kreslalux_scraper import KreslaluxScraper
+
+    try:
+        max_price = Decimal(str(request.POST.get("max_price", "40000")))
+    except Exception:
+        max_price = Decimal("40000")
+
+    limit_raw = request.POST.get("limit", "0")
+    try:
+        limit = int(limit_raw) or None
+    except (ValueError, TypeError):
+        limit = None
+
+    dry_run = bool(request.POST.get("dry_run"))
+
+    try:
+        scraper = KreslaluxScraper(max_price=max_price)
+        result = scraper.run_import(dry_run=dry_run, limit=limit)
+    except Exception as exc:
+        messages.error(request, f"Помилка імпорту: {exc}")
+        return redirect("custom_admin:kreslalux")
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        prefix = "[DRY-RUN] " if dry_run else ""
+        messages.success(
+            request,
+            f"{prefix}Імпорт завершено: створено {result['created']}, "
+            f"оновлено {result['updated']}, пропущено {result['skipped']}.",
+        )
+        if result.get("errors"):
+            messages.warning(request, f"Помилки ({len(result['errors'])}): " + " | ".join(result["errors"][:5]))
+    else:
+        messages.error(request, f"Помилка: {result.get('error', 'Невідома помилка')}")
+
+    return redirect("custom_admin:kreslalux")
+
+
+@login_required
+@require_POST
+def kreslalux_update_prices(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.kreslalux_scraper import KreslaluxScraper
+
+    try:
+        scraper = KreslaluxScraper()
+        result = scraper.update_prices()
+    except Exception as exc:
+        messages.error(request, f"Помилка оновлення цін: {exc}")
+        return redirect("custom_admin:kreslalux")
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Ціни оновлено: перевірено {result.get('checked', 0)}, "
+            f"оновлено {result.get('updated', 0)}.",
+        )
+    else:
+        messages.error(request, f"Помилка: {result.get('error', 'Невідома помилка')}")
+
+    return redirect("custom_admin:kreslalux")

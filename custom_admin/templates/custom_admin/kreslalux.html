@@ -1,0 +1,177 @@
+{% extends "custom_admin/base.html" %}
+
+{% block title %}Kreslalux — імпорт та оновлення цін{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-semibold text-brown-900">Kreslalux.ua — крісла</h1>
+        <p class="text-brown-500 text-sm mt-1">Імпорт та оновлення цін для підкатегорії «Ортопедичні крісла»</p>
+    </div>
+    <a href="{% url 'custom_admin:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-beige-300 text-brown-600 rounded-md hover:bg-beige-100">
+        <i class="fa-solid fa-arrow-left mr-2"></i> Назад
+    </a>
+</div>
+
+{% if messages %}
+<div class="mb-6 space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-lg text-sm font-medium
+        {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+        {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+        {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-beige-300 shadow-sm px-5 py-4">
+        <div class="text-xs text-brown-400 uppercase tracking-wider mb-1">Товарів у підкатегорії</div>
+        <div class="text-2xl font-bold text-brown-800">{{ furniture_count }}</div>
+        <div class="text-xs text-brown-400 mt-1">Ортопедичні крісла</div>
+    </div>
+    <div class="bg-white rounded-xl border border-beige-300 shadow-sm px-5 py-4">
+        <div class="text-xs text-brown-400 uppercase tracking-wider mb-1">Фільтр ціни</div>
+        <div class="text-2xl font-bold text-brown-800">≤ 40 000 ₴</div>
+        <div class="text-xs text-brown-400 mt-1">При імпорті</div>
+    </div>
+    <div class="bg-white rounded-xl border border-beige-300 shadow-sm px-5 py-4">
+        <div class="text-xs text-brown-400 uppercase tracking-wider mb-1">Джерело</div>
+        <div class="text-sm font-semibold text-brown-700 mt-1">
+            <a href="https://kreslalux.ua/uk/18-kresla-dlya-doma" target="_blank" class="text-brown-500 hover:underline">
+                kreslalux.ua <i class="fa-solid fa-external-link-alt ml-1 text-xs"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Import -->
+    <div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
+                <i class="fa-solid fa-cloud-arrow-down text-brown-600"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-semibold text-brown-800">Імпорт товарів</h2>
+                <p class="text-xs text-brown-400">Завантажити нові крісла в БД</p>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'custom_admin:kreslalux_import' %}">
+            {% csrf_token %}
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-brown-600 mb-1">Макс. ціна (грн)</label>
+                    <input type="number" name="max_price" value="40000" min="1" max="1000000"
+                           class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-brown-600 mb-1">Ліміт товарів (0 = всі)</label>
+                    <input type="number" name="limit" value="0" min="0"
+                           class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="dry_run" id="dry_run"
+                           class="w-4 h-4 text-brown-600 border-beige-300 rounded">
+                    <label for="dry_run" class="text-xs text-brown-600">Dry-run (тільки перегляд, без змін)</label>
+                </div>
+            </div>
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-600 hover:bg-brown-700 text-white text-sm font-medium rounded-lg transition-colors">
+                <i class="fa-solid fa-download mr-2"></i>
+                Запустити імпорт
+            </button>
+        </form>
+
+        <div class="mt-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-500">
+            <strong>Увага:</strong> Імпорт може зайняти кілька хвилин. Нові товари з'являться
+            в підкатегорії «Ортопедичні крісла». Наявні товари (за артикулом) оновлять ціну.
+        </div>
+    </div>
+
+    <!-- Price update -->
+    <div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
+                <i class="fa-solid fa-rotate text-brown-600"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-semibold text-brown-800">Оновлення цін</h2>
+                <p class="text-xs text-brown-400">Оновити ціни наявних товарів з сайту</p>
+            </div>
+        </div>
+
+        <p class="text-sm text-brown-600 mb-4">
+            Скрипт обійде каталог kreslalux.ua та оновить ціни для товарів,
+            знайдених за артикулом (SKU).
+        </p>
+
+        <form method="post" action="{% url 'custom_admin:kreslalux_update_prices' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-600 hover:bg-brown-700 text-white text-sm font-medium rounded-lg transition-colors">
+                <i class="fa-solid fa-arrow-rotate-right mr-2"></i>
+                Оновити ціни
+            </button>
+        </form>
+
+        <div class="mt-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-500">
+            Порівнюються лише товари у підкатегорії «Ортопедичні крісла».
+            Зміни ціни застосовуються тільки при розбіжності.
+        </div>
+    </div>
+
+</div>
+
+<!-- Existing products preview -->
+{% if recent_furniture %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm mt-6">
+    <div class="px-6 py-4 border-b border-beige-200">
+        <h2 class="text-base font-semibold text-brown-800">Останні імпортовані товари</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-beige-200 text-sm">
+            <thead class="bg-beige-50 text-xs font-medium text-brown-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-3 text-left">Назва</th>
+                    <th class="px-6 py-3 text-left">Артикул</th>
+                    <th class="px-6 py-3 text-left">Ціна</th>
+                    <th class="px-6 py-3 text-left">Оновлено</th>
+                    <th class="px-6 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-beige-100 text-brown-700">
+                {% for f in recent_furniture %}
+                <tr class="hover:bg-beige-50">
+                    <td class="px-6 py-3 font-medium">{{ f.name }}</td>
+                    <td class="px-6 py-3 text-brown-400">{{ f.article_code }}</td>
+                    <td class="px-6 py-3">{{ f.price }} ₴</td>
+                    <td class="px-6 py-3 text-brown-400 text-xs">{{ f.updated_at|date:"d.m.Y H:i" }}</td>
+                    <td class="px-6 py-3">
+                        <a href="{% url 'custom_admin:edit' 'furniture' f.pk %}"
+                           class="text-brown-500 hover:text-brown-700 text-xs hover:underline">
+                            Редагувати
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if furniture_count > 10 %}
+    <div class="px-6 py-3 text-xs text-brown-400 border-t border-beige-200">
+        Показано 10 з {{ furniture_count }}.
+        <a href="{% url 'custom_admin:list' 'furniture' %}?search=ортопедичні+крісла" class="text-brown-600 hover:underline">
+            Всі товари →
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
