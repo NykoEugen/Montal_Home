@@ -122,14 +122,39 @@ class KreslaluxScraper:
 
     # ── Catalog scraping ──────────────────────────────────────────────────────
 
-    def _scrape_catalog_page(self, url: str) -> List[Dict]:
-        soup = self._get(url)
+    def _is_sold_out(self, card) -> bool:
+        """Return True if card is marked as sold-out / out-of-stock."""
+        flags_text = " ".join(
+            el.get_text(strip=True).lower()
+            for el in card.select(".product-flag, .product-flags li, .badge, .label")
+        )
+        sold_out_keywords = ("розпродано", "немає в наявності", "out-of-stock", "out_of_stock", "закінчився")
+        if any(kw in flags_text for kw in sold_out_keywords):
+            return True
+        # PrestaShop class-based indicator
+        if card.select(".out-of-stock, .product-flag.out-of-stock"):
+            return True
+        # Disabled add-to-cart button
+        btn = card.select_one("button.add-to-cart, .add-to-cart")
+        if btn and btn.get("disabled"):
+            return True
+        return False
+
+    def _scrape_catalog_page(self, url: str, soup: Optional[BeautifulSoup] = None) -> List[Dict]:
+        if soup is None:
+            soup = self._get(url)
         if not soup:
             return []
 
         products = []
-        for card in soup.select(".product-miniature"):
-            link_el = card.select_one("h2 a, .product-title a, a.product_img_link")
+        sold_out_count = 0
+        for card in soup.select("article.product-miniature, .product-miniature"):
+            # Skip sold-out items
+            if self._is_sold_out(card):
+                sold_out_count += 1
+                continue
+
+            link_el = card.select_one("h2 a, .product-title a, a.product_img_link, h3 a")
             if not link_el:
                 continue
 
@@ -140,7 +165,8 @@ class KreslaluxScraper:
             name = link_el.get_text(strip=True)
 
             price_el = (
-                card.select_one("span.product-price")
+                card.select_one("span.product-price[content]")
+                or card.select_one("span.product-price")
                 or card.select_one("span.price")
                 or card.select_one(".current-price-value")
                 or card.select_one("[itemprop='price']")
@@ -159,6 +185,8 @@ class KreslaluxScraper:
 
             products.append({"url": product_url, "name": name, "price": price, "sku": sku})
 
+        if sold_out_count:
+            logger.info("Пропущено розпродано: %d на %s", sold_out_count, url)
         return products
 
     def _detect_total_pages(self, soup: BeautifulSoup) -> int:
@@ -180,38 +208,47 @@ class KreslaluxScraper:
 
         first_soup = self._get(CATALOG_URL)
         if not first_soup:
-            self._log("Не вдалося отримати каталог")
+            self._log("ПОМИЛКА: Не вдалося отримати каталог (сайт недоступний або заблокований)")
             return []
 
         total_pages = self._detect_total_pages(first_soup)
-        self._log(f"Знайдено сторінок: {total_pages}")
+        self._log(f"Знайдено сторінок у каталозі: {total_pages}")
+
+        # Reuse already-fetched soup for page 1
+        first_page_products = self._scrape_catalog_page(CATALOG_URL, soup=first_soup)
+        self._log(f"Сторінка 1/{total_pages}: {len(first_page_products)} товарів (без розпродано)")
 
         candidates = []
 
         def _add_from_page(products: List[Dict]) -> bool:
+            before = len(candidates)
             for p in products:
                 if p["price"] is not None and p["price"] <= self.max_price:
                     candidates.append(p)
                     if limit and len(candidates) >= limit:
                         return True
+            self._log(
+                f"  → прийнято ціна ≤{self.max_price}: {len(candidates) - before} "
+                f"(разом: {len(candidates)})"
+            )
             return False
 
-        if _add_from_page(self._scrape_catalog_page(CATALOG_URL)):
-            self._log(f"Зібрано ліміт {limit} товарів з 1 сторінки")
+        if _add_from_page(first_page_products):
+            self._log(f"Ліміт {limit} досягнуто на 1-й сторінці")
             return candidates
 
         for page in range(2, total_pages + 1):
             time.sleep(REQUEST_DELAY)
             page_url = f"{CATALOG_URL}?page={page}"
             products = self._scrape_catalog_page(page_url)
+            self._log(f"Сторінка {page}/{total_pages}: {len(products)} товарів (без розпродано)")
             if not products:
                 break
             if _add_from_page(products):
-                self._log(f"Зібрано ліміт {limit} товарів (сторінка {page})")
+                self._log(f"Ліміт {limit} досягнуто на сторінці {page}")
                 return candidates
-            self._log(f"Сторінка {page}/{total_pages}: відібрано {len(candidates)} товарів")
 
-        self._log(f"Всього відібрано кандидатів: {len(candidates)}")
+        self._log(f"РАЗОМ відібрано пропозицій за критеріями: {len(candidates)}")
         return candidates
 
     # ── Detail page scraping ──────────────────────────────────────────────────
@@ -389,8 +426,9 @@ class KreslaluxScraper:
             return {"success": False, "error": f"Підкатегорія '{subcategory_slug}' не знайдена"}
 
         candidates = self.collect_candidate_urls(limit=limit)
+        self._log(f"Знайдено кандидатів: {len(candidates)}. Починаємо обробку детальних сторінок...")
 
-        stats = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+        stats = {"created": 0, "updated": 0, "skipped": 0, "candidates": len(candidates), "errors": []}
 
         for idx, candidate in enumerate(candidates, 1):
             self._log(f"[{idx}/{len(candidates)}] {candidate['name']}")

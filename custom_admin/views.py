@@ -978,9 +978,11 @@ def kreslalux_import(request):
 
     if result.get("success"):
         prefix = "[DRY-RUN] " if dry_run else ""
+        candidates = result.get("candidates", "?")
         messages.success(
             request,
-            f"{prefix}Імпорт завершено: створено {result['created']}, "
+            f"{prefix}Знайдено пропозицій: {candidates}. "
+            f"Імпорт завершено: створено {result['created']}, "
             f"оновлено {result['updated']}, пропущено {result['skipped']}.",
         )
         if result.get("errors"):
