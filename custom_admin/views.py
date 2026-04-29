@@ -995,6 +995,63 @@ def kreslalux_import(request):
 
 @login_required
 @require_POST
+def kreslalux_import_json(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import json
+    from price_parser.kreslalux_scraper import KreslaluxScraper
+
+    uploaded = request.FILES.get("json_file")
+    if not uploaded:
+        messages.error(request, "Файл не завантажено.")
+        return redirect("custom_admin:kreslalux")
+
+    if not uploaded.name.endswith(".json"):
+        messages.error(request, "Файл повинен мати розширення .json")
+        return redirect("custom_admin:kreslalux")
+
+    try:
+        data = json.loads(uploaded.read().decode("utf-8"))
+    except Exception as exc:
+        messages.error(request, f"Помилка читання JSON: {exc}")
+        return redirect("custom_admin:kreslalux")
+
+    if not isinstance(data, list):
+        messages.error(request, "JSON має бути масивом товарів.")
+        return redirect("custom_admin:kreslalux")
+
+    dry_run = bool(request.POST.get("dry_run"))
+
+    try:
+        result = KreslaluxScraper.import_from_data(
+            products=data,
+            dry_run=dry_run,
+        )
+    except Exception as exc:
+        messages.error(request, f"Помилка імпорту: {exc}")
+        return redirect("custom_admin:kreslalux")
+    finally:
+        close_old_connections()
+
+    if result.get("success"):
+        prefix = "[DRY-RUN] " if dry_run else ""
+        messages.success(
+            request,
+            f"{prefix}Файл: {len(data)} записів. "
+            f"Імпорт завершено: створено {result['created']}, "
+            f"оновлено {result['updated']}, пропущено {result['skipped']}.",
+        )
+        if result.get("errors"):
+            messages.warning(request, f"Помилки ({len(result['errors'])}): " + " | ".join(result["errors"][:5]))
+    else:
+        messages.error(request, f"Помилка: {result.get('error', 'Невідома помилка')}")
+
+    return redirect("custom_admin:kreslalux")
+
+
+@login_required
+@require_POST
 def kreslalux_update_prices(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")

@@ -48,6 +48,48 @@
     </div>
 </div>
 
+<!-- JSON file import -->
+<div class="bg-white rounded-xl border border-brown-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center gap-3 mb-4">
+        <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
+            <i class="fa-solid fa-file-import text-brown-600"></i>
+        </div>
+        <div>
+            <h2 class="text-base font-semibold text-brown-800">Імпорт з файлу (рекомендовано)</h2>
+            <p class="text-xs text-brown-400">Завантажте JSON-файл, зібраний локально</p>
+        </div>
+    </div>
+
+    <div class="mb-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-600 space-y-1">
+        <p><strong>Крок 1.</strong> Запустіть локально на своєму ПК:</p>
+        <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs mt-1 select-all">
+            python manage.py import_kreslalux_chairs --export-json kreslalux.json
+        </code>
+        <p class="mt-2"><strong>Крок 2.</strong> Завантажте отриманий файл нижче.</p>
+    </div>
+
+    <form method="post" action="{% url 'custom_admin:kreslalux_import_json' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="space-y-3 mb-4">
+            <div>
+                <label class="block text-xs font-medium text-brown-600 mb-1">JSON-файл</label>
+                <input type="file" name="json_file" accept=".json" required
+                       class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-brown-100 file:text-brown-700">
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="dry_run" id="dry_run_json"
+                       class="w-4 h-4 text-brown-600 border-beige-300 rounded">
+                <label for="dry_run_json" class="text-xs text-brown-600">Dry-run (тільки перегляд, без змін)</label>
+            </div>
+        </div>
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-700 hover:bg-brown-800 text-white text-sm font-medium rounded-lg transition-colors">
+            <i class="fa-solid fa-upload mr-2"></i>
+            Імпортувати з файлу
+        </button>
+    </form>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
     <!-- Import -->
