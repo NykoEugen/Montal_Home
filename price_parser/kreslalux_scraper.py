@@ -475,7 +475,7 @@ class KreslaluxScraper:
                 has_images = existing.image or existing.images.exists()
                 if not has_images and product.image_urls:
                     if dry_run:
-                        self._log(f"  [DRY-RUN] Додав би картинки: {len(product.image_urls)} шт.")
+                        self._log(f"  [DRY-RUN] Додав би картинки: {min(len(product.image_urls), 5)} шт.")
                     else:
                         added = 0
                         for img_idx, img_url in enumerate(product.image_urls[:5]):
@@ -495,6 +495,18 @@ class KreslaluxScraper:
                                 gallery.save()
                             added += 1
                         self._log(f"  Додано картинок: {added}")
+                    changed = True
+
+                # Remove extra gallery images beyond 4 (main image + 4 gallery = 5 total)
+                keep_pks = list(existing.images.order_by("position", "pk").values_list("pk", flat=True)[:4])
+                extra_qs = existing.images.exclude(pk__in=keep_pks)
+                extra_count = extra_qs.count()
+                if extra_count > 0:
+                    if dry_run:
+                        self._log(f"  [DRY-RUN] Видалив би зайвих картинок: {extra_count}")
+                    else:
+                        extra_qs.delete()
+                        self._log(f"  Видалено зайвих картинок: {extra_count}")
                     changed = True
 
                 if changed:
