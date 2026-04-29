@@ -461,11 +461,43 @@ class KreslaluxScraper:
             existing = Furniture.objects.filter(article_code=product.article_code).first()
 
             if existing:
+                changed = False
+
+                # Update price if changed
                 if existing.price != product.price and product.price > 0:
                     if not dry_run:
                         existing.price = product.price
                         existing.save(update_fields=["price"])
                     self._log(f"  Оновлено ціну: {product.price}")
+                    changed = True
+
+                # Add images if missing
+                has_images = existing.image or existing.images.exists()
+                if not has_images and product.image_urls:
+                    if dry_run:
+                        self._log(f"  [DRY-RUN] Додав би картинки: {len(product.image_urls)} шт.")
+                    else:
+                        added = 0
+                        for img_idx, img_url in enumerate(product.image_urls):
+                            cache_path = self._download_image(img_url)
+                            if not cache_path:
+                                continue
+                            if img_idx == 0:
+                                existing.image.name = cache_path
+                                existing.save(update_fields=["image"])
+                            else:
+                                gallery = FurnitureImage(
+                                    furniture=existing,
+                                    alt_text=f"{existing.name} — фото {img_idx}",
+                                    position=img_idx,
+                                )
+                                gallery.image.name = cache_path
+                                gallery.save()
+                            added += 1
+                        self._log(f"  Додано картинок: {added}")
+                    changed = True
+
+                if changed:
                     stats["updated"] += 1
                 else:
                     stats["skipped"] += 1
