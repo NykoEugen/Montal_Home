@@ -27,7 +27,7 @@ certifi==2025.6.15
 idna==3.10
 charset-normalizer==3.4.2
 beautifulsoup4==4.12.3
-cloudscraper==1.2.71
+curl-cffi==0.15.0
 selenium==4.24.0
 
 # Excel file processing

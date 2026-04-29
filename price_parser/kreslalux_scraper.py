@@ -7,8 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional
 from urllib.parse import urlsplit
 
-import requests
-import cloudscraper
+from curl_cffi import requests as cffi_requests
 from bs4 import BeautifulSoup
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -96,10 +95,8 @@ class KreslaluxScraper:
     # ── HTTP helpers ──────────────────────────────────────────────────────────
 
     def _build_session(self):
-        # cloudscraper bypasses Cloudflare JS/bot challenges that return 403
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "windows", "mobile": False}
-        )
+        # curl_cffi impersonates Chrome TLS fingerprint — bypasses Cloudflare IP blocks
+        session = cffi_requests.Session(impersonate="chrome124")
         session.headers.update({
             "Accept-Language": "uk-UA,uk;q=0.9,en-US;q=0.8",
             "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
