@@ -478,7 +478,7 @@ class KreslaluxScraper:
                         self._log(f"  [DRY-RUN] Додав би картинки: {len(product.image_urls)} шт.")
                     else:
                         added = 0
-                        for img_idx, img_url in enumerate(product.image_urls):
+                        for img_idx, img_url in enumerate(product.image_urls[:5]):
                             cache_path = self._download_image(img_url)
                             if not cache_path:
                                 continue
@@ -532,8 +532,8 @@ class KreslaluxScraper:
                     defaults={"value": param_value},
                 )
 
-            # Images
-            for img_idx, img_url in enumerate(product.image_urls):
+            # Images — limit to first 5
+            for img_idx, img_url in enumerate(product.image_urls[:5]):
                 cache_path = self._download_image(img_url)
                 if not cache_path:
                     continue
