@@ -67,6 +67,19 @@ def _parse_price(text: str) -> Optional[Decimal]:
         return None
 
 
+_BRAND_RE = re.compile(
+    r'(?i)\b(?:kreslalux|kresl[- ]?a[- ]?lux)\b[\s,\-–—]*',
+)
+
+
+def clean_name(name: str) -> str:
+    """Remove brand name 'KRESLALUX' (any case/variation) from product title."""
+    result = _BRAND_RE.sub("", name).strip(" ,-–—")
+    # Collapse multiple spaces
+    result = re.sub(r"\s{2,}", " ", result)
+    return result or name
+
+
 def clean_description(description: str) -> str:
     """Remove 'Key: value.' fragments from description, keep only narrative sentences."""
     if not description:
@@ -175,7 +188,7 @@ class KreslaluxScraper:
             if not product_url.startswith("http"):
                 product_url = BASE_URL + product_url
 
-            name = link_el.get_text(strip=True)
+            name = clean_name(link_el.get_text(strip=True))
 
             price_el = (
                 card.select_one("span.product-price[content]")
@@ -273,7 +286,7 @@ class KreslaluxScraper:
 
         # Name
         name_el = soup.select_one("h1.page-title, h1[itemprop='name'], h1")
-        name = name_el.get_text(strip=True) if name_el else ""
+        name = clean_name(name_el.get_text(strip=True)) if name_el else ""
         if not name:
             return None
 
@@ -462,6 +475,15 @@ class KreslaluxScraper:
 
             if existing:
                 changed = False
+
+                # Update name if it contains the brand prefix
+                cleaned_name = clean_name(existing.name)
+                if cleaned_name != existing.name:
+                    if not dry_run:
+                        existing.name = cleaned_name
+                        existing.save(update_fields=["name"])
+                    self._log(f"  Назву очищено: {cleaned_name}")
+                    changed = True
 
                 # Update price if changed
                 if existing.price != product.price and product.price > 0:
