@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-6">
     <div>
         <h1 class="text-2xl font-semibold text-brown-900">Kreslalux.ua — крісла</h1>
-        <p class="text-brown-500 text-sm mt-1">Імпорт та оновлення цін для підкатегорії «Ортопедичні крісла»</p>
+        <p class="text-brown-500 text-sm mt-1">Підкатегорія «Ортопедичні крісла» — моніторинг та управління</p>
     </div>
     <a href="{% url 'custom_admin:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-beige-300 text-brown-600 rounded-md hover:bg-beige-100">
         <i class="fa-solid fa-arrow-left mr-2"></i> Назад
@@ -40,7 +40,7 @@
     </div>
     <div class="bg-white rounded-xl border border-beige-300 shadow-sm px-5 py-4">
         <div class="text-xs text-brown-400 uppercase tracking-wider mb-1">Джерело</div>
-        <div class="text-sm font-semibold text-brown-700 mt-1">
+        <div class="text-sm font-semibold text-brown-700 mt-2">
             <a href="https://kreslalux.ua/uk/18-kresla-dlya-doma" target="_blank" class="text-brown-500 hover:underline">
                 kreslalux.ua <i class="fa-solid fa-external-link-alt ml-1 text-xs"></i>
             </a>
@@ -48,95 +48,33 @@
     </div>
 </div>
 
-<!-- JSON file import -->
-<div class="bg-white rounded-xl border border-brown-300 shadow-sm p-6 mb-6">
-    <div class="flex items-center gap-3 mb-4">
-        <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
-            <i class="fa-solid fa-file-import text-brown-600"></i>
-        </div>
-        <div>
-            <h2 class="text-base font-semibold text-brown-800">Імпорт з файлу (рекомендовано)</h2>
-            <p class="text-xs text-brown-400">Завантажте JSON-файл, зібраний локально</p>
-        </div>
-    </div>
+<!-- Local import instructions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-    <div class="mb-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-600 space-y-1">
-        <p><strong>Крок 1.</strong> Запустіть локально на своєму ПК:</p>
-        <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs mt-1 select-all">
-            python manage.py import_kreslalux_chairs --export-json kreslalux.json
-        </code>
-        <p class="mt-2"><strong>Крок 2.</strong> Завантажте отриманий файл нижче.</p>
-    </div>
-
-    <form method="post" action="{% url 'custom_admin:kreslalux_import_json' %}" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="space-y-3 mb-4">
-            <div>
-                <label class="block text-xs font-medium text-brown-600 mb-1">JSON-файл</label>
-                <input type="file" name="json_file" accept=".json" required
-                       class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-brown-100 file:text-brown-700">
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="checkbox" name="dry_run" id="dry_run_json"
-                       class="w-4 h-4 text-brown-600 border-beige-300 rounded">
-                <label for="dry_run_json" class="text-xs text-brown-600">Dry-run (тільки перегляд, без змін)</label>
-            </div>
-        </div>
-        <button type="submit"
-                class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-700 hover:bg-brown-800 text-white text-sm font-medium rounded-lg transition-colors">
-            <i class="fa-solid fa-upload mr-2"></i>
-            Імпортувати з файлу
-        </button>
-    </form>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-    <!-- Import -->
     <div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
-                <i class="fa-solid fa-cloud-arrow-down text-brown-600"></i>
+                <i class="fa-solid fa-laptop-code text-brown-600"></i>
             </div>
             <div>
-                <h2 class="text-base font-semibold text-brown-800">Імпорт товарів</h2>
-                <p class="text-xs text-brown-400">Завантажити нові крісла в БД</p>
+                <h2 class="text-base font-semibold text-brown-800">Імпорт нових товарів</h2>
+                <p class="text-xs text-brown-400">Запускати локально на своєму ПК</p>
             </div>
         </div>
-
-        <form method="post" action="{% url 'custom_admin:kreslalux_import' %}">
-            {% csrf_token %}
-            <div class="space-y-3 mb-4">
-                <div>
-                    <label class="block text-xs font-medium text-brown-600 mb-1">Макс. ціна (грн)</label>
-                    <input type="number" name="max_price" value="40000" min="1" max="1000000"
-                           class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-brown-600 mb-1">Ліміт товарів (0 = всі)</label>
-                    <input type="number" name="limit" value="0" min="0"
-                           class="w-full border border-beige-300 rounded-lg px-3 py-2 text-brown-800 text-sm focus:outline-none focus:ring-2 focus:ring-brown-500">
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" name="dry_run" id="dry_run"
-                           class="w-4 h-4 text-brown-600 border-beige-300 rounded">
-                    <label for="dry_run" class="text-xs text-brown-600">Dry-run (тільки перегляд, без змін)</label>
-                </div>
-            </div>
-            <button type="submit"
-                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-600 hover:bg-brown-700 text-white text-sm font-medium rounded-lg transition-colors">
-                <i class="fa-solid fa-download mr-2"></i>
-                Запустити імпорт
-            </button>
-        </form>
-
-        <div class="mt-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-500">
-            <strong>Увага:</strong> Імпорт може зайняти кілька хвилин. Нові товари з'являться
-            в підкатегорії «Ортопедичні крісла». Наявні товари (за артикулом) оновлять ціну.
+        <p class="text-xs text-brown-500 mb-3">
+            Сайт kreslalux.ua блокує запити з сервера (Cloudflare 403).
+            Команда виконується локально — скрейп, завантаження картинок на R2 і запис у БД відбуваються на вашому ПК.
+        </p>
+        <div class="space-y-2">
+            <p class="text-xs font-medium text-brown-600">Всі товари до 40 000 грн:</p>
+            <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_kreslalux_chairs</code>
+            <p class="text-xs font-medium text-brown-600 mt-3">Тест (3 товари, без змін):</p>
+            <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_kreslalux_chairs --dry-run --limit 3</code>
+            <p class="text-xs font-medium text-brown-600 mt-3">Якщо локальна БД відрізняється від прод:</p>
+            <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_kreslalux_chairs --database-url postgres://...</code>
         </div>
     </div>
 
-    <!-- Price update -->
     <div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-9 h-9 rounded-lg bg-brown-100 flex items-center justify-center">
@@ -144,27 +82,19 @@
             </div>
             <div>
                 <h2 class="text-base font-semibold text-brown-800">Оновлення цін</h2>
-                <p class="text-xs text-brown-400">Оновити ціни наявних товарів з сайту</p>
+                <p class="text-xs text-brown-400">Також запускати локально</p>
             </div>
         </div>
-
-        <p class="text-sm text-brown-600 mb-4">
-            Скрипт обійде каталог kreslalux.ua та оновить ціни для товарів,
-            знайдених за артикулом (SKU).
+        <p class="text-xs text-brown-500 mb-3">
+            Оновлює ціни наявних товарів. Наявні артикули порівнюються з каталогом kreslalux.ua.
+            Нові товари також додаються.
         </p>
-
-        <form method="post" action="{% url 'custom_admin:kreslalux_update_prices' %}">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full inline-flex items-center justify-center px-4 py-2 bg-brown-600 hover:bg-brown-700 text-white text-sm font-medium rounded-lg transition-colors">
-                <i class="fa-solid fa-arrow-rotate-right mr-2"></i>
-                Оновити ціни
-            </button>
-        </form>
-
-        <div class="mt-4 p-3 bg-beige-50 rounded-lg text-xs text-brown-500">
-            Порівнюються лише товари у підкатегорії «Ортопедичні крісла».
-            Зміни ціни застосовуються тільки при розбіжності.
+        <div class="space-y-2">
+            <p class="text-xs font-medium text-brown-600">Оновити ціни (тільки існуючі):</p>
+            <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_kreslalux_chairs</code>
+            <p class="text-xs text-brown-400 mt-2">
+                Команда сама визначає що нове, а що вже є — оновлює ціну при розбіжності.
+            </p>
         </div>
     </div>
 
@@ -172,7 +102,7 @@
 
 <!-- Existing products preview -->
 {% if recent_furniture %}
-<div class="bg-white rounded-xl border border-beige-300 shadow-sm mt-6">
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm">
     <div class="px-6 py-4 border-b border-beige-200">
         <h2 class="text-base font-semibold text-brown-800">Останні імпортовані товари</h2>
     </div>
@@ -208,7 +138,7 @@
     {% if furniture_count > 10 %}
     <div class="px-6 py-3 text-xs text-brown-400 border-t border-beige-200">
         Показано 10 з {{ furniture_count }}.
-        <a href="{% url 'custom_admin:list' 'furniture' %}?search=ортопедичні+крісла" class="text-brown-600 hover:underline">
+        <a href="{% url 'custom_admin:list' 'furniture' %}" class="text-brown-600 hover:underline">
             Всі товари →
         </a>
     </div>
