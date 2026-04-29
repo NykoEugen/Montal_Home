@@ -67,6 +67,27 @@ def _parse_price(text: str) -> Optional[Decimal]:
         return None
 
 
+def clean_description(description: str) -> str:
+    """Remove 'Key: value.' fragments from description, keep only narrative sentences."""
+    if not description:
+        return description
+
+    # Split on ". " boundaries and trailing period
+    parts = re.split(r'\.\s+', description.strip().rstrip('.'))
+    # Pattern: sentence that looks like "SomeLabel: some value"
+    # Label = up to ~40 chars without colon, then colon, then content
+    param_re = re.compile(
+        r'^[А-ЯҐЄІЇа-яґєіїA-Za-z0-9][^:]{0,50}:\s*.+$',
+        re.UNICODE,
+    )
+    kept = [s.strip() for s in parts if s.strip() and not param_re.match(s.strip())]
+    result = '. '.join(kept)
+    if result:
+        return result + '.'
+    # Fallback: all sentences looked like params — return original unchanged
+    return description
+
+
 def _generate_slug(name: str) -> str:
     from furniture.models import Furniture
     base = slugify(_transliterate(name)) or "krislo"
@@ -497,6 +518,140 @@ class KreslaluxScraper:
                     gallery.save()
 
             self._log(f"  Додано: {furniture.name} ({furniture.article_code})")
+            stats["created"] += 1
+
+        stats["success"] = True
+        return stats
+
+    # ── JSON export / import ─────────────────────────────────────────────────
+
+    def export_to_json(self, limit: Optional[int] = None) -> List[Dict]:
+        """Scrape catalog + detail pages, return list of serializable product dicts."""
+        candidates = self.collect_candidate_urls(limit=limit)
+        self._log(f"Знайдено кандидатів: {len(candidates)}. Збираємо деталі...")
+
+        products = []
+        for idx, candidate in enumerate(candidates, 1):
+            self._log(f"[{idx}/{len(candidates)}] {candidate['name']}")
+            time.sleep(REQUEST_DELAY)
+            product = self.scrape_product(candidate["url"])
+            if not product:
+                self._log(f"  Пропущено (не завантажилось): {candidate['url']}")
+                continue
+            products.append({
+                "url": product.url,
+                "name": product.name,
+                "article_code": product.article_code,
+                "price": str(product.price),
+                "description": clean_description(product.description),
+                "params": product.params,
+                "image_urls": product.image_urls,
+            })
+            self._log(f"  OK: {product.article_code} — {product.price} грн")
+
+        self._log(f"Експорт завершено: {len(products)} товарів")
+        return products
+
+    @staticmethod
+    def import_from_data(
+        products: List[Dict],
+        dry_run: bool = False,
+        subcategory_slug: str = "ortopedichni-krisla",
+        progress_callback=None,
+    ) -> Dict:
+        """Import products from a list of dicts (JSON-exported data) into the DB."""
+        from sub_categories.models import SubCategory
+        from furniture.models import Furniture, FurnitureImage
+        from params.models import FurnitureParameter, Parameter
+
+        def _log(msg):
+            logger.info(msg)
+            if progress_callback:
+                progress_callback(msg)
+
+        sub_category = SubCategory.objects.filter(slug=subcategory_slug).first()
+        if not sub_category:
+            return {"success": False, "error": f"Підкатегорія '{subcategory_slug}' не знайдена"}
+
+        stats = {"created": 0, "updated": 0, "skipped": 0, "candidates": len(products), "errors": []}
+
+        scraper = KreslaluxScraper.__new__(KreslaluxScraper)
+        scraper.session = None
+        scraper._progress_callback = progress_callback
+
+        for idx, data in enumerate(products, 1):
+            article_code = (data.get("article_code") or "").strip()
+            name = (data.get("name") or "").strip()
+            if not article_code or not name:
+                stats["errors"].append(f"Рядок {idx}: відсутній артикул або назва")
+                stats["skipped"] += 1
+                continue
+
+            try:
+                price = Decimal(str(data.get("price", "0")))
+            except InvalidOperation:
+                price = Decimal("0")
+
+            existing = Furniture.objects.filter(article_code=article_code).first()
+            if existing:
+                if existing.price != price and price > 0:
+                    if not dry_run:
+                        existing.price = price
+                        existing.save(update_fields=["price"])
+                    _log(f"  [{idx}] Оновлено ціну: {name} → {price} грн")
+                    stats["updated"] += 1
+                else:
+                    stats["skipped"] += 1
+                continue
+
+            if dry_run:
+                _log(f"  [{idx}] [DRY-RUN] Створив би: {name} ({article_code}) — {price} грн")
+                stats["created"] += 1
+                continue
+
+            furniture = Furniture.objects.create(
+                name=name,
+                article_code=article_code,
+                slug=_generate_slug(name),
+                sub_category=sub_category,
+                price=price,
+                description=data.get("description") or name,
+                stock_status="in_stock",
+            )
+
+            for param_label, param_value in (data.get("params") or {}).items():
+                if not param_label or not param_value:
+                    continue
+                key = slugify(param_label)[:100] or f"param_{abs(hash(param_label))}"
+                param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": param_label})
+                if not sub_category.allowed_params.filter(pk=param.pk).exists():
+                    sub_category.allowed_params.add(param)
+                FurnitureParameter.objects.update_or_create(
+                    furniture=furniture,
+                    parameter=param,
+                    defaults={"value": param_value},
+                )
+
+            # Download images (needs a session)
+            img_scraper = KreslaluxScraper.__new__(KreslaluxScraper)
+            img_scraper.session = KreslaluxScraper._build_session(img_scraper)
+            for img_idx, img_url in enumerate(data.get("image_urls") or []):
+                cache_path = img_scraper._download_image(img_url)
+                if not cache_path:
+                    continue
+                if img_idx == 0 and not furniture.image:
+                    furniture.image.name = cache_path
+                    furniture.save(update_fields=["image"])
+                else:
+                    gallery = FurnitureImage(
+                        furniture=furniture,
+                        alt_text=f"{furniture.name} — фото {img_idx}",
+                        position=img_idx,
+                    )
+                    gallery.image.name = cache_path
+                    gallery.save()
+
+            _log(f"  [{idx}] Додано: {name} ({article_code})")
             stats["created"] += 1
 
         stats["success"] = True
