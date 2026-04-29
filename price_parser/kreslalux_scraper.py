@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from urllib.parse import urlsplit
 
 import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -20,11 +21,6 @@ BASE_URL = "https://kreslalux.ua"
 MAX_PRICE_DEFAULT = Decimal("40000")
 REQUEST_DELAY = 0.6  # seconds between requests
 IMAGE_CACHE_DIR = "supplier_cache/kreslalux"
-
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-)
 
 CYRILLIC_MAP = {
     "а": "a", "б": "b", "в": "v", "г": "h", "ґ": "g", "д": "d", "е": "e",
@@ -99,16 +95,15 @@ class KreslaluxScraper:
 
     # ── HTTP helpers ──────────────────────────────────────────────────────────
 
-    def _build_session(self) -> requests.Session:
-        session = requests.Session()
+    def _build_session(self):
+        # cloudscraper bypasses Cloudflare JS/bot challenges that return 403
+        session = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "windows", "mobile": False}
+        )
         session.headers.update({
-            "User-Agent": USER_AGENT,
-            "Accept-Language": "uk-UA,uk;q=0.9",
+            "Accept-Language": "uk-UA,uk;q=0.9,en-US;q=0.8",
             "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
         })
-        adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
         return session
 
     def _get(self, url: str, timeout: int = 20) -> Optional[BeautifulSoup]:
@@ -116,7 +111,7 @@ class KreslaluxScraper:
             resp = self.session.get(url, timeout=timeout)
             resp.raise_for_status()
             return BeautifulSoup(resp.text, "html.parser")
-        except requests.RequestException as exc:
+        except Exception as exc:
             logger.warning("GET failed %s: %s", url, exc)
             return None
 
@@ -380,7 +375,7 @@ class KreslaluxScraper:
         try:
             resp = self.session.get(url, timeout=30)
             resp.raise_for_status()
-        except requests.RequestException as exc:
+        except Exception as exc:
             logger.warning("Image download failed %s: %s", url, exc)
             return None
 
