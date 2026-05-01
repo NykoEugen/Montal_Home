@@ -6,7 +6,7 @@
     <h1 class="text-3xl font-bold text-brown-800 mb-8">Кошик</h1>
     {% if cart_items %}
         <div class="bg-white rounded-lg shadow-md p-6">
-            <table class="w-full text-left">
+            <table class="cart-table w-full text-left">
                 <thead>
                     <tr class="border-b border-beige-700">
                         <th class="py-3 text-brown-700">Товар</th>
@@ -19,7 +19,7 @@
                 <tbody>
                     {% for item in cart_items %}
                         <tr class="border-b border-beige-700">
-                            <td class="py-3 text-brown-600">
+                            <td class="py-3 text-brown-600" data-label="Товар">
                                 <div class="flex items-start gap-3">
                                     {% if item.variant_image_id %}
                                         {% for variant in item.furniture.variant_images.all %}
@@ -90,8 +90,8 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 text-brown-600">{{ item.quantity }}</td>
-                            <td class="py-3">
+                            <td class="py-3 text-brown-600" data-label="Кількість">{{ item.quantity }}</td>
+                            <td class="py-3" data-label="Ціна">
                                 {% if item.size_variant and item.size_variant.is_on_sale %}
                                     <span class="text-red-600 font-semibold">{{ item.item_price|floatformat:0 }} грн</span><br>
                                     <span class="text-brown-500 line-through text-sm">{{ item.size_variant.price|floatformat:0 }} грн</span>
@@ -102,8 +102,8 @@
                                     <span class="text-brown-600">{{ item.item_price|floatformat:0 }} грн</span>
                                 {% endif %}
                             </td>
-                            <td class="py-3 text-brown-600">{{ item.item_price|multiply:item.quantity|floatformat:0 }} грн</td>
-                            <td class="py-3">
+                            <td class="py-3 text-brown-600" data-label="Загалом">{{ item.item_price|multiply:item.quantity|floatformat:0 }} грн</td>
+                            <td class="py-3" data-label="">
                                 <form method="post" action="{% url 'shop:remove_from_cart' %}" style="display: inline;">
                                     {% csrf_token %}
                                     <input type="hidden" name="cart_key" value="{{ item.cart_key }}">
