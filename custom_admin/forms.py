@@ -128,6 +128,8 @@ class FurnitureForm(StyledModelForm):
             "fabric_value",
             "color_palettes",
             "custom_option_name",
+            "variant_group_leader",
+            "variant_label",
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 4}),
@@ -148,9 +150,14 @@ class FurnitureForm(StyledModelForm):
                 "%Y-%m-%d %H:%M:%S",
                 "%Y-%m-%d %H:%M",
             ]
-        # Ensure the datetime widget renders initial value in HTML5 format
         if self.instance and self.instance.sale_end_date:
             self.initial["sale_end_date"] = self.instance.sale_end_date.strftime("%Y-%m-%dT%H:%M")
+        if "variant_group_leader" in self.fields:
+            qs = Furniture.objects.filter(variant_group_leader__isnull=True)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            self.fields["variant_group_leader"].queryset = qs
+            self.fields["variant_group_leader"].label_from_instance = lambda f: f"{f.name} ({f.article_code})"
 
 
 class OrderForm(StyledModelForm):

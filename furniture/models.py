@@ -118,6 +118,28 @@ class Furniture(models.Model):
         verbose_name="Назва додаткового параметра",
         help_text="Назва параметра для власних варіантів вибору (наприклад, 'Комплектація')."
     )
+    base_model_name = models.CharField(
+        max_length=200,
+        blank=True,
+        db_index=True,
+        verbose_name="Назва базової моделі",
+        help_text="Однакове значення = один варіантний ряд. Порожнє — товар самостійний.",
+    )
+    variant_group_leader = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='color_variants',
+        verbose_name="Базова модель",
+        help_text="Вкажіть базову модель, якщо цей товар є варіантом (колір/модифікація). Базова модель залишає це поле порожнім.",
+    )
+    variant_label = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Мітка варіанту",
+        help_text="Коротка мітка для чіпу варіанту (напр. BLACK, KHAKI, 645-1B BLACK). Якщо порожнє — береться суфікс назви.",
+    )
 
     @property
     def discount_percentage(self):

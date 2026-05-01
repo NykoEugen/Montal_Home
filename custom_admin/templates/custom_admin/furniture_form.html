@@ -40,6 +40,9 @@
             <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="gallery">
                 Галерея товару
             </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="model-variants">
+                Варіанти моделі
+            </button>
         </nav>
     </div>
     <form method="post" enctype="multipart/form-data" class="space-y-8">
@@ -49,7 +52,7 @@
             <h2 class="text-xl font-semibold text-brown-900 mb-4">Основна інформація</h2>
             <div class="grid gap-4 md:grid-cols-2">
                 {% for field in form %}
-                    {% if field.name != 'selected_fabric_brand' and field.name != 'fabric_value' and field.name != 'custom_option_name' %}
+                    {% if field.name != 'selected_fabric_brand' and field.name != 'fabric_value' and field.name != 'custom_option_name' and field.name != 'variant_group_leader' and field.name != 'variant_label' %}
                         <div class="space-y-1 {% if field.name == 'description' %}md:col-span-2{% endif %}">
                             {% if field.is_hidden %}
                                 {{ field }}
@@ -129,6 +132,47 @@
 
         <div class="tab-panel hidden" data-tab-panel="gallery">
             {% include "custom_admin/partials/formset_card.html" with title="Галерея товару" description="Додаткові фото для сторінки товару" formset=image_formset empty_label="Додайте фото" image_preview=True show_id=False %}
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 tab-panel hidden" data-tab-panel="model-variants">
+            <h2 class="text-xl font-semibold text-brown-900 mb-2">Варіанти моделі</h2>
+            <p class="text-sm text-brown-500 mb-6">
+                Якщо цей товар є варіантом іншої моделі (наприклад, інший колір), вкажіть базову модель та мітку варіанту.
+                Базова модель відображається в каталозі; інші варіанти доступні лише через чіпи на сторінці товару.
+                Для автоматичного групування запустіть:<br>
+                <code class="bg-beige-100 px-2 py-0.5 rounded text-xs">python manage.py group_product_variants --dry-run</code>
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+                {% for field in form %}
+                    {% if field.name == 'variant_group_leader' or field.name == 'variant_label' %}
+                    <div class="space-y-1">
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brown-700">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <p class="text-xs text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% if object.color_variants.exists %}
+            <div class="mt-6">
+                <h3 class="text-sm font-semibold text-brown-700 mb-2">Варіанти цієї моделі:</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for v in object.color_variants.all %}
+                    <a href="{% url 'custom_admin:edit' 'furniture' v.pk %}"
+                       class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-beige-100 border border-beige-300 text-brown-700 text-sm hover:bg-beige-200">
+                        {{ v.variant_label|default:v.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <div class="flex items-center justify-between pt-4 border-t border-beige-200">

@@ -14,6 +14,51 @@ from fabric_category.models import FabricCategory, FabricColor
 from furniture.models import Furniture
 
 
+def _get_color_variant_chips(furniture: Furniture) -> list[dict]:
+    """
+    Returns list of chip dicts for all variants in the same group as `furniture`.
+    Each dict: {id, name, label, slug, is_current, image_url}
+    """
+    if furniture.variant_group_leader_id:
+        leader = furniture.variant_group_leader
+    else:
+        leader = furniture
+
+    all_in_group: list[Furniture] = [leader] + list(
+        leader.color_variants.order_by("id").select_related()
+    )
+
+    chips = []
+    for item in all_in_group:
+        image_url = None
+        if item.image:
+            try:
+                image_url = item.image.url
+            except Exception:
+                pass
+        label = item.variant_label or _fallback_label(leader.name, item.name)
+        chips.append({
+            "id": item.id,
+            "name": item.name,
+            "label": label,
+            "slug": item.slug,
+            "is_current": item.id == furniture.id,
+            "image_url": image_url,
+        })
+
+    return chips if len(chips) > 1 else []
+
+
+def _fallback_label(leader_name: str, variant_name: str) -> str:
+    """Derive chip label by stripping the leader's name prefix."""
+    leader_upper = leader_name.upper().strip()
+    variant_upper = variant_name.upper().strip()
+    if variant_upper.startswith(leader_upper):
+        suffix = variant_name[len(leader_name):].strip(" -_")
+        return suffix or variant_name
+    return variant_name
+
+
 def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
     furniture = get_object_or_404(Furniture, slug=furniture_slug)
     raw_parameters = furniture.parameters.select_related("parameter").all()
@@ -64,10 +109,8 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             initial_stock_status = default_variant.stock_status
             initial_stock_label = default_variant.get_stock_status_display()
     
-    # Debug: Print size variants info
-    print(f"Debug: Furniture '{furniture.name}' has {len(size_variants)} size variants")
-    for variant in size_variants:
-        print(f"  - {variant.dimensions}: Current={variant.current_price}, Original={variant.price}, OnSale={variant.is_on_sale}")
+    # Build color-variant chips (same base model, different color/modification)
+    color_variant_chips = _get_color_variant_chips(furniture)
 
     # Virtual parameter structure for consistent template access
     class VirtualParameter:
@@ -225,6 +268,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
         "initial_stock_label": initial_stock_label,
         "custom_option_name": furniture.custom_option_name,
         "custom_options": custom_options,
+        "color_variant_chips": color_variant_chips,
         "meta_title": f"{furniture.name} — купити у Montal Home",
         "meta_description": description_text,
         "meta_keywords": meta_keywords,

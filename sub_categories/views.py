@@ -31,7 +31,11 @@ def sub_categories_details(
     request: HttpRequest, sub_categories_slug: str
 ) -> HttpResponse:
     sub_category = get_object_or_404(SubCategory, slug=sub_categories_slug)
-    furniture = Furniture.objects.filter(sub_category=sub_category)
+    # Show only base models (group leaders); hide variant items
+    furniture = Furniture.objects.filter(
+        sub_category=sub_category,
+        variant_group_leader__isnull=True,
+    )
 
     # Price range filtering
     min_price = request.GET.get("min_price")
