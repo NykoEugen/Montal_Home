@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         let activeAssigned = false;
+        let activeStepIndex = stepIndicators.length - 1;
         for (const step of stepIndicators) {
             if (!step.indicator) {
                 continue;
@@ -137,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (step.label) {
                     step.label.classList.add('active');
                 }
+                activeStepIndex = stepIndicators.indexOf(step);
                 activeAssigned = true;
             }
         }
@@ -150,6 +152,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalStep.label.classList.add('active');
             }
         }
+
+        // Sync mobile stepper dots
+        const stepNames = { contact: 'Контактні дані', delivery: 'Доставка', payment: 'Оплата', confirm: 'Підтвердження' };
+        let mobileLabel = '';
+        stepIndicators.forEach((step, idx) => {
+            const dot = document.querySelector(`[data-step-dot="${step.key}"]`);
+            if (dot) {
+                const isComplete = stepState.get(step.key);
+                dot.classList.toggle('is-complete', isComplete);
+                dot.classList.toggle('is-active', idx === activeStepIndex);
+            }
+            if (idx === activeStepIndex) {
+                mobileLabel = `Крок ${idx + 1} з ${stepIndicators.length}: ${stepNames[step.key] || ''}`;
+            }
+        });
+        const mobileLabelEl = document.getElementById('checkout-step-label-mobile');
+        if (mobileLabelEl) mobileLabelEl.textContent = mobileLabel;
     };
 
     if (checkoutForm && stepIndicators.length) {
