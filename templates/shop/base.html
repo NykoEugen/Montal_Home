@@ -339,11 +339,11 @@
 
             <!-- Actions -->
             <div class="cam-footer">
-                <button id="cart-modal-continue-btn" class="cam-btn-secondary">
+                <button id="cart-modal-continue-btn" class="cam-btn cam-btn--outline">
                     Продовжити покупки
                 </button>
-                <a id="cart-modal-goto" href="#" class="btn-grad cam-btn-primary">
-                    <i class="fas fa-shopping-cart"></i>
+                <a id="cart-modal-goto" href="#" class="cam-btn cam-btn--filled">
+                    <i class="fas fa-shopping-cart" style="font-size:0.8em;"></i>
                     Перейти до кошика
                 </a>
             </div>
@@ -441,29 +441,53 @@
             .cam-footer { flex-direction: row; }
         }
 
-        .cam-btn-secondary {
+        /* Shared button base */
+        .cam-btn {
             flex: 1;
-            background: white;
-            border: 1px solid var(--beige-300);
-            color: var(--brown-700);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.65rem 1.1rem;
+            border-radius: 999px;
             font-weight: 600;
             font-size: 0.85rem;
-            padding: 0.65rem 1rem;
-            border-radius: 999px;
+            line-height: 1;
+            text-decoration: none;
             cursor: pointer;
-            transition: background 0.18s, border-color 0.18s;
-            text-align: center;
+            border: 1.5px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+            white-space: nowrap;
         }
-        .cam-btn-secondary:hover {
-            background: var(--beige-200);
+        .cam-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px -4px rgba(39, 30, 20, 0.22);
+        }
+        .cam-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Outline variant — "Продовжити покупки" */
+        .cam-btn--outline {
+            background: white;
+            border-color: var(--beige-300);
+            color: var(--brown-700);
+        }
+        .cam-btn--outline:hover {
+            background: var(--beige-100);
             border-color: var(--brown-300);
         }
 
-        .cam-btn-primary {
-            flex: 1;
-            font-size: 0.85rem !important;
-            padding: 0.65rem 1rem !important;
-            text-decoration: none;
+        /* Filled variant — "Перейти до кошика" */
+        .cam-btn--filled {
+            background: var(--brown-800);
+            border-color: var(--brown-800);
+            color: var(--beige-100);
+        }
+        .cam-btn--filled:hover {
+            background: var(--brown-700);
+            border-color: var(--brown-700);
         }
     </style>
 
