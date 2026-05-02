@@ -314,6 +314,43 @@
             });
         }
     </script>
+    <!-- Add-to-cart modal -->
+    <div id="cart-added-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="cart-modal-backdrop"></div>
+        <!-- Panel -->
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto overflow-hidden animate-modal-in">
+            <!-- Green top strip -->
+            <div class="bg-green-500 px-6 py-4 flex items-center gap-3">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <i class="fas fa-check text-white text-sm"></i>
+                </div>
+                <span class="text-white font-semibold">Додано до кошика</span>
+            </div>
+            <!-- Body -->
+            <div class="px-6 py-5">
+                <p class="text-brown-600 text-sm mb-5" id="cart-modal-product-name"></p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="cart-modal-continue" class="flex-1 px-4 py-2.5 border border-brown-300 text-brown-700 rounded-xl font-semibold text-sm hover:bg-beige-50 transition focus:outline-none focus:ring-2 focus:ring-brown-400">
+                        Продовжити покупки
+                    </button>
+                    <a id="cart-modal-goto" href="#" class="flex-1 px-4 py-2.5 bg-brown-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-brown-700 transition focus:outline-none focus:ring-2 focus:ring-brown-500 flex items-center justify-center gap-2">
+                        <i class="fas fa-shopping-cart text-xs"></i>
+                        Перейти до кошика
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal-in { animation: modal-in 0.2s ease-out both; }
+    </style>
+
     {% block extra_body %}{% endblock %}
 </body>
 </html>

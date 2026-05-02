@@ -157,62 +157,32 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Кошик порожній!", extra_tags="user")
                 return redirect("shop:view_cart")
 
-            payment_type = form.cleaned_data["payment_type"]
-            iban_invoice_requested = payment_type == "iban"
-            if payment_type == "liqpay":
-                try:
-                    _ensure_liqpay_available()
-                except LiqPayConfigurationError:
-                    form.add_error(
-                        "payment_type",
-                        "Онлайн-оплата тимчасово недоступна. Оберіть інший спосіб.",
-                    )
-                    return render(request, "shop/checkout.html", {"form": form})
-
             try:
-                # Use resilient database operation for order creation
                 def create_order_operation():
-                    # Prepare delivery data based on delivery type
-                    delivery_type = form.cleaned_data["delivery_type"]
-                    delivery_city = ""
-                    delivery_branch = ""
-                    delivery_address = ""
-
-                    if delivery_type == "local":
-                        delivery_city = "Доставка по місту"
-                        delivery_address = form.cleaned_data["delivery_address"]
-                    elif delivery_type == "nova_poshta":
-                        delivery_city = form.cleaned_data["delivery_city_label"]
-                        delivery_branch = form.cleaned_data["delivery_branch_name"]
-
+                    comment = form.cleaned_data.get("customer_comment", "")
                     with transaction.atomic():
                         order = Order.objects.create(
                             customer_name=form.cleaned_data["customer_name"],
                             customer_last_name=form.cleaned_data["customer_last_name"],
                             customer_phone_number=form.cleaned_data["customer_phone_number"],
-                            customer_email=form.cleaned_data["customer_email"],
-                            delivery_type=delivery_type,
-                            delivery_city=delivery_city,
-                            delivery_branch=delivery_branch,
-                            delivery_address=delivery_address,
-                            payment_type=form.cleaned_data["payment_type"],
-                            iban_invoice_requested=iban_invoice_requested,
+                            customer_email=form.cleaned_data.get("customer_email", ""),
+                            delivery_type="local",
+                            delivery_city="",
+                            delivery_branch="",
+                            delivery_address=comment,
+                            payment_type="iban",
+                            iban_invoice_requested=False,
                         )
                         return order
 
                 order = resilient_database_operation(create_order_operation)
-                
-                # Clear any saved drafts after successful order creation
                 clear_form_draft(request, 'checkout_form')
-                
-            except Exception as e:
-                # Save form data as draft for retry
-                form_data = form.cleaned_data
-                save_form_draft(request, form_data, 'checkout_form')
-                
+
+            except Exception:
+                save_form_draft(request, form.cleaned_data, 'checkout_form')
                 messages.error(
                     request,
-                    "Помилка при створенні замовлення. Ваші дані збережено як чернетку. Спробуйте ще раз.",
+                    "Помилка при створенні заявки. Ваші дані збережено. Спробуйте ще раз.",
                     extra_tags="user",
                 )
                 return render(request, "shop/checkout.html", {"form": form})
@@ -391,36 +361,19 @@ def checkout(request: HttpRequest) -> HttpResponse:
             request.session["cart"] = {}
             request.session.modified = True
 
-            if payment_type == "liqpay":
-                try:
-                    liqpay_context = _build_liqpay_checkout_payload(order, request)
-                except (ValueError, LiqPayConfigurationError) as exc:
-                    logger.exception("Не вдалося ініціювати LiqPay для замовлення %s: %s", order.id, exc)
-                    messages.warning(
-                        request,
-                        "Замовлення створено, але онлайн-оплата недоступна. Менеджер зв'яжеться для уточнення оплати.",
-                        extra_tags="user",
-                    )
-                    return redirect("shop:home")
-
-                request.session["pending_liqpay_order_id"] = order.id
-                return render(
-                    request,
-                    "checkout/liqpay_redirect.html",
-                    {"order": order, **liqpay_context},
-                )
-
-            messages.success(request, "Замовлення успішно оформлено!", extra_tags="user")
+            messages.success(
+                request,
+                "Дякуємо! Ваша заявка прийнята. Менеджер зв'яжеться з вами найближчим часом.",
+                extra_tags="user",
+            )
             return redirect("shop:home")
     else:
-        # Load draft data if available
         draft_data = load_form_draft(request, 'checkout_form')
         form = CheckoutForm(initial=draft_data or None)
-
         if draft_data:
             messages.info(
                 request,
-                "Чернетка замовлення відновлена. Перевірте дані та збережіть.",
+                "Дані відновлено з попереднього разу. Перевірте та надішліть заявку.",
                 extra_tags="user",
             )
 
