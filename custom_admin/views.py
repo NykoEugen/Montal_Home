@@ -208,6 +208,7 @@ class SectionListView(SectionMixin, ListView):
                 "selected_stock_status": self.request.GET.get("stock_status", ""),
             }
             context["furniture_bulk_edit_url"] = reverse("custom_admin:furniture_bulk_edit")
+            context["furniture_variants_url"] = reverse("custom_admin:furniture_variants")
             context["column_span"] += 1
         return context
 
@@ -923,6 +924,100 @@ def redirect_to_dashboard(request):
     if request.user.is_authenticated and request.user.is_staff:
         return redirect("custom_admin:dashboard")
     return redirect("custom_admin:login")
+
+
+# ── Variant group bulk editor ─────────────────────────────────────────────────
+
+@login_required
+def furniture_variants(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+    from collections import defaultdict
+
+    sub_categories = SubCategory.objects.order_by("name")
+    selected_sub_cat_id = request.GET.get("sub_category") or request.POST.get("sub_category")
+
+    furniture_qs = None
+    if selected_sub_cat_id:
+        furniture_qs = (
+            Furniture.objects.filter(sub_category_id=selected_sub_cat_id)
+            .select_related("variant_group_leader")
+            .order_by("base_model_name", "name")
+        )
+
+    if request.method == "POST" and furniture_qs is not None:
+        with transaction.atomic():
+            # Collect updates from form
+            updates: dict[int, dict] = {}
+            for f in furniture_qs:
+                fid = str(f.pk)
+                bname = request.POST.get(f"base_model_name_{fid}", "").strip()
+                label = request.POST.get(f"variant_label_{fid}", "").strip()
+                new_name = request.POST.get(f"name_{fid}", "").strip()
+                updates[f.pk] = {"base_model_name": bname, "variant_label": label, "name": new_name, "obj": f}
+
+            # Group by base_model_name
+            groups: dict[str, list[int]] = defaultdict(list)
+            for fid, data in updates.items():
+                bname = data["base_model_name"]
+                if bname:
+                    groups[bname].append(fid)
+
+            # Assign variant_group_leader per group
+            leader_map: dict[int, int | None] = {}  # fid → leader_id or None
+            for bname, fids in groups.items():
+                sorted_fids = sorted(fids)
+                leader_id = sorted_fids[0]
+                leader_map[leader_id] = None  # leader points to nobody
+                for fid in sorted_fids[1:]:
+                    leader_map[fid] = leader_id
+
+            # Products not in any group → clear leader
+            for fid in updates:
+                if fid not in leader_map:
+                    leader_map[fid] = None
+
+            # Save all
+            for fid, data in updates.items():
+                fields = dict(
+                    base_model_name=data["base_model_name"],
+                    variant_label=data["variant_label"],
+                    variant_group_leader_id=leader_map[fid],
+                )
+                if data["name"]:
+                    fields["name"] = data["name"]
+                Furniture.objects.filter(pk=fid).update(**fields)
+
+        messages.success(request, "Варіантні групи збережено.")
+        return redirect(f"{request.path}?sub_category={selected_sub_cat_id}")
+
+    # Build grouped display for GET
+    grouped: list[dict] = []
+    if furniture_qs is not None:
+        by_group: dict[str, list] = defaultdict(list)
+        standalone: list = []
+        for f in furniture_qs:
+            if f.base_model_name:
+                by_group[f.base_model_name].append(f)
+            else:
+                standalone.append(f)
+        for bname, items in sorted(by_group.items()):
+            grouped.append({"group_name": bname, "items": items})
+        if standalone:
+            grouped.append({"group_name": "", "items": standalone})
+
+    return render(
+        request,
+        "custom_admin/furniture_variants.html",
+        {
+            "sub_categories": sub_categories,
+            "selected_sub_cat_id": int(selected_sub_cat_id) if selected_sub_cat_id else None,
+            "grouped": grouped,
+            "sections": list(registry.all()),
+        },
+    )
 
 
 # ── Kreslalux scraper views ───────────────────────────────────────────────────

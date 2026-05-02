@@ -117,6 +117,24 @@
           {% endif %}
         </div>
 
+        {% if color_variant_chips %}
+        <div class="mt-5">
+          <p class="text-sm font-semibold text-brown-700 mb-2">Варіанти моделі</p>
+          <div class="flex flex-wrap gap-2">
+            {% for chip in color_variant_chips %}
+            <a href="{% url 'furniture:furniture_detail' chip.slug %}"
+               class="chip color-model-chip{% if chip.is_current %} chip--active{% endif %}"
+               title="{{ chip.name }}">
+              {% if chip.image_url %}
+              <img src="{{ chip.image_url }}" alt="{{ chip.label }}" class="w-6 h-6 object-cover rounded">
+              {% endif %}
+              <span>{{ chip.label }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         {% if custom_option_name and custom_options %}
         <div class="mt-5">
           <p class="text-sm font-semibold text-brown-700 mb-2">{{ custom_option_name }}</p>
