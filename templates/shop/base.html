@@ -317,6 +317,183 @@
             });
         }
     </script>
+    <!-- Add-to-cart modal -->
+    <div id="cart-added-modal" class="cam-overlay" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+        <div class="cam-backdrop" id="cart-modal-backdrop"></div>
+        <div class="cam-panel">
+
+            <!-- Header -->
+            <div class="cam-header">
+                <div class="cam-check-ring">
+                    <i class="fas fa-check cam-check-icon"></i>
+                </div>
+                <div>
+                    <p class="cam-title" id="cart-modal-title">Додано до кошика</p>
+                </div>
+                <button class="cam-close" id="cart-modal-continue" aria-label="Закрити">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Product name -->
+            <div class="cam-body">
+                <p class="cam-product-name" id="cart-modal-product-name"></p>
+            </div>
+
+            <!-- Actions -->
+            <div class="cam-footer">
+                <button id="cart-modal-continue-btn" class="cam-btn cam-btn--outline">
+                    Продовжити
+                </button>
+                <a id="cart-modal-goto" href="#" class="cam-btn cam-btn--filled">
+                    <i class="fas fa-shopping-cart" style="font-size:0.8em;"></i>
+                    Кошик
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        /* ── Cart-added modal ─────────────────────────────────── */
+        .cam-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .cam-overlay.flex { display: flex; }
+
+        .cam-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(39, 30, 20, 0.45);
+            backdrop-filter: blur(4px);
+        }
+
+        .cam-panel {
+            position: relative;
+            background: var(--beige-100);
+            border-radius: 1.25rem;
+            box-shadow: 0 24px 60px -12px rgba(39, 30, 20, 0.35);
+            width: 100%; max-width: 22rem;
+            margin: auto;
+            overflow: hidden;
+            animation: cam-in 0.22s cubic-bezier(.22,.68,0,1.2) both;
+        }
+
+        @keyframes cam-in {
+            from { opacity: 0; transform: scale(0.92) translateY(12px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .cam-header {
+            display: flex; align-items: center; gap: 0.85rem;
+            padding: 1.1rem 1.25rem 1rem;
+            border-bottom: 1px solid var(--beige-300);
+            background: white;
+        }
+
+        .cam-check-ring {
+            flex-shrink: 0;
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 50%;
+            background: var(--brown-800);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .cam-check-icon {
+            color: var(--beige-100);
+            font-size: 0.8rem;
+        }
+
+        .cam-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--brown-800);
+            margin: 0;
+        }
+
+        .cam-close {
+            margin-left: auto;
+            background: none; border: none; cursor: pointer;
+            color: var(--brown-500);
+            font-size: 1rem;
+            padding: 0.25rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .cam-close:hover { color: var(--brown-800); }
+
+        .cam-body {
+            padding: 1rem 1.25rem 0.5rem;
+        }
+
+        .cam-product-name {
+            font-size: 0.88rem;
+            color: var(--brown-600);
+            margin: 0;
+            line-height: 1.5;
+            min-height: 1.4em;
+        }
+
+        .cam-footer {
+            display: flex; flex-direction: column; gap: 0.6rem;
+            padding: 1rem 1.25rem 1.25rem;
+        }
+
+        @media (min-width: 400px) {
+            .cam-footer { flex-direction: row; }
+        }
+
+        /* Shared button base */
+        .cam-btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.65rem 1.1rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+            white-space: nowrap;
+        }
+        .cam-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px -4px rgba(39, 30, 20, 0.22);
+        }
+        .cam-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Outline variant — "Продовжити покупки" */
+        .cam-btn--outline {
+            background: white;
+            border-color: var(--beige-300);
+            color: var(--brown-700);
+        }
+        .cam-btn--outline:hover {
+            background: var(--beige-100);
+            border-color: var(--brown-300);
+        }
+
+        /* Filled variant — "Перейти до кошика" */
+        .cam-btn--filled {
+            background: var(--brown-800);
+            border-color: var(--brown-800);
+            color: var(--beige-100);
+        }
+        .cam-btn--filled:hover {
+            background: var(--brown-700);
+            border-color: var(--brown-700);
+        }
+    </style>
+
     {% block extra_body %}{% endblock %}
 </body>
 </html>

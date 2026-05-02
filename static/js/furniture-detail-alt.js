@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = document.getElementById('alt-qty');
     const qtyInput = document.getElementById('alt-qty-input');
     const fabricValue = parseFloat((fabricSelect?.parentElement?.getAttribute('data-fabric-value')) || '1');
-    const addToCartForm = document.querySelector('form[action*="add_to_cart_from_detail"]');
+    const addToCartForm = document.querySelector('form[action*="add-to-cart-detail"]');
 
     let basePrice = 0; 
     let selectedPrice = 0;
@@ -448,9 +448,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (addToCartForm) {
-        addToCartForm.addEventListener('submit', (e) => {
-            if (!ensureCustomOptionSelection()) {
-                e.preventDefault();
+        addToCartForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!ensureCustomOptionSelection()) return;
+
+            // sync qty before submitting
+            if (qty && qtyInput) qtyInput.value = qty.value || '1';
+
+            const formData = new FormData(addToCartForm);
+            try {
+                const resp = await fetch(addToCartForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData,
+                });
+                const data = await resp.json();
+                if (data.success && typeof showCartAddedModal === 'function') {
+                    showCartAddedModal(data.name, data.cart_count, data.cart_url);
+                } else {
+                    addToCartForm.submit();
+                }
+            } catch {
+                addToCartForm.submit();
             }
         });
     }

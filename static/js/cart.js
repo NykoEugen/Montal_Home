@@ -1,5 +1,38 @@
+// ── Cart-added modal — глобальна функція, доступна на всіх сторінках ──
+function showCartAddedModal(productName, cartCount, cartUrl) {
+    const modal = document.getElementById('cart-added-modal');
+    if (!modal) return;
+    const nameEl = document.getElementById('cart-modal-product-name');
+    const gotoEl = document.getElementById('cart-modal-goto');
+    if (nameEl) nameEl.textContent = productName;
+    if (gotoEl && cartUrl) gotoEl.setAttribute('href', cartUrl);
+
+    ['cart-count-mobile', 'cart-count-desktop'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && cartCount != null) el.textContent = cartCount;
+    });
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    const backdrop      = document.getElementById('cart-modal-backdrop');
+    const closeXBtn     = document.getElementById('cart-modal-continue');
+    const continueBtn   = document.getElementById('cart-modal-continue-btn');
+
+    function closeModal() {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    if (closeXBtn)   closeXBtn.onclick   = closeModal;
+    if (continueBtn) continueBtn.onclick = closeModal;
+    if (backdrop)    backdrop.onclick    = closeModal;
+    document.addEventListener('keydown', function onEsc(ev) {
+        if (ev.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onEsc); }
+    }, { once: true });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Функція для отримання CSRF-токена з cookie
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -15,14 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return cookieValue;
     }
 
-    // Обробка кліку на кнопку "Додати до кошика"
-    const addToCartButtons = document.querySelectorAll('.add-to-cart');
-    addToCartButtons.forEach(button => {
+    function updateCartBadge(count) {
+        ['cart-count-mobile', 'cart-count-desktop'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && count != null) el.textContent = count;
+        });
+    }
+
+    // Legacy .add-to-cart buttons (catalog listing)
+    document.querySelectorAll('.add-to-cart').forEach(button => {
         button.addEventListener('click', async () => {
             const furnitureId = button.getAttribute('data-id');
             const url = button.getAttribute('data-url');
             const csrftoken = getCookie('csrftoken');
-
             try {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -30,30 +68,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         'X-CSRFToken': csrftoken,
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `furniture_id=${furnitureId}`
+                    body: `furniture_id=${furnitureId}`,
                 });
-
                 const data = await response.json();
-                alert(data.message);
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = data.cart_count;
+                updateCartBadge(data.cart_count);
+                if (typeof showCartAddedModal === 'function') {
+                    showCartAddedModal(data.name || 'Товар', data.cart_count, '/cart/');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Сталася помилка при додаванні до кошика.');
+                console.error('Cart add error:', error);
             }
         });
     });
 
-    // Обробка кліку на кнопку "Видалити з кошика"
-    const removeFromCartButtons = document.querySelectorAll('.remove-from-cart');
-    removeFromCartButtons.forEach(button => {
+    // Remove-from-cart buttons
+    document.querySelectorAll('.remove-from-cart').forEach(button => {
         button.addEventListener('click', async () => {
             const furnitureId = button.getAttribute('data-id');
             const url = button.getAttribute('data-url');
             const csrftoken = getCookie('csrftoken');
-
             try {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -61,35 +94,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         'X-CSRFToken': csrftoken,
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `furniture_id=${furnitureId}`
+                    body: `furniture_id=${furnitureId}`,
                 });
                 const data = await response.json();
-                alert(data.message);
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = data.cart_count;
-                }
-                // Оновлюємо сторінку кошика
-                if (window.location.pathname === '/cart/') {
+                updateCartBadge(data.cart_count);
+                if (window.location.pathname.includes('/cart')) {
                     window.location.reload();
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Сталася помилка при видаленні з кошика.');
+                console.error('Cart remove error:', error);
             }
         });
     });
-});
 
-document.getElementById('phone-search-form').addEventListener('submit', function(e) {
-    const phoneInput = document.querySelector('input[name="phone_number"]');
-    const phonePattern = /^0[0-9]{9}$/;
-
-    if (!phonePattern.test(phoneInput.value)) {
-        e.preventDefault();
-        phoneInput.classList.add('border-red-500');
-        alert('Будь ласка, введіть коректний номер телефону у форматі 0XXXXXXXXX');
-    } else {
-        phoneInput.classList.remove('border-red-500');
+    // Phone search form validation
+    const phoneForm = document.getElementById('phone-search-form');
+    if (phoneForm) {
+        phoneForm.addEventListener('submit', function(e) {
+            const phoneInput = phoneForm.querySelector('input[name="phone_number"]');
+            if (!phoneInput) return;
+            if (!/^0[0-9]{9}$/.test(phoneInput.value)) {
+                e.preventDefault();
+                phoneInput.classList.add('border-red-500');
+                phoneInput.focus();
+            } else {
+                phoneInput.classList.remove('border-red-500');
+            }
+        });
     }
 });

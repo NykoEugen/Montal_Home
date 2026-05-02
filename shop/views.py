@@ -817,10 +817,25 @@ def add_to_cart_from_detail(request: HttpRequest):
         request.session["cart"] = cart
         request.session.modified = True
 
+        cart_count = sum(
+            item.get('quantity', 1) if isinstance(item, dict) else item
+            for item in cart.values()
+        )
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'name': furniture.name,
+                'cart_count': cart_count,
+                'cart_url': reverse('shop:view_cart'),
+            })
+
         messages.success(request, f"{furniture.name} додано до кошика!", extra_tags="user")
         return redirect('furniture:furniture_detail', furniture_slug=furniture.slug)
 
     except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
         messages.error(request, str(e), extra_tags="user")
         return redirect('furniture:furniture_detail', furniture_slug=request.POST.get("furniture_slug"))
 

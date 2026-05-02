@@ -548,7 +548,6 @@ document.addEventListener('DOMContentLoaded', function() {
         quickBuyForm.addEventListener('submit', (e) => {
             if (!ensureCustomOptionSelection()) {
                 e.preventDefault();
-                alert('Оберіть варіант перед додаванням у кошик.');
                 if (qbModal) {
                     qbModal.classList.add('hidden');
                     qbModal.classList.remove('flex');
@@ -557,5 +556,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ── AJAX add-to-cart with modal ──────────────────────────────────────
+    const mainCartForm = document.getElementById('add-to-cart-form');
+    if (mainCartForm) {
+        mainCartForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!ensureCustomOptionSelection()) return;
+
+            const formData = new FormData(mainCartForm);
+            // quantity lives outside the form via `form="add-to-cart-form"` attribute
+            const qtyEl = document.getElementById('quantity');
+            if (qtyEl) formData.set('quantity', qtyEl.value || '1');
+
+            try {
+                const resp = await fetch(mainCartForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData,
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    showCartAddedModal(data.name, data.cart_count, data.cart_url);
+                } else {
+                    // fallback — server returned error, do normal submit
+                    mainCartForm.submit();
+                }
+            } catch {
+                mainCartForm.submit();
+            }
+        });
+    }
+
     updateTotalPrice();
 });
+
+// showCartAddedModal визначена глобально в cart.js

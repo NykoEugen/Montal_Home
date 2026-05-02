@@ -2,17 +2,8 @@ import re
 
 from django import forms
 
-DELIVERY_CHOICES = [
-    ("", "Оберіть спосіб доставки"),
-    ("local", "Доставка по місту"),
-    ("nova_poshta", "Нова Пошта"),
-]
+FIELD_CLASS = "w-full px-4 py-3 border border-beige-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brown-500 transition bg-white text-brown-800 placeholder-brown-400"
 
-PAYMENT_CHOICES = [
-    ("", "Оберіть спосіб оплати"),
-    ("iban", "IBAN"),
-    ("liqpay", "Оплата онлайн (LiqPay)"),
-]
 
 class CheckoutForm(forms.Form):
     customer_name = forms.CharField(
@@ -20,8 +11,9 @@ class CheckoutForm(forms.Form):
         required=True,
         widget=forms.TextInput(
             attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "class": FIELD_CLASS,
                 "placeholder": "Введіть ім'я",
+                "autocomplete": "given-name",
             }
         ),
         label="Ім'я",
@@ -31,21 +23,22 @@ class CheckoutForm(forms.Form):
         required=True,
         widget=forms.TextInput(
             attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "class": FIELD_CLASS,
                 "placeholder": "Введіть прізвище",
+                "autocomplete": "family-name",
             }
         ),
         label="Прізвище",
     )
     customer_phone_number = forms.CharField(
-        max_length=10,
+        max_length=13,
         required=True,
         widget=forms.TextInput(
             attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
+                "class": FIELD_CLASS,
                 "placeholder": "0XXXXXXXXX",
-                "pattern": "0[0-9]{9}",
-                "title": "Введіть номер у форматі 0XXXXXXXXX",
+                "autocomplete": "tel",
+                "inputmode": "tel",
             }
         ),
         label="Номер телефону",
@@ -54,117 +47,30 @@ class CheckoutForm(forms.Form):
         required=False,
         widget=forms.EmailInput(
             attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-                "placeholder": "Введіть email (необов'язково)",
+                "class": FIELD_CLASS,
+                "placeholder": "email@example.com (необов'язково)",
+                "autocomplete": "email",
             }
         ),
         label="Email",
     )
-
-    # Delivery type selection
-    delivery_type = forms.ChoiceField(
-        choices=DELIVERY_CHOICES,
-        required=True,
-        widget=forms.Select(
-            attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-                "id": "delivery-type",
-            }
-        ),
-        label="Тип доставки",
-    )
-
-    # Payment type selection
-    payment_type = forms.ChoiceField(
-        choices=PAYMENT_CHOICES,
-        required=True,
-        widget=forms.Select(
-            attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-                "id": "payment-type",
-            }
-        ),
-        label="Тип оплати",
-    )
-    # Address field for local delivery
-    delivery_address = forms.CharField(
-        max_length=500,
+    customer_comment = forms.CharField(
+        max_length=1000,
         required=False,
         widget=forms.Textarea(
             attrs={
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-                "placeholder": "Введіть повну адресу доставки",
+                "class": FIELD_CLASS,
+                "placeholder": "Побажання щодо замовлення, зручний час дзвінка тощо",
                 "rows": "3",
-                "id": "delivery-address",
             }
         ),
-        label="Адреса доставки",
+        label="Коментар",
     )
-
-    # Nova Poshta fields (existing)
-    delivery_city = forms.CharField(
-        max_length=200,
-        required=False,
-        label="Місто доставки",
-        widget=forms.HiddenInput(),
-    )
-
-    delivery_city_label = forms.CharField(
-        required=False,
-        label="Місто доставки",
-        widget=forms.TextInput(
-            attrs={
-                "id": "city-input",
-                "autocomplete": "off",
-                "placeholder": "Введіть місто доставки",
-                "class": "w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brown-600",
-            }
-        ),
-    )
-    delivery_branch = forms.CharField(
-        max_length=200,
-        required=False,
-        label="Відділення Нової Пошти",
-        widget=forms.HiddenInput(),
-    )
-
-    delivery_branch_label = forms.CharField(
-        required=False,
-        label="Оберіть відділення",
-        widget=forms.Select(
-            attrs={"id": "warehouse-select", "class": "border p-2 w-full"}
-        ),
-    )
-
-    delivery_branch_name = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     def clean_customer_phone_number(self):
-        phone = self.cleaned_data["customer_phone_number"]
+        phone = self.cleaned_data["customer_phone_number"].strip()
         if not re.match(r"^0[0-9]{9}$", phone):
             raise forms.ValidationError(
                 "Введіть коректний номер телефону у форматі 0XXXXXXXXX"
             )
         return phone
-
-    def clean(self):
-        cleaned_data = super().clean()
-        delivery_type = cleaned_data.get("delivery_type")
-
-        if delivery_type == "local":
-            # For local delivery, address is required
-            if not cleaned_data.get("delivery_address"):
-                raise forms.ValidationError(
-                    "Для доставки по місту необхідно вказати адресу"
-                )
-        elif delivery_type == "nova_poshta":
-            # For Nova Poshta, city and branch are required
-            if not cleaned_data.get("delivery_city_label"):
-                raise forms.ValidationError(
-                    "Для доставки Новою Поштою необхідно вказати місто"
-                )
-            if not cleaned_data.get("delivery_branch_name"):
-                raise forms.ValidationError(
-                    "Для доставки Новою Поштою необхідно вибрати відділення"
-                )
-
-        return cleaned_data
