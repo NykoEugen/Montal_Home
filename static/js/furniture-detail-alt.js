@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = document.getElementById('alt-qty');
     const qtyInput = document.getElementById('alt-qty-input');
     const fabricValue = parseFloat((fabricSelect?.parentElement?.getAttribute('data-fabric-value')) || '1');
-    const addToCartForm = document.querySelector('form[action*="add_to_cart_from_detail"]');
+    const addToCartForm = document.querySelector('form[action*="add-to-cart-detail"]');
 
     let basePrice = 0; 
     let selectedPrice = 0;
