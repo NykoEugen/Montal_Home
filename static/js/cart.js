@@ -1,3 +1,35 @@
+// ── Cart-added modal — глобальна функція, доступна на всіх сторінках ──
+function showCartAddedModal(productName, cartCount, cartUrl) {
+    const modal = document.getElementById('cart-added-modal');
+    if (!modal) return;
+    const nameEl = document.getElementById('cart-modal-product-name');
+    const gotoEl = document.getElementById('cart-modal-goto');
+    if (nameEl) nameEl.textContent = productName;
+    if (gotoEl && cartUrl) gotoEl.setAttribute('href', cartUrl);
+
+    ['cart-count-mobile', 'cart-count-desktop'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && cartCount != null) el.textContent = cartCount;
+    });
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    const continueBtn = document.getElementById('cart-modal-continue');
+    const backdrop   = document.getElementById('cart-modal-backdrop');
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    if (continueBtn) continueBtn.onclick = closeModal;
+    if (backdrop)    backdrop.onclick    = closeModal;
+    document.addEventListener('keydown', function onEsc(ev) {
+        if (ev.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onEsc); }
+    }, { once: true });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     function getCookie(name) {
         let cookieValue = null;
