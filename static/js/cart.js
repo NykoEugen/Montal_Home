@@ -15,14 +15,16 @@ function showCartAddedModal(productName, cartCount, cartUrl) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    const continueBtn = document.getElementById('cart-modal-continue');
-    const backdrop   = document.getElementById('cart-modal-backdrop');
+    const backdrop      = document.getElementById('cart-modal-backdrop');
+    const closeXBtn     = document.getElementById('cart-modal-continue');
+    const continueBtn   = document.getElementById('cart-modal-continue-btn');
 
     function closeModal() {
-        modal.classList.add('hidden');
         modal.classList.remove('flex');
+        modal.classList.add('hidden');
     }
 
+    if (closeXBtn)   closeXBtn.onclick   = closeModal;
     if (continueBtn) continueBtn.onclick = closeModal;
     if (backdrop)    backdrop.onclick    = closeModal;
     document.addEventListener('keydown', function onEsc(ev) {

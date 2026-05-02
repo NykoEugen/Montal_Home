@@ -315,40 +315,156 @@
         }
     </script>
     <!-- Add-to-cart modal -->
-    <div id="cart-added-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="cart-modal-backdrop"></div>
-        <!-- Panel -->
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto overflow-hidden animate-modal-in">
-            <!-- Green top strip -->
-            <div class="bg-green-500 px-6 py-4 flex items-center gap-3">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                    <i class="fas fa-check text-white text-sm"></i>
+    <div id="cart-added-modal" class="cam-overlay" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+        <div class="cam-backdrop" id="cart-modal-backdrop"></div>
+        <div class="cam-panel">
+
+            <!-- Header -->
+            <div class="cam-header">
+                <div class="cam-check-ring">
+                    <i class="fas fa-check cam-check-icon"></i>
                 </div>
-                <span class="text-white font-semibold">Додано до кошика</span>
-            </div>
-            <!-- Body -->
-            <div class="px-6 py-5">
-                <p class="text-brown-600 text-sm mb-5" id="cart-modal-product-name"></p>
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button id="cart-modal-continue" class="flex-1 px-4 py-2.5 border border-brown-300 text-brown-700 rounded-xl font-semibold text-sm hover:bg-beige-50 transition focus:outline-none focus:ring-2 focus:ring-brown-400">
-                        Продовжити покупки
-                    </button>
-                    <a id="cart-modal-goto" href="#" class="flex-1 px-4 py-2.5 bg-brown-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-brown-700 transition focus:outline-none focus:ring-2 focus:ring-brown-500 flex items-center justify-center gap-2">
-                        <i class="fas fa-shopping-cart text-xs"></i>
-                        Перейти до кошика
-                    </a>
+                <div>
+                    <p class="cam-title" id="cart-modal-title">Додано до кошика</p>
                 </div>
+                <button class="cam-close" id="cart-modal-continue" aria-label="Закрити">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
+
+            <!-- Product name -->
+            <div class="cam-body">
+                <p class="cam-product-name" id="cart-modal-product-name"></p>
+            </div>
+
+            <!-- Actions -->
+            <div class="cam-footer">
+                <button id="cart-modal-continue-btn" class="cam-btn-secondary">
+                    Продовжити покупки
+                </button>
+                <a id="cart-modal-goto" href="#" class="btn-grad cam-btn-primary">
+                    <i class="fas fa-shopping-cart"></i>
+                    Перейти до кошика
+                </a>
+            </div>
+
         </div>
     </div>
 
     <style>
-        @keyframes modal-in {
-            from { opacity: 0; transform: scale(0.95) translateY(8px); }
+        /* ── Cart-added modal ─────────────────────────────────── */
+        .cam-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .cam-overlay.flex { display: flex; }
+
+        .cam-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(39, 30, 20, 0.45);
+            backdrop-filter: blur(4px);
+        }
+
+        .cam-panel {
+            position: relative;
+            background: var(--beige-100);
+            border-radius: 1.25rem;
+            box-shadow: 0 24px 60px -12px rgba(39, 30, 20, 0.35);
+            width: 100%; max-width: 22rem;
+            margin: auto;
+            overflow: hidden;
+            animation: cam-in 0.22s cubic-bezier(.22,.68,0,1.2) both;
+        }
+
+        @keyframes cam-in {
+            from { opacity: 0; transform: scale(0.92) translateY(12px); }
             to   { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .animate-modal-in { animation: modal-in 0.2s ease-out both; }
+
+        .cam-header {
+            display: flex; align-items: center; gap: 0.85rem;
+            padding: 1.1rem 1.25rem 1rem;
+            border-bottom: 1px solid var(--beige-300);
+            background: white;
+        }
+
+        .cam-check-ring {
+            flex-shrink: 0;
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 50%;
+            background: var(--brown-800);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .cam-check-icon {
+            color: var(--beige-100);
+            font-size: 0.8rem;
+        }
+
+        .cam-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--brown-800);
+            margin: 0;
+        }
+
+        .cam-close {
+            margin-left: auto;
+            background: none; border: none; cursor: pointer;
+            color: var(--brown-500);
+            font-size: 1rem;
+            padding: 0.25rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .cam-close:hover { color: var(--brown-800); }
+
+        .cam-body {
+            padding: 1rem 1.25rem 0.5rem;
+        }
+
+        .cam-product-name {
+            font-size: 0.88rem;
+            color: var(--brown-600);
+            margin: 0;
+            line-height: 1.5;
+            min-height: 1.4em;
+        }
+
+        .cam-footer {
+            display: flex; flex-direction: column; gap: 0.6rem;
+            padding: 1rem 1.25rem 1.25rem;
+        }
+
+        @media (min-width: 400px) {
+            .cam-footer { flex-direction: row; }
+        }
+
+        .cam-btn-secondary {
+            flex: 1;
+            background: white;
+            border: 1px solid var(--beige-300);
+            color: var(--brown-700);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.65rem 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s;
+            text-align: center;
+        }
+        .cam-btn-secondary:hover {
+            background: var(--beige-200);
+            border-color: var(--brown-300);
+        }
+
+        .cam-btn-primary {
+            flex: 1;
+            font-size: 0.85rem !important;
+            padding: 0.65rem 1rem !important;
+            text-decoration: none;
+        }
     </style>
 
     {% block extra_body %}{% endblock %}
