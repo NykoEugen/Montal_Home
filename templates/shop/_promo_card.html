@@ -1,0 +1,61 @@
+{% load cart_filters %}{% load responsive_images %}
+<div class="furniture-card furniture-card--immersive bg-white rounded-2xl overflow-hidden group relative">
+    <a href="{% url 'furniture:furniture_detail' item.slug %}" class="card-full-link">
+        <div class="card-media card-media--immersive">
+            {% if item.best_discount_percentage %}
+                <div class="promotional-badge">
+                    -{{ item.best_discount_percentage }}%
+                </div>
+            {% endif %}
+
+            {% if item.sale_end_date %}
+                <div class="absolute top-4 right-4 z-20">
+                    <div class="bg-black/75 text-white px-3 py-1 rounded-lg text-xs font-mono shadow">
+                        <span class="countdown-timer" data-end="{{ item.sale_end_date_iso }}">--:--:--</span>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if item.image %}
+                <img
+                    src="{{ item.image|image_variant }}"
+                    srcset="{% responsive_srcset item.image %}"
+                    sizes="{% responsive_sizes %}"
+                    alt="{{ item.name }}"
+                    class="card-media-img"
+                >
+            {% else %}
+                <div class="card-media-placeholder">
+                    <svg class="w-16 h-16 text-beige-300" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            {% endif %}
+
+            <div class="card-overlay card-overlay--compact">
+                <div class="card-overlay-heading">
+                    <h2 class="card-overlay-title">{{ item.name }}</h2>
+                    {% if item.sub_category %}
+                        <p class="text-xs text-white/80">{{ item.sub_category.name }}</p>
+                    {% endif %}
+                    <div class="card-overlay-price">
+                        {% if item.best_promotional_price %}
+                            <span class="card-price-current">{{ item.best_promotional_price|floatformat:0 }} грн</span>
+                            {% if item.best_original_price %}
+                                <span class="card-price-old">{{ item.best_original_price|floatformat:0 }} грн</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="card-price-current">{{ item.price|floatformat:0 }} грн</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="card-overlay-cta card-overlay-cta--ghost">
+                    Переглянути
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </a>
+</div>
