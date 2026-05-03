@@ -1558,7 +1558,6 @@ class MatroluxeSpecScraper:
     1. Paginate through catalog pages, collect all product URLs.
     2. For each product page: look for <font id="product_model"> to get article code.
     3. If article code matches a Furniture in our DB → save spec table as FurnitureParameter.
-    4. Ensure every new Parameter is added to SubCategory("Ліжка").allowed_params.
     """
 
     CATALOG_URL = "https://matroluxe.ua/ua/krovati"
@@ -1791,9 +1790,6 @@ class MatroluxeSpecScraper:
             if not key:
                 continue
             param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": label})
-            if not subcat.allowed_params.filter(pk=param.pk).exists():
-                subcat.allowed_params.add(param)
-                self._progress(f"    → new param in allowed_params: '{param.label}'")
             FurnitureParameter.objects.update_or_create(
                 furniture=furniture,
                 parameter=param,

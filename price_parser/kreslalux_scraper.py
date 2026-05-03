@@ -558,8 +558,6 @@ class KreslaluxScraper:
                     continue
                 key = slugify(param_label)[:100] or f"param_{abs(hash(param_label))}"
                 param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": param_label})
-                if not sub_category.allowed_params.filter(pk=param.pk).exists():
-                    sub_category.allowed_params.add(param)
                 FurnitureParameter.objects.update_or_create(
                     furniture=furniture,
                     parameter=param,

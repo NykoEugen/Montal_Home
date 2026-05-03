@@ -482,11 +482,6 @@ class FurnitureSizeVariant(models.Model):
             })
 
         if self.parameter:
-            allowed_params = self.furniture.sub_category.allowed_params
-            if not allowed_params.filter(pk=self.parameter.pk).exists():
-                raise ValidationError({
-                    'parameter': 'Цей параметр не дозволений для обраної підкатегорії.'
-                })
             if not self.parameter_value:
                 raise ValidationError({
                     'parameter_value': 'Для обраного параметра потрібно вказати значення.'

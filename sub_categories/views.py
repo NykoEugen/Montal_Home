@@ -7,7 +7,7 @@ from django.utils.text import Truncator
 from django.views.decorators.cache import cache_page
 
 from furniture.models import Furniture, FurnitureSizeVariant
-from params.models import FurnitureParameter
+from params.models import FurnitureParameter, Parameter
 from sub_categories.models import SubCategory
 
 
@@ -74,8 +74,13 @@ def sub_categories_details(
         furniture = furniture.filter(is_promotional=True, promotional_price__isnull=False)
 
     # Parameter filtering
+    params_in_use = Parameter.objects.filter(
+        Q(furniture_parameters__furniture__sub_category=sub_category)
+        | Q(size_variants__furniture__sub_category=sub_category)
+    ).distinct()
+
     parameter_filters = []
-    for param in sub_category.allowed_params.all():
+    for param in params_in_use:
         param_key = f"param_{param.key}"
         if param_key in request.GET and request.GET[param_key]:
             param_value = request.GET[param_key]
@@ -128,7 +133,7 @@ def sub_categories_details(
 
     # Prepare filter options
     filter_options = {}
-    for param in sub_category.allowed_params.all():
+    for param in params_in_use:
         base_values = set(
             FurnitureParameter.objects.filter(
                 furniture__sub_category=sub_category,

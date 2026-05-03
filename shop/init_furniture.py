@@ -161,9 +161,3 @@ def init_furniture_taxonomy():
                     f"Parameter '{label}' {'created' if created else 'already exists'}"
                 )
 
-            # Assign parameters to all subcategories of this category
-            for subcat in category_subcats:
-                subcat.allowed_params.add(*param_objs)
-                print(
-                    f"Assigned {len(param_objs)} parameters to subcategory '{subcat.name}'"
-                )
