@@ -1119,9 +1119,6 @@ class Command(BaseCommand):
             if not cm_value:
                 continue
             parameter = self._get_or_create_parameter(metadata["key"], metadata["label"])
-            sub_category = furniture.sub_category
-            if parameter not in sub_category.allowed_params.all():
-                sub_category.allowed_params.add(parameter)
             FurnitureParameter.objects.update_or_create(
                 furniture=furniture,
                 parameter=parameter,
@@ -1143,9 +1140,6 @@ class Command(BaseCommand):
                 continue
 
             parameter = self._get_or_create_generic_parameter(clean_name)
-            if parameter not in sub_category.allowed_params.all():
-                sub_category.allowed_params.add(parameter)
-
             FurnitureParameter.objects.update_or_create(
                 furniture=furniture,
                 parameter=parameter,

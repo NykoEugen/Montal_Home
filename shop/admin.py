@@ -27,18 +27,7 @@ class FurnitureParameterInline(ResilientInlineAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "parameter":
-            # Якщо об'єкт Furniture існує і має sub_category
-            if (
-                hasattr(self, "parent_object")
-                and self.parent_object
-                and self.parent_object.sub_category
-            ):
-                kwargs["queryset"] = (
-                    self.parent_object.sub_category.allowed_params.all()
-                )
-            else:
-                # Якщо Furniture ще не створений, дозволяємо всі параметри
-                kwargs["queryset"] = Parameter.objects.all()
+            kwargs["queryset"] = Parameter.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -127,11 +116,7 @@ class FurnitureSizeVariantInline(ResilientInlineAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "parameter":
-            parent = getattr(self, "parent_object", None)
-            if parent and parent.sub_category_id:
-                kwargs["queryset"] = parent.sub_category.allowed_params.all()
-            else:
-                kwargs["queryset"] = Parameter.objects.all()
+            kwargs["queryset"] = Parameter.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -178,7 +163,6 @@ class CategoryAdmin(ResilientModelAdmin):
 class SubCategoryAdmin(ResilientModelAdmin):
     list_display = ["name", "slug", "category"]
     prepopulated_fields = {"slug": ("name",)}
-    filter_horizontal = ("allowed_params",)
 
 
 @admin.register(Furniture)

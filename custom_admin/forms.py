@@ -68,12 +68,7 @@ class CategoryForm(StyledModelForm):
 class SubCategoryForm(StyledModelForm):
     class Meta:
         model = SubCategory
-        fields = ["name", "slug", "category", "allowed_params", "image"]
-        widgets = {
-            "allowed_params": forms.CheckboxSelectMultiple(
-                attrs={"class": "grid grid-cols-1 md:grid-cols-2 gap-2"}
-            ),
-        }
+        fields = ["name", "slug", "category", "image"]
 
 
 class ParameterForm(StyledModelForm):
@@ -691,18 +686,7 @@ class FurnitureParameterInlineForm(FurnitureParameterForm):
 
 
 class FurnitureParameterInlineFormSet(BaseInlineFormSet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        allowed_params = (
-            self.instance.sub_category.allowed_params.all()
-            if getattr(self.instance, "sub_category_id", None)
-            else Parameter.objects.none()
-        )
-        for form in self.forms:
-            if "parameter" in form.fields:
-                form.fields["parameter"].queryset = allowed_params
-        if "parameter" in self.empty_form.fields:
-            self.empty_form.fields["parameter"].queryset = allowed_params
+    pass
 
 
 FurnitureSizeVariantFormSet = inlineformset_factory(
