@@ -146,7 +146,7 @@
     {% endif %}
 {% endblock %}
 
-{% block extra_scripts %}
+{% block extra_body %}
 <script>
 (function () {
     const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
@@ -211,4 +211,4 @@
     });
 })();
 </script>
-{% endblock %}
+{% endblock extra_body %}
