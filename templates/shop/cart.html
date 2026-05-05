@@ -91,20 +91,16 @@
                                 </div>
                             </td>
                             <td class="py-3" data-label="Кількість">
-                                <form method="post" action="{% url 'shop:update_cart_quantity' %}" class="flex items-center">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="cart_key" value="{{ item.cart_key }}">
-                                    <div class="qty-stepper">
-                                        <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
-                                                class="qty-stepper__btn"
-                                                {% if item.quantity <= 1 %}disabled{% endif %}
-                                                aria-label="Зменшити">&#8722;</button>
-                                        <span class="qty-stepper__input" style="line-height:2rem;">{{ item.quantity }}</span>
-                                        <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
-                                                class="qty-stepper__btn"
-                                                aria-label="Збільшити">&#43;</button>
-                                    </div>
-                                </form>
+                                <div class="qty-stepper"
+                                     data-cart-key="{{ item.cart_key }}"
+                                     data-update-url="{% url 'shop:update_cart_quantity' %}">
+                                    <button type="button" class="qty-stepper__btn cart-qty-dec"
+                                            {% if item.quantity <= 1 %}disabled{% endif %}
+                                            aria-label="Зменшити">&#8722;</button>
+                                    <span class="qty-stepper__input cart-qty-display" style="line-height:2rem;">{{ item.quantity }}</span>
+                                    <button type="button" class="qty-stepper__btn cart-qty-inc"
+                                            aria-label="Збільшити">&#43;</button>
+                                </div>
                             </td>
                             <td class="py-3" data-label="Ціна">
                                 {% if item.size_variant and item.size_variant.is_on_sale %}
@@ -148,4 +144,71 @@
             </a>
         </div>
     {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
+
+    document.querySelectorAll('.qty-stepper[data-cart-key]').forEach(function (stepper) {
+        const cartKey = stepper.dataset.cartKey;
+        const url = stepper.dataset.updateUrl;
+        const decBtn = stepper.querySelector('.cart-qty-dec');
+        const incBtn = stepper.querySelector('.cart-qty-inc');
+        const display = stepper.querySelector('.cart-qty-display');
+        const row = stepper.closest('tr');
+
+        function currentQty() {
+            return parseInt(display.textContent, 10) || 1;
+        }
+
+        function updateTotal(newQty) {
+            const priceCell = row.querySelector('[data-label="Ціна"] .text-brown-600, [data-label="Ціна"] .text-red-600');
+            const totalCell = row.querySelector('[data-label="Загалом"]');
+            if (priceCell && totalCell) {
+                const price = parseFloat(priceCell.textContent.replace(/[^\d.]/g, ''));
+                if (!isNaN(price)) totalCell.textContent = Math.round(price * newQty) + ' грн';
+            }
+        }
+
+        function sendUpdate(newQty) {
+            const body = new URLSearchParams({ cart_key: cartKey, quantity: newQty });
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            })
+            .then(r => r.json())
+            .then(function (data) {
+                if (!data.success) {
+                    display.textContent = currentQty();
+                }
+            })
+            .catch(function () {
+                display.textContent = currentQty();
+            });
+        }
+
+        decBtn && decBtn.addEventListener('click', function () {
+            const q = currentQty();
+            if (q <= 1) return;
+            const newQ = q - 1;
+            display.textContent = newQ;
+            decBtn.disabled = newQ <= 1;
+            updateTotal(newQ);
+            sendUpdate(newQ);
+        });
+
+        incBtn && incBtn.addEventListener('click', function () {
+            const q = currentQty();
+            const newQ = q + 1;
+            display.textContent = newQ;
+            decBtn.disabled = false;
+            updateTotal(newQ);
+            sendUpdate(newQ);
+        });
+    });
+})();
+</script>
 {% endblock %}

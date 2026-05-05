@@ -669,26 +669,32 @@ def remove_from_cart(request: HttpRequest):
 
 @require_POST
 def update_cart_quantity(request: HttpRequest):
-    """Update quantity of a cart item."""
+    """Update quantity of a cart item. Returns JSON for AJAX or redirects for plain POST."""
     cart_key = request.POST.get("cart_key")
     try:
         quantity = max(1, int(request.POST.get("quantity", 1)))
     except (ValueError, TypeError):
-        quantity = 1
+        return JsonResponse({"success": False, "error": "Invalid quantity"}, status=400)
 
     if not cart_key:
-        return redirect('shop:view_cart')
+        return JsonResponse({"success": False, "error": "No cart key"}, status=400)
 
     cart = request.session.get("cart", {})
-    if cart_key in cart:
-        if isinstance(cart[cart_key], dict):
-            cart[cart_key]["quantity"] = quantity
-        else:
-            cart[cart_key] = quantity
-        request.session["cart"] = cart
-        request.session.modified = True
+    if cart_key not in cart:
+        return JsonResponse({"success": False, "error": "Item not in cart"}, status=404)
 
-    return redirect('shop:view_cart')
+    if isinstance(cart[cart_key], dict):
+        cart[cart_key]["quantity"] = quantity
+    else:
+        cart[cart_key] = quantity
+    request.session["cart"] = cart
+    request.session.modified = True
+
+    cart_total = sum(
+        (item.get("quantity", 1) if isinstance(item, dict) else item)
+        for item in cart.values()
+    )
+    return JsonResponse({"success": True, "quantity": quantity, "cart_total": cart_total})
 
 
 def home(request: HttpRequest) -> HttpResponse:
