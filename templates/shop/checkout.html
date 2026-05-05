@@ -122,6 +122,31 @@
             <!-- Sidebar -->
             <aside class="space-y-5">
 
+                <!-- Order summary -->
+                {% if cart_items %}
+                <div class="bg-white rounded-2xl border border-beige-200 shadow-md p-5 space-y-3">
+                    <h3 class="font-semibold text-brown-800 text-base flex items-center gap-2">
+                        <i class="fas fa-receipt text-brown-500"></i>
+                        Ваше замовлення
+                    </h3>
+                    <ul class="space-y-2 text-sm text-brown-700">
+                        {% for item in cart_items %}
+                        <li class="flex justify-between gap-2">
+                            <span class="flex-1 leading-snug">
+                                {{ item.furniture.name }}
+                                {% if item.quantity > 1 %}<span class="text-brown-400"> ×{{ item.quantity }}</span>{% endif %}
+                            </span>
+                            <span class="font-medium whitespace-nowrap">{{ item.total_price|floatformat:0 }} грн</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="border-t border-beige-300 pt-3 flex justify-between font-bold text-brown-800">
+                        <span>Разом</span>
+                        <span>{{ total_price|floatformat:0 }} грн</span>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- What happens next -->
                 <div class="bg-white rounded-2xl border border-beige-200 shadow-md p-5 space-y-4">
                     <h3 class="font-semibold text-brown-800 text-base flex items-center gap-2">

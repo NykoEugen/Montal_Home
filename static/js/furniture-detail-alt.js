@@ -617,6 +617,21 @@ document.addEventListener('DOMContentLoaded', () => {
         qty.addEventListener('input', recompute);
     }
 
+    const qtyDec = document.getElementById('alt-qty-dec');
+    const qtyInc = document.getElementById('alt-qty-inc');
+    if (qtyDec && qty) {
+        qtyDec.addEventListener('click', function () {
+            const v = parseInt(qty.value, 10) || 1;
+            if (v > 1) { qty.value = v - 1; recompute(); }
+        });
+    }
+    if (qtyInc && qty) {
+        qtyInc.addEventListener('click', function () {
+            const v = parseInt(qty.value, 10) || 1;
+            qty.value = v + 1; recompute();
+        });
+    }
+
     if (stockLabel) {
         updateStockLabel(stockLabel.dataset.defaultStatus, stockLabel.dataset.defaultText);
     }

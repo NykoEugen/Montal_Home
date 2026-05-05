@@ -90,7 +90,18 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 text-brown-600" data-label="Кількість">{{ item.quantity }}</td>
+                            <td class="py-3" data-label="Кількість">
+                                <div class="qty-stepper"
+                                     data-cart-key="{{ item.cart_key }}"
+                                     data-update-url="{% url 'shop:update_cart_quantity' %}">
+                                    <button type="button" class="qty-stepper__btn cart-qty-dec"
+                                            {% if item.quantity <= 1 %}disabled{% endif %}
+                                            aria-label="Зменшити">&#8722;</button>
+                                    <span class="qty-stepper__input cart-qty-display" style="line-height:2rem;">{{ item.quantity }}</span>
+                                    <button type="button" class="qty-stepper__btn cart-qty-inc"
+                                            aria-label="Збільшити">&#43;</button>
+                                </div>
+                            </td>
                             <td class="py-3" data-label="Ціна">
                                 {% if item.size_variant and item.size_variant.is_on_sale %}
                                     <span class="text-red-600 font-semibold">{{ item.item_price|floatformat:0 }} грн</span><br>
@@ -117,11 +128,89 @@
                 </tbody>
             </table>
             <h4 class="text-xl font-bold text-brown-800 mt-6">Загальна сума: {{ total_price|floatformat:0 }} грн</h4><br>
-            <a href="{% url 'checkout:checkout' %}" class="btn-grad">
+            <a href="{% url 'checkout:checkout' %}" class="btn-grad btn-primary">
                 Оформити замовлення
             </a>
         </div>
     {% else %}
-        <p class="text-brown-600">Кошик порожній.</p>
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-beige-200 flex items-center justify-center mb-6">
+                <i class="fas fa-shopping-cart text-brown-400 text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-brown-800 mb-2">Кошик порожній</h2>
+            <p class="text-brown-500 mb-8 max-w-sm">Додайте товари з каталогу, щоб оформити замовлення.</p>
+            <a href="{% url 'categories:categories_list' %}" class="btn-grad">
+                <i class="fas fa-th-large mr-2"></i>Перейти до каталогу
+            </a>
+        </div>
     {% endif %}
 {% endblock %}
+
+{% block extra_body %}
+<script>
+(function () {
+    const CSRF = document.querySelector('meta[name=csrf-token]')?.content
+              ?? document.querySelector('[name=csrfmiddlewaretoken]')?.value
+              ?? '';
+
+    document.querySelectorAll('.qty-stepper[data-cart-key]').forEach(function (stepper) {
+        const cartKey = stepper.dataset.cartKey;
+        const url = stepper.dataset.updateUrl;
+        const decBtn = stepper.querySelector('.cart-qty-dec');
+        const incBtn = stepper.querySelector('.cart-qty-inc');
+        const display = stepper.querySelector('.cart-qty-display');
+        const row = stepper.closest('tr');
+
+        function currentQty() {
+            return parseInt(display.textContent, 10) || 1;
+        }
+
+        function updateTotal(newQty) {
+            const priceCell = row.querySelector('[data-label="Ціна"] .text-brown-600, [data-label="Ціна"] .text-red-600');
+            const totalCell = row.querySelector('[data-label="Загалом"]');
+            if (priceCell && totalCell) {
+                const price = parseFloat(priceCell.textContent.replace(/[^\d.]/g, ''));
+                if (!isNaN(price)) totalCell.textContent = Math.round(price * newQty) + ' грн';
+            }
+        }
+
+        function sendUpdate(newQty) {
+            const body = new URLSearchParams({ cart_key: cartKey, quantity: newQty });
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            })
+            .then(r => r.json())
+            .then(function (data) {
+                if (!data.success) {
+                    display.textContent = currentQty();
+                }
+            })
+            .catch(function () {
+                display.textContent = currentQty();
+            });
+        }
+
+        decBtn && decBtn.addEventListener('click', function () {
+            const q = currentQty();
+            if (q <= 1) return;
+            const newQ = q - 1;
+            display.textContent = newQ;
+            decBtn.disabled = newQ <= 1;
+            updateTotal(newQ);
+            sendUpdate(newQ);
+        });
+
+        incBtn && incBtn.addEventListener('click', function () {
+            const q = currentQty();
+            const newQ = q + 1;
+            display.textContent = newQ;
+            decBtn.disabled = false;
+            updateTotal(newQ);
+            sendUpdate(newQ);
+        });
+    });
+})();
+</script>
+{% endblock extra_body %}

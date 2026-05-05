@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
     {% block structured_data %}{% endblock %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body class="bg-beige-100 font-sans min-h-screen flex flex-col {% if seasonal_pack_enabled %}holiday-mode{% endif %}">
     {% if seasonal_pack_enabled %}
