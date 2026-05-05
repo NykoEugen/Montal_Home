@@ -275,8 +275,12 @@
         {% endif %}
 
         <div class="mt-4 flex items-center gap-3">
-          <label for="alt-qty" class="text-brown-700">Кількість</label>
-          <input id="alt-qty" type="number" min="1" value="1" class="w-24 p-2 border border-brown-300 rounded">
+          <label class="text-brown-700">Кількість</label>
+          <div class="qty-stepper">
+            <button type="button" class="qty-stepper__btn" id="alt-qty-dec" aria-label="Зменшити">&#8722;</button>
+            <input id="alt-qty" type="number" min="1" value="1" class="qty-stepper__input" aria-label="Кількість">
+            <button type="button" class="qty-stepper__btn" id="alt-qty-inc" aria-label="Збільшити">&#43;</button>
+          </div>
         </div>
 
 

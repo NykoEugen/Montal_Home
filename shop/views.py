@@ -660,15 +660,35 @@ def remove_from_cart(request: HttpRequest):
         else:
             messages.error(request, "Товар не знайдено в кошику!", extra_tags="user")
         
-        # If cart is empty, redirect to home
-        if not cart:
-            return redirect('shop:home')
-        
         return redirect('shop:view_cart')
-        
+
     except Exception as e:
         messages.error(request, str(e), extra_tags="user")
         return redirect('shop:view_cart')
+
+
+@require_POST
+def update_cart_quantity(request: HttpRequest):
+    """Update quantity of a cart item."""
+    cart_key = request.POST.get("cart_key")
+    try:
+        quantity = max(1, int(request.POST.get("quantity", 1)))
+    except (ValueError, TypeError):
+        quantity = 1
+
+    if not cart_key:
+        return redirect('shop:view_cart')
+
+    cart = request.session.get("cart", {})
+    if cart_key in cart:
+        if isinstance(cart[cart_key], dict):
+            cart[cart_key]["quantity"] = quantity
+        else:
+            cart[cart_key] = quantity
+        request.session["cart"] = cart
+        request.session.modified = True
+
+    return redirect('shop:view_cart')
 
 
 def home(request: HttpRequest) -> HttpResponse:

@@ -90,7 +90,22 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 text-brown-600" data-label="Кількість">{{ item.quantity }}</td>
+                            <td class="py-3" data-label="Кількість">
+                                <form method="post" action="{% url 'shop:update_cart_quantity' %}" class="flex items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cart_key" value="{{ item.cart_key }}">
+                                    <div class="qty-stepper">
+                                        <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
+                                                class="qty-stepper__btn"
+                                                {% if item.quantity <= 1 %}disabled{% endif %}
+                                                aria-label="Зменшити">&#8722;</button>
+                                        <span class="qty-stepper__input" style="line-height:2rem;">{{ item.quantity }}</span>
+                                        <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
+                                                class="qty-stepper__btn"
+                                                aria-label="Збільшити">&#43;</button>
+                                    </div>
+                                </form>
+                            </td>
                             <td class="py-3" data-label="Ціна">
                                 {% if item.size_variant and item.size_variant.is_on_sale %}
                                     <span class="text-red-600 font-semibold">{{ item.item_price|floatformat:0 }} грн</span><br>

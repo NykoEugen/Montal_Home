@@ -715,3 +715,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// Quantity stepper buttons
+(function () {
+    const dec = document.getElementById('alt-qty-dec');
+    const inc = document.getElementById('alt-qty-inc');
+    const qty = document.getElementById('alt-qty');
+    if (!dec || !inc || !qty) return;
+    dec.addEventListener('click', function () {
+        const v = parseInt(qty.value, 10) || 1;
+        if (v > 1) { qty.value = v - 1; qty.dispatchEvent(new Event('input')); }
+    });
+    inc.addEventListener('click', function () {
+        const v = parseInt(qty.value, 10) || 1;
+        qty.value = v + 1; qty.dispatchEvent(new Event('input'));
+    });
+})();
