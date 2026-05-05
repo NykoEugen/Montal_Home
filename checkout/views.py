@@ -377,7 +377,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
                 extra_tags="user",
             )
 
-    return render(request, "shop/checkout.html", {"form": form})
+    from shop.cart_utils import build_cart_context
+    cart_ctx = build_cart_context(request.session)
+    return render(request, "shop/checkout.html", {"form": form, **cart_ctx})
 
 
 def order_history(request: HttpRequest) -> HttpResponse:

@@ -1091,6 +1091,34 @@ input[type="submit"].btn-grad {
         0 8px 18px -18px rgba(81, 59, 36, 0.45);
 }
 
+/* Primary CTA button — solid dark-brown accent for add-to-cart and checkout */
+.btn-primary,
+a.btn-primary,
+button.btn-primary {
+    background: var(--brown-800, #3d2b1f);
+    color: #fff;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 14px -4px rgba(61, 43, 31, 0.5);
+}
+
+.btn-primary::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
+}
+
+.btn-primary:hover,
+a.btn-primary:hover,
+button.btn-primary:hover {
+    background: var(--brown-700, #5a3e2b);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 20px -4px rgba(61, 43, 31, 0.55);
+}
+
+.btn-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(61, 43, 31, 0.25), 0 0 0 6px rgba(61, 43, 31, 0.12);
+}
+
 /* Subcategory furniture card refresh */
 .card-media-link,
 .card-full-link {
