@@ -359,14 +359,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
             push_order_to_salesdrive(order, salesdrive_products, form.cleaned_data)
 
             request.session["cart"] = {}
+            request.session["last_order_id"] = order.id
+            request.session["last_order_number"] = f"#{order.id:04d}"
             request.session.modified = True
-
-            messages.success(
-                request,
-                "Дякуємо! Ваша заявка прийнята. Менеджер зв'яжеться з вами найближчим часом.",
-                extra_tags="user",
-            )
-            return redirect("shop:home")
+            return redirect("shop:order_success")
     else:
         draft_data = load_form_draft(request, 'checkout_form')
         form = CheckoutForm(initial=draft_data or None)

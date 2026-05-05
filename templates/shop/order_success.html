@@ -1,0 +1,59 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center py-16 px-4">
+    <div class="max-w-lg w-full text-center">
+
+        <!-- Check icon -->
+        <div class="flex items-center justify-center mb-6">
+            <div class="w-20 h-20 rounded-full bg-brown-800 flex items-center justify-center shadow-lg">
+                <i class="fas fa-check text-beige-100 text-3xl"></i>
+            </div>
+        </div>
+
+        <!-- Heading -->
+        <h1 class="text-3xl font-bold text-brown-800 mb-3">Дякуємо за замовлення!</h1>
+
+        {% if order_number %}
+            <p class="text-brown-500 text-base mb-2">Заявка <span class="font-semibold text-brown-700">{{ order_number }}</span> прийнята.</p>
+        {% endif %}
+
+        <p class="text-brown-500 text-base mb-8">
+            Наш менеджер зв'яжеться з вами найближчим часом для підтвердження та уточнення деталей доставки.
+        </p>
+
+        <!-- Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 text-left">
+            <div class="bg-white rounded-xl border border-beige-200 p-4">
+                <div class="w-9 h-9 rounded-full bg-beige-200 flex items-center justify-center mb-3">
+                    <i class="fas fa-phone text-brown-600 text-sm"></i>
+                </div>
+                <p class="text-sm font-semibold text-brown-800 mb-1">Дзвінок менеджера</p>
+                <p class="text-xs text-brown-400">Підтвердимо деталі та погодимо зручний час</p>
+            </div>
+            <div class="bg-white rounded-xl border border-beige-200 p-4">
+                <div class="w-9 h-9 rounded-full bg-beige-200 flex items-center justify-center mb-3">
+                    <i class="fas fa-truck text-brown-600 text-sm"></i>
+                </div>
+                <p class="text-sm font-semibold text-brown-800 mb-1">Доставка</p>
+                <p class="text-xs text-brown-400">Оберемо зручний спосіб разом з вами</p>
+            </div>
+            <div class="bg-white rounded-xl border border-beige-200 p-4">
+                <div class="w-9 h-9 rounded-full bg-beige-200 flex items-center justify-center mb-3">
+                    <i class="fas fa-heart text-brown-600 text-sm"></i>
+                </div>
+                <p class="text-sm font-semibold text-brown-800 mb-1">Приємного відпочинку</p>
+                <p class="text-xs text-brown-400">Дякуємо, що обрали Montal Home</p>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <a href="{% url 'categories:categories_list' %}" class="btn-grad inline-flex items-center gap-2">
+            <i class="fas fa-th-large text-sm"></i>
+            Продовжити покупки
+        </a>
+
+    </div>
+</div>
+{% endblock %}
