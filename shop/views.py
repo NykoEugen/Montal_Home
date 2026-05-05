@@ -707,6 +707,15 @@ def view_cart(request: HttpRequest) -> HttpResponse:
     return CartView.as_view()(request)
 
 
+def order_success(request: HttpRequest) -> HttpResponse:
+    order_id = request.session.pop("last_order_id", None)
+    order_number = request.session.pop("last_order_number", None)
+    return render(request, "shop/order_success.html", {
+        "order_id": order_id,
+        "order_number": order_number,
+    })
+
+
 def promotions(request: HttpRequest) -> HttpResponse:
     """Legacy promotions view for backward compatibility."""
     return PromotionsView.as_view()(request)
