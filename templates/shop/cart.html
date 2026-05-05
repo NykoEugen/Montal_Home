@@ -149,7 +149,9 @@
 {% block extra_body %}
 <script>
 (function () {
-    const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
+    const CSRF = document.querySelector('meta[name=csrf-token]')?.content
+              ?? document.querySelector('[name=csrfmiddlewaretoken]')?.value
+              ?? '';
 
     document.querySelectorAll('.qty-stepper[data-cart-key]').forEach(function (stepper) {
         const cartKey = stepper.dataset.cartKey;
