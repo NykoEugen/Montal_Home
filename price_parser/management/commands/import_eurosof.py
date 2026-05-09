@@ -5,24 +5,43 @@ from django.core.management.base import BaseCommand
 CATALOG_CONFIGS = {
     "pryami-evroknizhka": {
         "url": "https://eurosof.com.ua/catalog/pryami-evroknizhka",
-        "subcategory_name": "Прямі євро-книжки (Eurosof)",
+        "subcategory_name": "Прямі євро-книжки",
         "subcategory_slug": "pryami-evroknizhka-eurosof",
         "category_name": "М'які меблі",
         "corner": False,
+        "bed": False,
     },
     "kutovij-divan": {
         "url": "https://eurosof.com.ua/catalog/kutovij-divan",
-        "subcategory_name": "Кутові дивани (Eurosof)",
+        "subcategory_name": "Кутові дивани",
         "subcategory_slug": "kutovi-divany-eurosof",
         "category_name": "М'які меблі",
         "corner": True,
+        "bed": False,
     },
     "pryami-vikatni": {
         "url": "https://eurosof.com.ua/catalog/pryami-vikatni",
-        "subcategory_name": "Прямі викатні (Eurosof)",
+        "subcategory_name": "Прямі викатні",
         "subcategory_slug": "pryami-vikatni-eurosof",
         "category_name": "М'які меблі",
         "corner": False,
+        "bed": False,
+    },
+    "lizhka": {
+        "url": "https://eurosof.com.ua/catalog/lizhka",
+        "subcategory_name": "Ліжка з м'яким узголів'ям",
+        "subcategory_slug": "lizhka-z-myakim-uzgolivyam",
+        "category_name": "Ліжка",
+        "corner": False,
+        "bed": True,
+    },
+    "dityachi-lizhka": {
+        "url": "https://eurosof.com.ua/catalog/dityachi-lizhka",
+        "subcategory_name": "Дитячі ліжка",
+        "subcategory_slug": "dityachi-lizhka",
+        "category_name": "Ліжка",
+        "corner": False,
+        "bed": True,
     },
 }
 
@@ -107,6 +126,7 @@ class Command(BaseCommand):
                 subcategory_slug=cfg["subcategory_slug"],
                 category_name=cfg["category_name"],
                 corner=cfg.get("corner", False),
+                bed=cfg.get("bed", False),
                 dry_run=dry_run,
                 update_prices=update_prices,
             )
