@@ -1040,3 +1040,71 @@ def kreslalux_page(request):
     })
 
 
+def eurosof_price_config(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import math
+    from decimal import Decimal
+    from price_parser.models import EurosofPriceConfig
+    from furniture.models import Furniture, FurnitureSizeVariant
+
+    config = EurosofPriceConfig.get()
+    message = None
+    recalc_count = 0
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save":
+            try:
+                config.price_multiplier = Decimal(request.POST["price_multiplier"])
+                config.price_addon = Decimal(request.POST["price_addon"])
+                config.save()
+                message = ("success", "Конфігурацію збережено.")
+            except Exception as exc:
+                message = ("error", f"Помилка: {exc}")
+
+        elif action == "recalculate":
+            try:
+                config.price_multiplier = Decimal(request.POST["price_multiplier"])
+                config.price_addon = Decimal(request.POST["price_addon"])
+                config.save()
+
+                multiplier = config.price_multiplier
+                addon = config.price_addon
+
+                furniture_qs = Furniture.objects.filter(article_code__startswith="eurosof-")
+                for f in furniture_qs.prefetch_related("size_variants"):
+                    new_fabric_value = (
+                        Decimal(str(math.ceil(float(f.fabric_step_raw * multiplier))))
+                        if f.fabric_step_raw
+                        else f.fabric_value
+                    )
+                    new_base_price = None
+                    for v in f.size_variants.all():
+                        if v.catalog_price:
+                            new_price = round(v.catalog_price * multiplier + addon, 0)
+                            v.price = new_price
+                            v.save(update_fields=["price"])
+                            if new_base_price is None:
+                                new_base_price = new_price
+                    f.fabric_value = new_fabric_value
+                    if new_base_price:
+                        f.price = new_base_price
+                    f.save(update_fields=["price", "fabric_value"])
+                    recalc_count += 1
+
+                message = ("success", f"Перераховано ціни для {recalc_count} товарів Eurosof.")
+            except Exception as exc:
+                message = ("error", f"Помилка при перерахунку: {exc}")
+
+    eurosof_count = Furniture.objects.filter(article_code__startswith="eurosof-").count()
+    return render(request, "custom_admin/eurosof_price_config.html", {
+        "sections": list(registry.all()),
+        "config": config,
+        "eurosof_count": eurosof_count,
+        "message": message,
+    })
+
+

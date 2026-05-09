@@ -59,6 +59,7 @@ urlpatterns = [
     path("furniture/bulk-edit/apply/", views.furniture_bulk_edit_apply, name="furniture_bulk_edit_apply"),
     path("furniture/variants/", views.furniture_variants, name="furniture_variants"),
     path("kreslalux/", views.kreslalux_page, name="kreslalux"),
+    path("eurosof-prices/", views.eurosof_price_config, name="eurosof_price_config"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
     path("<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"),
     path(

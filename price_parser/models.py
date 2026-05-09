@@ -574,3 +574,29 @@ class FurniturePriceCellMapping(models.Model):
     def cell_reference(self):
         """Get Excel-style cell reference."""
         return f"{self.sheet_column}{self.sheet_row}" 
+
+
+class EurosofPriceConfig(models.Model):
+    """Singleton config for Eurosof price calculation."""
+    price_multiplier = models.DecimalField(
+        max_digits=6, decimal_places=4, default="1.4000",
+        verbose_name="Коефіцієнт множення",
+        help_text="На цей коефіцієнт множиться ціна з каталогу (зараз 1.4)",
+    )
+    price_addon = models.DecimalField(
+        max_digits=10, decimal_places=2, default="2000.00",
+        verbose_name="Надбавка (грн)",
+        help_text="Фіксована надбавка до ціни після множення (зараз 2000)",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Останнє оновлення")
+
+    class Meta:
+        verbose_name = "Конфігурація цін Eurosof"
+
+    def __str__(self):
+        return f"Eurosof: ×{self.price_multiplier} + {self.price_addon}"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

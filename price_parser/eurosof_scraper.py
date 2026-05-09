@@ -114,8 +114,17 @@ def _parse_sleep_size(size_str: str) -> Optional[Tuple[int, int]]:
     return None
 
 
-def _calc_price(catalog_price: float) -> Decimal:
-    return round(Decimal(str(catalog_price)) * PRICE_MULTIPLIER + PRICE_ADDON, 0)
+def _get_price_config():
+    from price_parser.models import EurosofPriceConfig
+    return EurosofPriceConfig.get()
+
+
+def _calc_price(catalog_price: float, multiplier=None, addon=None) -> Decimal:
+    if multiplier is None or addon is None:
+        cfg = _get_price_config()
+        multiplier = cfg.price_multiplier
+        addon = cfg.price_addon
+    return round(Decimal(str(catalog_price)) * multiplier + addon, 0)
 
 
 @dataclass
@@ -561,16 +570,23 @@ def _generate_slug(name: str) -> str:
     return slug
 
 
-def _reference_step(catalog_product: CatalogProduct) -> Decimal:
-    """Compute per-step price extra (in UAH after ×1.4) from reference size, rounded up."""
-    import math
+def _reference_step_raw(catalog_product: CatalogProduct) -> Decimal:
+    """Raw econom - minus1 price difference from reference size (before multiplier)."""
     rows = [r for r in catalog_product.sizes if r.prices[0] and r.prices[1]]
     if not rows:
         return Decimal("0")
     rows_sorted = sorted(rows, key=lambda r: r.width)
     ref = rows_sorted[len(rows_sorted) // 2]
-    step = Decimal(str(ref.prices[1])) - Decimal(str(ref.prices[0]))
-    return Decimal(str(math.ceil(float(step * PRICE_MULTIPLIER))))
+    return Decimal(str(ref.prices[1])) - Decimal(str(ref.prices[0]))
+
+
+def _reference_step(catalog_product: CatalogProduct, multiplier=None) -> Decimal:
+    """Compute per-step price (UAH after multiplier), rounded up."""
+    import math
+    raw = _reference_step_raw(catalog_product)
+    if multiplier is None:
+        multiplier = _get_price_config().price_multiplier
+    return Decimal(str(math.ceil(float(raw * multiplier))))
 
 
 class EurosofImporter:
@@ -713,7 +729,7 @@ class EurosofImporter:
                 width=sr.width,
                 length=sr.length,
                 height=0,
-                defaults={"price": price},
+                defaults={"price": price, "catalog_price": Decimal(str(minus1_price))},
             )
 
     def _update_prices(self, furniture, cp: CatalogProduct) -> None:
@@ -773,6 +789,7 @@ class EurosofImporter:
         SKIP_PARAMS = {"доступні розміри"}
 
         base_price = _calc_price(first_minus1)
+        fabric_step_raw = _reference_step_raw(cp)
         fabric_value = _reference_step(cp)
         mod_label = f" ({cp.modification})" if cp.modification else ""
         display_name = f"{cp.catalog_name}{mod_label}"
@@ -787,6 +804,7 @@ class EurosofImporter:
                 description=sp.description,
                 price=base_price,
                 fabric_value=fabric_value,
+                fabric_step_raw=fabric_step_raw,
                 selected_fabric_brand=fabric_brand,
                 sub_category=sub_category,
             )
