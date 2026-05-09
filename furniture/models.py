@@ -105,6 +105,14 @@ class Furniture(models.Model):
         verbose_name="Коефіцієнт тканини",
         help_text="Множник для розрахунку вартості тканини"
     )
+    fabric_step_raw = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Крок тканини (сировина)",
+        help_text="Різниця між Економ і -1КАТ до формули (для перерахунку цін)",
+    )
     color_palettes = models.ManyToManyField(
         FabricColorPalette,
         blank=True,
@@ -415,6 +423,14 @@ class FurnitureSizeVariant(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name="Ціна",
         help_text="Ціна для цього розміру"
+    )
+    catalog_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Ціна каталогу (сировина)",
+        help_text="Оригінальна ціна з прайс-листа постачальника (до формули)",
     )
     promotional_price = models.DecimalField(
         max_digits=10,

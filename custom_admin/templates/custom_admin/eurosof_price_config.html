@@ -1,0 +1,63 @@
+{% extends "custom_admin/base.html" %}
+
+{% block title %}Ціни Eurosof{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-xl">
+    <div>
+        <h1 class="text-3xl font-semibold text-brown-900">Коефіцієнти цін Eurosof</h1>
+        <p class="text-sm text-brown-500 mt-2">
+            Формула: <code class="bg-beige-100 px-1 rounded">ціна = ціна_каталогу × коефіцієнт + надбавка</code>
+            &nbsp;·&nbsp; Всього товарів Eurosof: <strong>{{ eurosof_count }}</strong>
+        </p>
+    </div>
+
+    {% if message %}
+        <div class="px-4 py-3 rounded-lg text-sm font-medium
+            {% if message.0 == 'success' %}bg-green-50 text-green-800 border border-green-200
+            {% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+            {{ message.1 }}
+        </div>
+    {% endif %}
+
+    <form method="post" class="bg-white border border-beige-300 rounded-2xl shadow-sm p-6 space-y-5">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-medium text-brown-700 mb-1">Коефіцієнт множення</label>
+            <input type="number" name="price_multiplier" step="0.0001" min="0.5" max="5"
+                   value="{{ config.price_multiplier }}"
+                   class="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brown-400">
+            <p class="text-xs text-brown-400 mt-1">Поточне значення: {{ config.price_multiplier }} (за замовчуванням 1.4)</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-brown-700 mb-1">Фіксована надбавка (грн)</label>
+            <input type="number" name="price_addon" step="100" min="0"
+                   value="{{ config.price_addon }}"
+                   class="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brown-400">
+            <p class="text-xs text-brown-400 mt-1">Поточне значення: {{ config.price_addon }} (за замовчуванням 2000)</p>
+        </div>
+
+        <p class="text-xs text-brown-400">Оновлено: {{ config.updated_at|date:"d.m.Y H:i" }}</p>
+
+        <div class="flex gap-3 pt-2">
+            <button type="submit" name="action" value="save"
+                    class="px-4 py-2 bg-beige-200 hover:bg-beige-300 text-brown-800 text-sm font-medium rounded-lg transition-colors">
+                Зберегти без перерахунку
+            </button>
+            <button type="submit" name="action" value="recalculate"
+                    class="px-4 py-2 bg-brown-600 hover:bg-brown-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    onclick="return confirm('Перерахувати ціни для {{ eurosof_count }} товарів Eurosof?')">
+                Зберегти та перерахувати ціни
+            </button>
+        </div>
+    </form>
+
+    <div class="bg-beige-50 border border-beige-200 rounded-xl p-4 text-xs text-brown-500 space-y-1">
+        <p><strong>Як це працює:</strong></p>
+        <p>«Зберегти без перерахунку» — тільки оновлює конфіг. Нові товари при наступному імпорті використають нові значення.</p>
+        <p>«Перерахувати ціни» — оновлює ціни ВСІХ {{ eurosof_count }} існуючих товарів Eurosof прямо зараз.</p>
+    </div>
+</div>
+{% endblock %}
