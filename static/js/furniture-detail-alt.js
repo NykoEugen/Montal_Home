@@ -16,6 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorSwatches = Array.from(document.querySelectorAll('[data-color-swatch]'));
     const colorInput = document.getElementById('alt-color-input');
     const selectedColorLabel = document.querySelector('[data-selected-color-label]');
+    const colorPreviewPanel = document.getElementById('color-preview-panel');
+    const colorPreviewThumb = document.getElementById('color-preview-thumb');
+    const colorPreviewName = document.getElementById('color-preview-name');
+    const colorPreviewPalette = document.getElementById('color-preview-palette');
+    const colorLightbox = document.getElementById('color-lightbox');
+    const colorLightboxThumb = document.getElementById('color-lightbox-thumb');
+    const colorLightboxName = document.getElementById('color-lightbox-name');
+    const colorLightboxPalette = document.getElementById('color-lightbox-palette');
+    const colorLightboxClose = document.getElementById('color-lightbox-close');
     let activeColorSwatch = null;
     const CHIP_ACTIVE_CLASS = 'chip--active';
     let selectedOptionPrice = 0;
@@ -312,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeColorSwatch = null;
         if (colorInput) colorInput.value = '';
         updateSelectedColorLabel('Колір не обрано');
+        if (colorPreviewPanel) colorPreviewPanel.classList.add('hidden');
     }
 
     function setColorSelection(target) {
@@ -333,10 +343,75 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorId = target.dataset.colorId || '';
         const colorName = target.dataset.colorName || '';
         const paletteName = target.dataset.paletteName || '';
-        const label = colorName;
+        const colorHex = target.dataset.colorHex || '';
+        const colorImage = target.dataset.colorImage || '';
         if (colorInput) colorInput.value = colorId;
-        updateSelectedColorLabel(label || 'Колір не обрано');
+        updateSelectedColorLabel(colorName || 'Колір не обрано');
+
+        if (colorPreviewPanel && colorPreviewThumb) {
+            colorPreviewThumb.innerHTML = '';
+            colorPreviewThumb.style.backgroundColor = '';
+            if (colorImage) {
+                const img = document.createElement('img');
+                img.src = colorImage;
+                img.alt = colorName;
+                img.className = 'w-full h-full object-cover';
+                colorPreviewThumb.appendChild(img);
+            } else if (colorHex) {
+                colorPreviewThumb.style.backgroundColor = colorHex;
+            } else {
+                colorPreviewThumb.innerHTML = '<span class="text-brown-400 text-xs">N/A</span>';
+            }
+            if (colorPreviewName) colorPreviewName.textContent = colorName;
+            if (colorPreviewPalette) colorPreviewPalette.textContent = paletteName;
+            colorPreviewPanel.classList.remove('hidden');
+        }
     }
+
+    function openColorLightbox() {
+        if (!activeColorSwatch || !colorLightbox) return;
+        const colorName = activeColorSwatch.dataset.colorName || '';
+        const paletteName = activeColorSwatch.dataset.paletteName || '';
+        const colorHex = activeColorSwatch.dataset.colorHex || '';
+        const colorImage = activeColorSwatch.dataset.colorImage || '';
+        if (colorLightboxThumb) {
+            colorLightboxThumb.innerHTML = '';
+            colorLightboxThumb.style.backgroundColor = '';
+            colorLightboxThumb.style.aspectRatio = '';
+            if (colorImage) {
+                const img = document.createElement('img');
+                img.src = colorImage;
+                img.alt = colorName;
+                img.className = 'w-full h-auto object-contain';
+                img.style.maxHeight = '70vh';
+                colorLightboxThumb.appendChild(img);
+            } else if (colorHex) {
+                colorLightboxThumb.style.aspectRatio = '1/1';
+                colorLightboxThumb.style.backgroundColor = colorHex;
+            }
+        }
+        if (colorLightboxName) colorLightboxName.textContent = colorName;
+        if (colorLightboxPalette) colorLightboxPalette.textContent = paletteName;
+        colorLightbox.classList.remove('hidden');
+        colorLightbox.classList.add('flex');
+    }
+
+    function closeColorLightbox() {
+        if (!colorLightbox) return;
+        colorLightbox.classList.add('hidden');
+        colorLightbox.classList.remove('flex');
+    }
+
+    if (colorPreviewPanel) colorPreviewPanel.addEventListener('click', openColorLightbox);
+    if (colorLightboxClose) colorLightboxClose.addEventListener('click', closeColorLightbox);
+    if (colorLightbox) {
+        colorLightbox.addEventListener('click', (e) => {
+            if (e.target === colorLightbox) closeColorLightbox();
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeColorLightbox();
+    });
 
     colorSwatches.forEach(swatch => {
         swatch.addEventListener('click', () => setColorSelection(swatch));
