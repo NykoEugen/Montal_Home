@@ -17,6 +17,11 @@
             <i class="fa-solid fa-layer-group mr-2"></i> Варіанти
         </a>
         {% endif %}
+        {% if palette_colors_bulk_add_url %}
+        <a href="{{ palette_colors_bulk_add_url }}" class="inline-flex items-center px-4 py-2 border border-brown-400 text-brown-700 rounded-md hover:bg-beige-100">
+            <i class="fa-solid fa-plus-circle mr-2"></i> Масове додавання кольорів
+        </a>
+        {% endif %}
         {% if can_create %}
         <a href="{{ create_url }}" class="inline-flex items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 transition focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2">
             <i class="fa-solid fa-plus mr-2"></i> Додати
@@ -152,6 +157,11 @@
                         {% if show_actions %}
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                                 <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
+                                    {% if palette_colors_bulk_edit_base_url %}
+                                        <a href="{{ palette_colors_bulk_edit_base_url }}?palette={{ obj.pk }}" class="inline-flex w-full sm:w-auto items-center justify-center text-indigo-600 hover:text-indigo-900 font-medium">
+                                            <i class="fa-solid fa-palette mr-1"></i>Кольори
+                                        </a>
+                                    {% endif %}
                                     {% if can_edit %}
                                         <a href="{% url 'custom_admin:edit' section.slug obj.pk %}" class="inline-flex w-full sm:w-auto items-center justify-center text-brown-600 hover:text-brown-900 font-medium">
                                             <i class="fa-solid fa-pen mr-1"></i>{% if section_read_only %}Переглянути{% else %}Редагувати{% endif %}
