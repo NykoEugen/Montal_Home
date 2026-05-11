@@ -161,10 +161,7 @@ def furniture_detail(request: HttpRequest, furniture_slug: str) -> HttpResponse:
             queryset=FabricColor.objects.filter(is_active=True).order_by("position", "id"),
         )
     )
-    # Default to the new (v2) template; allow forcing old via ?v=1
     template_name = "furniture/furniture_detail_alt.html"
-    if request.GET.get("v") == "1":
-        template_name = "furniture/furniture_detail.html"
 
     # Determine base size variant if any matches combined dimensions
     base_size_variant_id: int | None = None
