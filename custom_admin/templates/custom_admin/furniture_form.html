@@ -11,6 +11,9 @@
   #quill-description { border-radius: 0.5rem; border: 1px solid #d6cfc6; background: #fff; }
   #quill-description .ql-toolbar { border-radius: 0.5rem 0.5rem 0 0; border-color: #d6cfc6; }
   #quill-description .ql-container { border-radius: 0 0 0.5rem 0.5rem; border-color: #d6cfc6; }
+  /* Fix Quill dropdown z-index — without this toolbar dropdowns render under adjacent fields */
+  #quill-description .ql-picker-options { z-index: 20; }
+  #quill-description .ql-tooltip { z-index: 20; }
 </style>
 {% endblock %}
 
@@ -40,6 +43,9 @@
             <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="gallery">
                 Галерея товару
             </button>
+            <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="coverage">
+                Покриття
+            </button>
             <button type="button" class="tab-trigger px-4 py-3 text-sm font-medium text-brown-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brown-500 data-[active=true]:bg-white data-[active=true]:text-brown-900 data-[active=true]:border-b-2 data-[active=true]:border-brown-500 transition" data-tab-target="model-variants">
                 Варіанти моделі
             </button>
@@ -52,7 +58,7 @@
             <h2 class="text-xl font-semibold text-brown-900 mb-4">Основна інформація</h2>
             <div class="grid gap-4 md:grid-cols-2">
                 {% for field in form %}
-                    {% if field.name != 'selected_fabric_brand' and field.name != 'fabric_value' and field.name != 'custom_option_name' and field.name != 'variant_group_leader' and field.name != 'variant_label' %}
+                    {% if field.name != 'selected_fabric_brand' and field.name != 'fabric_value' and field.name != 'custom_option_name' and field.name != 'variant_group_leader' and field.name != 'variant_label' and field.name != 'color_palettes' %}
                         <div class="space-y-1 {% if field.name == 'description' %}md:col-span-2{% endif %}">
                             {% if field.is_hidden %}
                                 {{ field }}
@@ -132,6 +138,43 @@
 
         <div class="tab-panel hidden" data-tab-panel="gallery">
             {% include "custom_admin/partials/formset_card.html" with title="Галерея товару" description="Додаткові фото для сторінки товару" formset=image_formset empty_label="Додайте фото" image_preview=True show_id=False %}
+        </div>
+
+        <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 tab-panel hidden" data-tab-panel="coverage">
+            <h2 class="text-xl font-semibold text-brown-900 mb-2">Палітри покриттів</h2>
+            <p class="text-sm text-brown-500 mb-5">
+                Оберіть палітри кольорів оббивки, доступні для цього товару.
+                Керувати палітрами та кольорами можна в розділі
+                <a href="{% url 'custom_admin:list' 'fabric-color-palettes' %}" class="text-brown-700 underline hover:text-brown-900">Палітри покриттів</a>.
+            </p>
+            {% for field in form %}
+                {% if field.name == 'color_palettes' %}
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-brown-700">{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <p class="text-xs text-brown-400">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <p class="text-xs text-red-600">{{ error }}</p>
+                        {% endfor %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% for choice in field.field.choices %}
+                                <label class="flex items-center gap-3 p-3 rounded-lg border border-beige-300 hover:border-brown-400 hover:bg-beige-50 cursor-pointer transition has-[:checked]:border-brown-500 has-[:checked]:bg-brown-50">
+                                    <input type="checkbox" name="{{ field.html_name }}" value="{{ choice.0 }}"
+                                           {% if choice.0 in field.value %}checked{% endif %}
+                                           class="h-4 w-4 text-brown-600 border-beige-300 rounded focus:ring-brown-500">
+                                    <span class="text-sm text-brown-800 font-medium">{{ choice.1 }}</span>
+                                </label>
+                            {% empty %}
+                                <p class="text-sm text-brown-400 col-span-3">
+                                    Палітр ще не створено.
+                                    <a href="{% url 'custom_admin:create' 'fabric-color-palettes' %}" class="text-brown-600 underline">Створити першу палітру</a>.
+                                </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
 
         <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-6 tab-panel hidden" data-tab-panel="model-variants">

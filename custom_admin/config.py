@@ -94,6 +94,19 @@ def register_default_sections() -> None:
     )
     registry.register(
         AdminSection(
+            slug="coverage-brands",
+            model=FabricBrand,
+            form_class=FabricBrandForm,
+            list_display=("name",),
+            search_fields=("name",),
+            ordering=("name",),
+            title="Покриття — бренди",
+            description="Бренди покриттів для палітр кольорів оббивки.",
+            icon="fa-tag",
+        )
+    )
+    registry.register(
+        AdminSection(
             slug="fabric-categories",
             model=FabricCategory,
             form_class=FabricCategoryForm,

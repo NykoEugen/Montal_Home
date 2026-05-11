@@ -210,6 +210,9 @@ class SectionListView(SectionMixin, ListView):
             context["furniture_bulk_edit_url"] = reverse("custom_admin:furniture_bulk_edit")
             context["furniture_variants_url"] = reverse("custom_admin:furniture_variants")
             context["column_span"] += 1
+        if self.section.slug == "fabric-color-palettes":
+            context["palette_colors_bulk_add_url"] = reverse("custom_admin:palette_colors_bulk_add")
+            context["palette_colors_bulk_edit_base_url"] = reverse("custom_admin:palette_colors_bulk_edit")
         return context
 
     def _get_bulk_action_context(self) -> Optional[dict[str, str]]:
@@ -1037,6 +1040,142 @@ def kreslalux_page(request):
         "sections": list(registry.all()),
         "furniture_count": sub_cat_furniture.count(),
         "recent_furniture": sub_cat_furniture[:10],
+    })
+
+
+@login_required
+def palette_colors_bulk_add(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from fabric_category.models import FabricColorPalette, FabricColor
+
+    palettes = FabricColorPalette.objects.filter(is_active=True).order_by("name")
+    errors: list[str] = []
+    saved_count = 0
+
+    if request.method == "POST":
+        indices = []
+        for key in request.POST:
+            if key.startswith("name_"):
+                try:
+                    indices.append(int(key.split("_", 1)[1]))
+                except ValueError:
+                    pass
+
+        with transaction.atomic():
+            for i in sorted(indices):
+                name = request.POST.get(f"name_{i}", "").strip()
+                palette_id = request.POST.get(f"palette_{i}", "").strip()
+                if not name or not palette_id:
+                    continue
+                try:
+                    palette = FabricColorPalette.objects.get(pk=int(palette_id))
+                except (FabricColorPalette.DoesNotExist, ValueError):
+                    errors.append(f"Рядок {i + 1}: палітру не знайдено.")
+                    continue
+
+                hex_code = request.POST.get(f"hex_code_{i}", "").strip()
+                position_raw = request.POST.get(f"position_{i}", "0").strip()
+                try:
+                    position = int(position_raw)
+                except ValueError:
+                    position = 0
+                image = request.FILES.get(f"image_{i}")
+
+                if FabricColor.objects.filter(palette=palette, name=name).exists():
+                    errors.append(f"Рядок {i + 1}: «{name}» вже є в палітрі «{palette.name}».")
+                    continue
+
+                color = FabricColor(
+                    palette=palette,
+                    name=name,
+                    hex_code=hex_code,
+                    position=position,
+                    is_active=True,
+                )
+                if image:
+                    color.image = image
+                color.save()
+                saved_count += 1
+
+        if saved_count:
+            messages.success(request, f"Додано {saved_count} кольорів.")
+        for err in errors:
+            messages.error(request, err)
+        if not errors:
+            return redirect("custom_admin:palette_colors_bulk_add")
+
+    return render(request, "custom_admin/palette_colors_bulk_add.html", {
+        "sections": list(registry.all()),
+        "palettes": palettes,
+        "errors": errors,
+    })
+
+
+@login_required
+def palette_colors_bulk_edit(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from fabric_category.models import FabricColorPalette, FabricColor
+
+    palettes = FabricColorPalette.objects.filter(is_active=True).order_by("name")
+    palette_id = (request.POST.get("palette") or request.GET.get("palette", "")).strip()
+    selected_palette = None
+    colors: list = []
+
+    if palette_id:
+        try:
+            selected_palette = FabricColorPalette.objects.get(pk=int(palette_id))
+            colors = list(selected_palette.colors.order_by("position", "id"))
+        except (FabricColorPalette.DoesNotExist, ValueError):
+            messages.error(request, "Палітру не знайдено.")
+
+    if request.method == "POST" and selected_palette and "save" in request.POST:
+        with transaction.atomic():
+            updated = 0
+            for color in colors:
+                cid = str(color.pk)
+                if request.POST.get(f"delete_{cid}"):
+                    color.delete()
+                    continue
+                name = request.POST.get(f"name_{cid}", "").strip()
+                hex_code = request.POST.get(f"hex_code_{cid}", "").strip()
+                position_raw = request.POST.get(f"position_{cid}", "0").strip()
+                is_active = bool(request.POST.get(f"is_active_{cid}"))
+                image = request.FILES.get(f"image_{cid}")
+                try:
+                    position = int(position_raw)
+                except ValueError:
+                    position = color.position
+                changed = False
+                if name and name != color.name:
+                    color.name = name
+                    changed = True
+                if hex_code != color.hex_code:
+                    color.hex_code = hex_code
+                    changed = True
+                if position != color.position:
+                    color.position = position
+                    changed = True
+                if is_active != color.is_active:
+                    color.is_active = is_active
+                    changed = True
+                if image:
+                    color.image = image
+                    changed = True
+                if changed:
+                    color.save()
+                    updated += 1
+        messages.success(request, f"Оновлено {updated} кольорів у палітрі «{selected_palette.name}».")
+        return redirect(f"{request.path}?palette={selected_palette.pk}")
+
+    return render(request, "custom_admin/palette_colors_bulk_edit.html", {
+        "sections": list(registry.all()),
+        "palettes": palettes,
+        "selected_palette": selected_palette,
+        "colors": colors,
     })
 
 
