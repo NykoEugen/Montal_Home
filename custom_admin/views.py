@@ -1023,6 +1023,56 @@ def furniture_variants(request):
     )
 
 
+# ── Evrodim scraper views ────────────────────────────────────────────────────
+
+@login_required
+def evrodim_page(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+
+    sub_cat_furniture = Furniture.objects.filter(
+        sub_category__slug="stoly-evrodim"
+    ).order_by("-updated_at")
+
+    return render(request, "custom_admin/evrodim.html", {
+        "sections": list(registry.all()),
+        "furniture_count": sub_cat_furniture.count(),
+        "recent_furniture": sub_cat_furniture[:10],
+    })
+
+
+@login_required
+@require_POST
+def evrodim_update_prices(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.evrodim_scraper import EvrodimScraper
+
+    logs: list[str] = []
+    scraper = EvrodimScraper()
+    scraper.set_progress_callback(logs.append)
+
+    try:
+        result = scraper.update_prices(subcategory_slug="stoly-evrodim")
+    except Exception as exc:
+        messages.error(request, f"Помилка під час оновлення: {exc}")
+        return redirect("custom_admin:evrodim")
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Ціни оновлено: перевірено {result['checked']}, "
+            f"оновлено {result['updated']}, не знайдено {result['not_found']}",
+        )
+    else:
+        messages.error(request, f"Помилка: {result.get('error')}")
+
+    return redirect("custom_admin:evrodim")
+
+
 # ── Kreslalux scraper views ───────────────────────────────────────────────────
 
 @login_required
