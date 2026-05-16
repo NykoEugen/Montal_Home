@@ -30,6 +30,22 @@ CYRILLIC_MAP = {
 
 _SIZE_SUFFIX_RE = re.compile(r"-\d+x\d+(\.[A-Za-z]+)$")
 
+SUBCATEGORY_CONFIG = {
+    "slug": "stoly-evrodim",
+    "name": "Столи (Evrodim)",
+    "category_name": "Столи",
+}
+
+# Шаблонні фрагменти Evrodim, які видаляємо з опису.
+# Паттерни працюють на нормалізованому тексті (пробіл замість \n).
+_DESC_STRIP_PATTERNS: List[re.Pattern] = [
+    re.compile(r"Країна\s+виробництва\s*:\s*\S+\.?", re.I),
+    re.compile(r"Товар знаходиться\s+на складі в Україні\.?", re.I),
+    re.compile(r"Продавець\s*:\s*Evrodim\.?", re.I),
+    re.compile(r"Умови оплати,?\s*доставки та повернення\s*[—–-]\s*на сайті\.?", re.I),
+    re.compile(r"Теги\s*:.*", re.I | re.S),
+]
+
 
 @dataclass
 class EvrodimProduct:
@@ -64,6 +80,15 @@ def _strip_size_suffix(url: str) -> str:
     if m:
         return url[: m.start()] + m.group(1)
     return url
+
+
+def _clean_description(text: str) -> str:
+    """Видаляє шаблонні рядки Evrodim з опису товару."""
+    # Нормалізуємо пробіли/переноси для надійного пошуку паттернів
+    normalized = re.sub(r"\s+", " ", text)
+    for pattern in _DESC_STRIP_PATTERNS:
+        normalized = pattern.sub("", normalized)
+    return re.sub(r"\s{2,}", " ", normalized).strip()
 
 
 def _generate_slug(name: str) -> str:
@@ -244,7 +269,7 @@ class EvrodimScraper:
         if not desc_el:
             desc_el = soup.select_one(".rm-product-tabs-description")
         if desc_el:
-            return desc_el.get_text(separator="\n", strip=True)
+            return _clean_description(desc_el.get_text(separator="\n", strip=True))
         return ""
 
     def _parse_params(self, soup: BeautifulSoup) -> Dict[str, str]:
@@ -279,6 +304,32 @@ class EvrodimScraper:
                 image_urls.append(src)
 
         return image_urls
+
+    # ── Subcategory auto-create ───────────────────────────────────────────────
+
+    def _ensure_subcategory(self, slug: str):
+        from categories.models import Category
+        from sub_categories.models import SubCategory
+
+        sub = SubCategory.objects.filter(slug=slug).first()
+        if sub:
+            return sub
+
+        cfg = SUBCATEGORY_CONFIG
+        category = Category.objects.filter(name=cfg["category_name"]).first()
+        if not category:
+            raise RuntimeError(
+                f"Категорія '{cfg['category_name']}' не знайдена в БД. "
+                f"Створіть її або вкажіть правильну назву в SUBCATEGORY_CONFIG."
+            )
+
+        sub = SubCategory.objects.create(
+            slug=slug,
+            name=cfg["name"],
+            category=category,
+        )
+        self._log(f"Створено підкатегорію: {sub.name} ({sub.slug})")
+        return sub
 
     # ── Image download ────────────────────────────────────────────────────────
 
@@ -327,11 +378,13 @@ class EvrodimScraper:
     ) -> Dict:
         from furniture.models import Furniture, FurnitureImage
         from params.models import FurnitureParameter, Parameter
-        from sub_categories.models import SubCategory
 
-        sub_category = SubCategory.objects.filter(slug=subcategory_slug).first()
-        if not sub_category and not dry_run:
-            return {"success": False, "error": f"Підкатегорія '{subcategory_slug}' не знайдена"}
+        sub_category = None
+        if not dry_run:
+            try:
+                sub_category = self._ensure_subcategory(subcategory_slug)
+            except RuntimeError as exc:
+                return {"success": False, "error": str(exc)}
 
         all_urls = self.collect_product_urls(limit=limit)
         self._log(f"Обробляємо {len(all_urls)} сторінок товарів...")
@@ -432,6 +485,11 @@ class EvrodimScraper:
         from furniture.models import Furniture
 
         self._log("Оновлення цін Evrodim...")
+
+        try:
+            self._ensure_subcategory(subcategory_slug)
+        except RuntimeError as exc:
+            return {"success": False, "error": str(exc)}
 
         furniture_map: Dict[str, Furniture] = {
             f.article_code: f
