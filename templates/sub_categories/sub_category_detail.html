@@ -31,9 +31,10 @@
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                             </svg>
                         </button>
-                        <button id="clearAllFilters" class="text-sm text-red-500 hover:text-red-700 transition-colors">
+                        <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}"
+                           class="text-sm text-red-500 hover:text-red-700 transition-colors">
                             Очистити все
-                        </button>
+                        </a>
                     </div>
 
                     <div id="filtersContent" class="filters-content">
@@ -49,11 +50,11 @@
                             <div class="filter-content">
                                 <div class="space-y-1">
                                     <div class="flex gap-2">
-                                        <input type="number" name="min_price" placeholder="Від" 
-                                               value="{{ request.GET.min_price|default:'' }}"
+                                        <input type="number" name="min_price" placeholder="Від {{ price_range.min_price|floatformat:0 }}"
+                                               value="{{ min_price_raw }}"
                                                class="w-full px-3 py-2 border border-beige-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-transparent">
-                                        <input type="number" name="max_price" placeholder="До" 
-                                               value="{{ request.GET.max_price|default:'' }}"
+                                        <input type="number" name="max_price" placeholder="До {{ price_range.max_price|floatformat:0 }}"
+                                               value="{{ max_price_raw }}"
                                                class="w-full px-3 py-2 border border-beige-300 rounded-lg focus:ring-2 focus:ring-brown-500 focus:border-transparent">
                                     </div>
                                     <div class="text-xs text-brown-600">
@@ -110,52 +111,9 @@
                             </div>
                         </div>
 
-                        <!-- Sorting -->
-                        <div class="filter-section mb-3">
-                            <div class="filter-header" onclick="toggleFilterSection(this)">
-                                <h3 class="text-lg font-semibold text-brown-700">Сортування</h3>
-                                <svg class="w-5 h-5 text-brown-500 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                            <div class="filter-content">
-                                <div class="space-y-1">
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="sort" value="" 
-                                               {% if not current_sort %}checked{% endif %}
-                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
-                                        <span class="text-brown-700">За замовчуванням</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="sort" value="price_asc" 
-                                               {% if current_sort == 'price_asc' %}checked{% endif %}
-                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
-                                        <span class="text-brown-700">Від дешевого до дорогого</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="sort" value="price_desc" 
-                                               {% if current_sort == 'price_desc' %}checked{% endif %}
-                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
-                                        <span class="text-brown-700">Від дорогого до дешевого</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="sort" value="name_asc" 
-                                               {% if current_sort == 'name_asc' %}checked{% endif %}
-                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
-                                        <span class="text-brown-700">За назвою А-Я</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="sort" value="name_desc" 
-                                               {% if current_sort == 'name_desc' %}checked{% endif %}
-                                               class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
-                                        <span class="text-brown-700">За назвою Я-А</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Parameter Filters -->
                         {% for key, param in filter_options.items %}
+                        {% with active_val=active_param_filters|get_item:key %}
                         <div class="filter-section mb-3">
                             <div class="filter-header" onclick="toggleFilterSection(this)">
                                 <h3 class="text-lg font-semibold text-brown-700">{{ param.label }}</h3>
@@ -166,15 +124,15 @@
                             <div class="filter-content">
                                 <div class="space-y-0.5 max-h-48 overflow-y-auto">
                                     <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="param_{{ key }}" value="" 
-                                               {% if not request.GET|get_item:'param_'|add:key %}checked{% endif %}
+                                        <input type="radio" name="param_{{ key }}" value=""
+                                               {% if not active_val %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">Усі</span>
                                     </label>
                                     {% for value in param.values %}
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" name="param_{{ key }}" value="{{ value }}"
-                                               {% if request.GET|get_item:'param_'|add:key == value %}checked{% endif %}
+                                               {% if active_val == value %}checked{% endif %}
                                                class="w-4 h-4 text-brown-600 border-beige-300 focus:ring-brown-500">
                                         <span class="text-brown-700">{{ value }}</span>
                                     </label>
@@ -182,6 +140,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endwith %}
                         {% endfor %}
 
                         <!-- Filter Actions -->
@@ -202,18 +161,19 @@
             <!-- Products Grid -->
             <div class="lg:w-3/4">
                 <!-- Active Filters Display -->
-                {% if current_filters or request.GET.min_price or request.GET.max_price or request.GET|has_stock_status or request.GET.promotional_only %}
+                {% if active_param_filters or min_price_raw or max_price_raw or request.GET|has_stock_status or request.GET.promotional_only %}
                 <div class="bg-white rounded-lg shadow-md p-4 mb-6">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-brown-700">Активні фільтри:</h3>
-                        <button onclick="clearAllFilters()" class="text-sm text-red-500 hover:text-red-700 transition-colors">
+                        <a href="{% url 'sub_categories:sub_categories_details' sub_category.slug %}"
+                           class="text-sm text-red-500 hover:text-red-700 transition-colors">
                             Очистити все
-                        </button>
+                        </a>
                     </div>
                     <div class="flex flex-wrap gap-2 mt-3">
-                        {% if request.GET.min_price or request.GET.max_price %}
+                        {% if min_price_raw or max_price_raw %}
                         <span class="bg-brown-100 text-brown-700 px-3 py-1 rounded-full text-sm">
-                            Ціна: {{ request.GET.min_price|default:'0' }} - {{ request.GET.max_price|default:'∞' }} грн
+                            Ціна: {{ min_price_raw|default:'0' }} – {{ max_price_raw|default:'∞' }} грн
                         </span>
                         {% endif %}
                         {% for status in request.GET|getlist:'stock_status' %}
@@ -226,14 +186,34 @@
                             Тільки акційні
                         </span>
                         {% endif %}
-                        {% for filter_key, filter_value in current_filters %}
+                        {% for key, value in active_param_filters.items %}
+                        {% with param_meta=filter_options|get_item:key %}
                         <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                            {{ filter_key|replace:'param_:'|title }}: {{ filter_value }}
+                            {{ param_meta.label }}: {{ value }}
                         </span>
+                        {% endwith %}
                         {% endfor %}
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- Sort Bar -->
+                <div class="flex items-center justify-between bg-white rounded-xl shadow-sm px-4 py-3 mb-5">
+                    <span class="text-sm text-brown-600">
+                        Знайдено: <strong>{{ page_obj.paginator.count }}</strong> товарів
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <label for="sortSelect" class="text-sm text-brown-600 whitespace-nowrap">Сортувати:</label>
+                        <select id="sortSelect" onchange="applySort(this.value)"
+                                class="text-sm border border-beige-300 rounded-lg px-3 py-1.5 text-brown-800 focus:ring-2 focus:ring-brown-500 focus:border-transparent bg-white cursor-pointer">
+                            <option value="" {% if not current_sort %}selected{% endif %}>За замовчуванням</option>
+                            <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Від дешевого до дорогого</option>
+                            <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Від дорогого до дешевого</option>
+                            <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>За назвою А-Я</option>
+                            <option value="name_desc" {% if current_sort == 'name_desc' %}selected{% endif %}>За назвою Я-А</option>
+                        </select>
+                    </div>
+                </div>
 
                 <!-- Products Grid -->
                 {% if page_obj %}
@@ -340,4 +320,19 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_body %}
+<script>
+function applySort(sortValue) {
+    const params = new URLSearchParams(window.location.search);
+    if (sortValue) {
+        params.set('sort', sortValue);
+    } else {
+        params.delete('sort');
+    }
+    params.delete('page');
+    window.location.href = window.location.pathname + '?' + params.toString();
+}
+</script>
 {% endblock %}
