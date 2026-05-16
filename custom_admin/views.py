@@ -1023,6 +1023,26 @@ def furniture_variants(request):
     )
 
 
+# ── Evrodim scraper views ────────────────────────────────────────────────────
+
+@login_required
+def evrodim_page(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+
+    sub_cat_furniture = Furniture.objects.filter(
+        sub_category__slug="stoly-evrodim"
+    ).order_by("-updated_at")
+
+    return render(request, "custom_admin/evrodim.html", {
+        "sections": list(registry.all()),
+        "furniture_count": sub_cat_furniture.count(),
+        "recent_furniture": sub_cat_furniture[:10],
+    })
+
+
 # ── Kreslalux scraper views ───────────────────────────────────────────────────
 
 @login_required
