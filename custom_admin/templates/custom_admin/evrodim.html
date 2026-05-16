@@ -84,14 +84,26 @@
             </div>
             <div>
                 <h2 class="text-base font-semibold text-brown-800">Оновлення цін</h2>
-                <p class="text-xs text-brown-400">Також запускати локально</p>
+                <p class="text-xs text-brown-400">З адмінки або локально</p>
             </div>
         </div>
         <p class="text-xs text-brown-500 mb-3">
-            Оновлює ціни наявних товарів. Порівнює артикули в БД з поточними цінами на сайті.
+            Обходить всі 8 сторінок каталогу, знаходить відповідні артикули в БД і оновлює ціни.
+            Може займати ~5–10 хв. Нові товари не створюються.
         </p>
-        <div class="space-y-2">
-            <p class="text-xs font-medium text-brown-600">Оновити ціни:</p>
+
+        <form method="post" action="{% url 'custom_admin:evrodim_update_prices' %}"
+              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Оновлення...'">
+            {% csrf_token %}
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors">
+                <i class="fa-solid fa-rotate"></i>
+                Оновити ціни зараз
+            </button>
+        </form>
+
+        <div class="mt-4 space-y-2">
+            <p class="text-xs font-medium text-brown-600 mt-3">Або локально:</p>
             <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_evrodim_tables --update-prices</code>
             <p class="text-xs font-medium text-brown-600 mt-3">На продакшн БД:</p>
             <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_evrodim_tables --database-url postgres://...</code>
