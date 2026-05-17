@@ -94,15 +94,33 @@ def retry_with_backoff(
     return decorator
 
 
+_DB_HEALTH_CACHE_KEY = "_db_health_status"
+_DB_HEALTH_CACHE_TTL = 5  # seconds
+
+
 def check_database_connection() -> bool:
-    """Check if database connection is healthy."""
+    """Check if database connection is healthy. Result is cached for 5 seconds."""
+    try:
+        cached = cache.get(_DB_HEALTH_CACHE_KEY)
+        if cached is not None:
+            return cached
+    except Exception:
+        pass
+
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return True
+        result = True
     except Exception as e:
         logger.error(f"Database connection check failed: {e}")
-        return False
+        result = False
+
+    try:
+        cache.set(_DB_HEALTH_CACHE_KEY, result, timeout=_DB_HEALTH_CACHE_TTL)
+    except Exception:
+        pass
+
+    return result
 
 
 def ensure_database_connection():
@@ -200,7 +218,8 @@ def admin_connection_monitor(request):
     """Monitor admin panel connections and provide status."""
     try:
         db_status = check_database_connection()
-        cache_status = cache.get('connection_test', 'test') == 'test'
+        cache.set('connection_test', 'ok', 10)
+        cache_status = cache.get('connection_test') == 'ok'
         
         return {
             'database': 'connected' if db_status else 'disconnected',

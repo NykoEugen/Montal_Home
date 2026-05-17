@@ -1,14 +1,22 @@
+from django.core.cache import cache
 from django.core.management.base import BaseCommand
 import os
 import shutil
 
 class Command(BaseCommand):
-    help = 'Clear all cache files (__pycache__, .pyc, static files)'
+    help = 'Clear Django cache (Redis/LocMem) and bytecode files'
 
     def handle(self, *args, **options):
         from django.conf import settings
-        
-        self.stdout.write('🧹 Clearing cache...')
+
+        self.stdout.write('Clearing cache...')
+
+        # Clear Django cache (Redis or LocMem)
+        try:
+            cache.clear()
+            self.stdout.write(self.style.SUCCESS('Django cache cleared'))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'Django cache clear failed: {e}'))
         
         # Clear __pycache__ directories
         base_dir = settings.BASE_DIR
