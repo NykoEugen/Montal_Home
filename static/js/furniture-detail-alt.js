@@ -463,15 +463,23 @@ document.addEventListener('DOMContentLoaded', () => {
         stockLabel.textContent = targetText;
     }
 
+    const priceContainer = priceEl ? priceEl.parentElement : null;
+    const baseIsOnSale = priceContainer?.getAttribute('data-base-is-on-sale') === 'true';
+    const baseOriginalPrice = parseFloat(priceContainer?.getAttribute('data-base-original-price') || '0');
+
     function recompute() {
         let total = selectedPrice;
         let originalTotal = selectedPrice;
-        
+
         // Get selected size chip info for promotional pricing
         const selectedSizeChip = document.querySelector(`.size-chip.${CHIP_ACTIVE_CLASS}`);
-        const isOnSale = selectedSizeChip ? selectedSizeChip.getAttribute('data-is-on-sale') === 'true' : false;
-        const originalSizePrice = selectedSizeChip ? parseFloat(selectedSizeChip.getAttribute('data-original-price') || '0') : 0;
-        
+        const isOnSale = selectedSizeChip
+            ? selectedSizeChip.getAttribute('data-is-on-sale') === 'true'
+            : baseIsOnSale;
+        const originalSizePrice = selectedSizeChip
+            ? parseFloat(selectedSizeChip.getAttribute('data-original-price') || '0')
+            : (baseIsOnSale ? baseOriginalPrice : 0);
+
         // Use original price for comparison if on sale
         if (isOnSale && originalSizePrice > 0) {
             originalTotal = originalSizePrice;

@@ -107,7 +107,9 @@
           </span>
         </div>
 
-        <div class="mt-4 flex items-end gap-3">
+        <div class="mt-4 flex items-end gap-3"
+             data-base-is-on-sale="{{ furniture.is_sale_active|yesno:'true,false' }}"
+             data-base-original-price="{{ furniture.price }}">
           {% if furniture.is_promotional and furniture.promotional_price %}
             <p class="text-3xl text-red-600 font-semibold" id="alt-main-price">{{ furniture.promotional_price|floatformat:0 }} грн</p>
             <p class="text-lg text-brown-500 line-through" id="alt-original-price">{{ furniture.price|floatformat:0 }} грн</p>
