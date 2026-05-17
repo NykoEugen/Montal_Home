@@ -1073,6 +1073,35 @@ def evrodim_update_prices(request):
     return redirect("custom_admin:evrodim")
 
 
+@login_required
+def evrodim_update_params(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.evrodim_scraper import EvrodimScraper
+
+    logs: list[str] = []
+    scraper = EvrodimScraper()
+    scraper.set_progress_callback(logs.append)
+
+    try:
+        result = scraper.update_params(subcategory_slug="stoly-evrodim")
+    except Exception as exc:
+        messages.error(request, f"Помилка під час оновлення характеристик: {exc}")
+        return redirect("custom_admin:evrodim")
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Характеристики оновлено: перевірено {result['checked']}, "
+            f"оновлено {result['updated']}, не знайдено {result['not_found']}",
+        )
+    else:
+        messages.error(request, f"Помилка: {result.get('error')}")
+
+    return redirect("custom_admin:evrodim")
+
+
 # ── Kreslalux scraper views ───────────────────────────────────────────────────
 
 @login_required

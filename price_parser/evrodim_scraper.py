@@ -665,3 +665,59 @@ class EvrodimScraper:
 
         stats["success"] = True
         return stats
+
+    # ── Params update ─────────────────────────────────────────────────────────
+
+    def update_params(self, subcategory_slug: str) -> Dict:
+        """Оновлює характеристики (включно з Розмірами) для вже імпортованих товарів."""
+        from furniture.models import Furniture
+        from params.models import FurnitureParameter, Parameter
+
+        self._log("Оновлення характеристик Evrodim...")
+
+        furniture_map: Dict[str, int] = {
+            f.article_code: f.id
+            for f in Furniture.objects.filter(sub_category__slug=subcategory_slug)
+            .only("id", "article_code")
+            if f.article_code
+        }
+
+        if not furniture_map:
+            return {"success": False, "error": "Немає товарів — спочатку запустіть import"}
+
+        all_urls = self.collect_product_urls()
+        stats = {"checked": 0, "updated": 0, "not_found": 0}
+
+        for idx, url in enumerate(all_urls, 1):
+            self._log(f"[{idx}/{len(all_urls)}] {url}")
+            time.sleep(REQUEST_DELAY)
+
+            product = self.scrape_product(url)
+            if not product:
+                continue
+
+            furniture_id = furniture_map.get(product.article_code)
+            if not furniture_id:
+                stats["not_found"] += 1
+                continue
+
+            stats["checked"] += 1
+            if not product.params:
+                continue
+
+            for param_label, param_value in product.params.items():
+                if not param_label or not param_value:
+                    continue
+                key = slugify(_transliterate(param_label))[:100] or f"param_{abs(hash(param_label))}"
+                param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": param_label})
+                FurnitureParameter.objects.update_or_create(
+                    furniture_id=furniture_id,
+                    parameter=param,
+                    defaults={"value": param_value},
+                )
+
+            self._log(f"  {product.article_code}: {len(product.params)} параметрів")
+            stats["updated"] += 1
+
+        stats["success"] = True
+        return stats

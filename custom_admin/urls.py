@@ -62,6 +62,7 @@ urlpatterns = [
     path("palette-colors/bulk-edit/", views.palette_colors_bulk_edit, name="palette_colors_bulk_edit"),
     path("evrodim/", views.evrodim_page, name="evrodim"),
     path("evrodim/update-prices/", views.evrodim_update_prices, name="evrodim_update_prices"),
+    path("evrodim/update-params/", views.evrodim_update_params, name="evrodim_update_params"),
     path("kreslalux/", views.kreslalux_page, name="kreslalux"),
     path("eurosof-prices/", views.eurosof_price_config, name="eurosof_price_config"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
