@@ -4,7 +4,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 from curl_cffi import requests as cffi_requests
@@ -28,8 +28,6 @@ CYRILLIC_MAP = {
     "ш": "sh", "щ": "shch", "ь": "", "ю": "yu", "я": "ya",
 }
 
-_SIZE_SUFFIX_RE = re.compile(r"-\d+x\d+(\.[A-Za-z]+)$")
-
 SUBCATEGORY_CONFIG = {
     "slug": "stoly-evrodim",
     "name": "Столи (Evrodim)",
@@ -37,22 +35,40 @@ SUBCATEGORY_CONFIG = {
 }
 
 # Шаблонні фрагменти Evrodim, які видаляємо з опису.
-# Паттерни працюють на нормалізованому тексті (пробіл замість \n).
 _DESC_STRIP_PATTERNS: List[re.Pattern] = [
     re.compile(r"Країна\s+виробництва\s*:\s*\S+\.?", re.I),
     re.compile(r"Товар знаходиться\s+на складі в Україні\.?", re.I),
     re.compile(r"Продавець\s*:\s*Evrodim\.?", re.I),
     re.compile(r"Умови оплати,?\s*доставки та повернення\s*[—–-]\s*на сайті\.?", re.I),
     re.compile(r"Теги\s*:.*", re.I | re.S),
+    # Назви бренду (латиниця та кирилиця)
+    re.compile(r"«?[ЄЕ]вродім»?", re.I),
+    re.compile(r"\bevrodim\b", re.I),
 ]
+
+# Ключові слова для мітки кольору/матеріалу варіанту
+_COLOR_RE = re.compile(
+    r"\b(grey|gray|beige|white|black|brown|blue|green|red|gold|silver|"
+    r"glossy|gloss|satin|snow|stone|marble|oak|walnut|ash|ceramic|"
+    r"mountain|cream|sand|anthracite|wenge|natural|ivory)\b",
+    re.I,
+)
+
+# Заголовки секцій у блоці характеристик (не є парами ключ-значення)
+_PARAM_SECTION_HEADERS = {"характеристики", "розміри"}
+
+_SIZE_SUFFIX_RE = re.compile(r"-\d+x\d+(\.[A-Za-z]+)$")
 
 
 @dataclass
 class EvrodimProduct:
     url: str
     name: str
-    article_code: str
+    article_code: str       # EVR-{product_id} — унікальний
+    base_model_name: str    # Код товару (T-904) — для групування варіантів
+    variant_label: str      # Колір/стиль для чіпа (Grey Gloss, Beige…)
     price: Decimal
+    sale_price: Optional[Decimal] = None
     description: str = ""
     params: Dict[str, str] = field(default_factory=dict)
     image_urls: List[str] = field(default_factory=list)
@@ -62,10 +78,10 @@ def _transliterate(value: str) -> str:
     return "".join(CYRILLIC_MAP.get(ch.lower(), ch) for ch in value)
 
 
-def _parse_price(text: str) -> Optional[Decimal]:
+def _parse_price_text(text: str) -> Optional[Decimal]:
     if not text:
         return None
-    cleaned = re.sub(r"[^\d]", "", text.replace("\xa0", "").replace(",", "").replace(".", ""))
+    cleaned = re.sub(r"[^\d]", "", text.replace("\xa0", ""))
     if not cleaned:
         return None
     try:
@@ -74,21 +90,45 @@ def _parse_price(text: str) -> Optional[Decimal]:
         return None
 
 
-def _strip_size_suffix(url: str) -> str:
-    """'img-700x700.jpg' → 'img.jpg' (original size)."""
-    m = _SIZE_SUFFIX_RE.search(url)
-    if m:
-        return url[: m.start()] + m.group(1)
-    return url
-
-
 def _clean_description(text: str) -> str:
-    """Видаляє шаблонні рядки Evrodim з опису товару."""
-    # Нормалізуємо пробіли/переноси для надійного пошуку паттернів
     normalized = re.sub(r"\s+", " ", text)
     for pattern in _DESC_STRIP_PATTERNS:
         normalized = pattern.sub("", normalized)
     return re.sub(r"\s{2,}", " ", normalized).strip()
+
+
+def _extract_variant_label(name: str) -> str:
+    """Витягує мітку кольору/стилю з назви товару. Додає 'Mini' якщо є в назві."""
+    matches = _COLOR_RE.findall(name)
+    if matches:
+        seen: set = set()
+        unique = []
+        for m in matches:
+            key = m.lower()
+            if key not in seen:
+                seen.add(key)
+                unique.append(m.title())
+        label = " ".join(unique[:3])
+    else:
+        # Fallback: перша латинська послідовність (не артикул)
+        m = re.search(r"[A-Za-z][A-Za-z\s]{3,20}", name)
+        label = m.group().strip() if m else ""
+
+    if re.search(r"\bMini\b", name, re.I) and "Mini" not in label:
+        label = (label + " Mini").strip()
+    return label
+
+
+def _compute_base_model_name(kod_tovaru: str, name: str) -> str:
+    """Ключ групування варіантів. Основний — Код товару; fallback — нормалізована назва."""
+    if kod_tovaru:
+        return kod_tovaru
+    # Прибираємо кольори, Mini і артикули → залишаємо «скелет» назви
+    normalized = _COLOR_RE.sub("", name)
+    normalized = re.sub(r"\bMini\b", "", normalized, flags=re.I)
+    normalized = re.sub(r"\b[A-Z][A-Z0-9]{1,}-\d+[A-Z0-9\-]*\b", "", normalized)  # T-904, DF505-2T…
+    normalized = re.sub(r"\s+", " ", normalized).strip(" ,–—-")
+    return normalized or name[:60]
 
 
 def _generate_slug(name: str) -> str:
@@ -152,7 +192,7 @@ class EvrodimScraper:
                 if href and href not in seen:
                     seen.add(href)
                     urls.append(href)
-                    break  # one unique URL per card
+                    break
         return urls
 
     def collect_product_urls(self, limit: Optional[int] = None) -> List[str]:
@@ -213,12 +253,14 @@ class EvrodimScraper:
             return None
 
         # Filter: only Generic manufacturer
-        manufacturer = self._parse_manufacturer(soup)
-        if manufacturer.lower() != "generic":
+        if self._parse_manufacturer(soup).lower() != "generic":
             return None
 
         article_code = self._parse_article_code(soup, url)
-        price = self._parse_price_from_page(soup)
+        kod_tovaru = self._parse_base_model_name(soup)
+        base_model_name = _compute_base_model_name(kod_tovaru, name)
+        variant_label = _extract_variant_label(name)
+        price, sale_price = self._parse_prices(soup)
         description = self._parse_description(soup)
         params = self._parse_params(soup)
         image_urls = self._extract_images(soup)
@@ -227,7 +269,10 @@ class EvrodimScraper:
             url=url,
             name=name,
             article_code=article_code,
+            base_model_name=base_model_name,
+            variant_label=variant_label,
             price=price,
+            sale_price=sale_price,
             description=description,
             params=params,
             image_urls=image_urls,
@@ -242,27 +287,42 @@ class EvrodimScraper:
         return ""
 
     def _parse_article_code(self, soup: BeautifulSoup, url: str) -> str:
+        """EVR-{product_id} з URL — унікальний для кожного товару.
+        Fallback — MD5 від URL.
+        """
+        m = re.search(r"product_id=(\d+)", url)
+        if m:
+            return f"EVR-{m.group(1)}"
+        return f"EVR-{hashlib.md5(url.encode()).hexdigest()[:8]}"
+
+    def _parse_base_model_name(self, soup: BeautifulSoup) -> str:
+        """'Код товару' зі сторінки (T-904) — спільний для кольорових варіантів."""
         for el in soup.find_all(string=re.compile("Код товару")):
             parent = el.parent
-            text = parent.parent.get_text(strip=True) if parent.parent else parent.get_text(strip=True)
+            text = (parent.parent.get_text(strip=True) if parent.parent else parent.get_text(strip=True))
             m = re.search(r"Код товару[:\s]*(.+)", text)
             if m:
                 code = m.group(1).strip()
                 if code:
-                    return f"EVR-{code}"
-        # fallback: product_id from URL
-        m = re.search(r"product_id=(\d+)", url)
-        return f"EVR-{m.group(1)}" if m else f"EVR-{hashlib.md5(url.encode()).hexdigest()[:8]}"
+                    return code
+        return ""
 
-    def _parse_price_from_page(self, soup: BeautifulSoup) -> Decimal:
-        price_block = soup.select_one(".rm-product-center-price")
-        if price_block:
-            span = price_block.select_one("span")
-            if span:
-                parsed = _parse_price(span.get_text(strip=True))
-                if parsed:
-                    return parsed
-        return Decimal("0")
+    def _parse_prices(self, soup: BeautifulSoup) -> Tuple[Decimal, Optional[Decimal]]:
+        """Повертає (regular_price, sale_price). sale_price=None якщо акції немає."""
+        old_el = soup.select_one(".rm-product-center-price-old")
+        new_el = soup.select_one(".rm-product-mobile-fixed-price-new")
+
+        if old_el and new_el:
+            regular = _parse_price_text(old_el.get_text(strip=True)) or Decimal("0")
+            sale = _parse_price_text(new_el.get_text(strip=True))
+            if sale and sale < regular:
+                return regular, sale
+            return regular, None
+
+        # Немає знижки — одна ціна
+        price_el = soup.select_one(".rm-product-center-price span")
+        price = _parse_price_text(price_el.get_text(strip=True)) if price_el else Decimal("0")
+        return price or Decimal("0"), None
 
     def _parse_description(self, soup: BeautifulSoup) -> str:
         desc_el = soup.select_one("#product_description.rm-product-tabs-description")
@@ -277,13 +337,19 @@ class EvrodimScraper:
         attrs_el = soup.select_one(".rm-product-tabs-attributtes-list")
         if not attrs_el:
             return params
-        items = attrs_el.get_text(separator="|", strip=True).split("|")
-        # skip leading "Характеристики" header
-        start = 1 if items and items[0].strip().lower() == "характеристики" else 0
-        i = start
+        items = [it.strip() for it in attrs_el.get_text(separator="|", strip=True).split("|") if it.strip()]
+        i = 0
         while i < len(items) - 1:
-            key = items[i].strip()
-            val = items[i + 1].strip()
+            key = items[i]
+            # Пропускаємо заголовки секцій (Характеристики, Розміри…)
+            if key.lower() in _PARAM_SECTION_HEADERS:
+                i += 1
+                continue
+            val = items[i + 1]
+            # Якщо значення теж є заголовком секції — пропускаємо тільки ключ
+            if val.lower() in _PARAM_SECTION_HEADERS:
+                i += 1
+                continue
             if key and val:
                 params[key] = val
                 i += 2
@@ -294,7 +360,6 @@ class EvrodimScraper:
     def _extract_images(self, soup: BeautifulSoup) -> List[str]:
         image_urls: List[str] = []
         seen: set = set()
-
         for img in soup.select(".oct-gallery img"):
             src = img.get("src", "")
             if not src or "50x50" in src or "Банер" in src:
@@ -302,7 +367,6 @@ class EvrodimScraper:
             if src not in seen:
                 seen.add(src)
                 image_urls.append(src)
-
         return image_urls
 
     # ── Subcategory auto-create ───────────────────────────────────────────────
@@ -323,11 +387,7 @@ class EvrodimScraper:
                 f"Створіть її або вкажіть правильну назву в SUBCATEGORY_CONFIG."
             )
 
-        sub = SubCategory.objects.create(
-            slug=slug,
-            name=cfg["name"],
-            category=category,
-        )
+        sub = SubCategory.objects.create(slug=slug, name=cfg["name"], category=category)
         self._log(f"Створено підкатегорію: {sub.name} ({sub.slug})")
         return sub
 
@@ -368,6 +428,21 @@ class EvrodimScraper:
             content.seek(0)
             return False
 
+    # ── Promo sync ────────────────────────────────────────────────────────────
+
+    def _apply_promo(self, furniture, product: EvrodimProduct) -> List[str]:
+        """Оновлює is_promotional / promotional_price. Повертає змінені поля."""
+        is_promo = product.sale_price is not None
+        fields = []
+        if furniture.is_promotional != is_promo:
+            furniture.is_promotional = is_promo
+            fields.append("is_promotional")
+        target_price = product.sale_price if is_promo else None
+        if furniture.promotional_price != target_price:
+            furniture.promotional_price = target_price
+            fields.append("promotional_price")
+        return fields
+
     # ── Import ────────────────────────────────────────────────────────────────
 
     def run_import(
@@ -376,7 +451,7 @@ class EvrodimScraper:
         dry_run: bool = False,
         limit: Optional[int] = None,
     ) -> Dict:
-        from furniture.models import Furniture, FurnitureImage
+        from furniture.models import Furniture
         from params.models import FurnitureParameter, Parameter
 
         sub_category = None
@@ -386,10 +461,20 @@ class EvrodimScraper:
             except RuntimeError as exc:
                 return {"success": False, "error": str(exc)}
 
+        # Завантажуємо існуючих лідерів варіантних груп із БД
+        # base_model_name → Furniture (лідер групи)
+        leaders: Dict[str, "Furniture"] = {}
+        if not dry_run:
+            for f in Furniture.objects.filter(
+                sub_category__slug=subcategory_slug,
+                variant_group_leader__isnull=True,
+            ).exclude(base_model_name=""):
+                leaders[f.base_model_name] = f
+
         all_urls = self.collect_product_urls(limit=limit)
         self._log(f"Обробляємо {len(all_urls)} сторінок товарів...")
 
-        stats = {"created": 0, "updated": 0, "skipped": 0, "not_table": 0, "errors": []}
+        stats = {"created": 0, "variants": 0, "updated": 0, "skipped": 0, "not_table": 0, "errors": []}
 
         for idx, url in enumerate(all_urls, 1):
             self._log(f"[{idx}/{len(all_urls)}] {url}")
@@ -400,17 +485,39 @@ class EvrodimScraper:
                 stats["not_table"] += 1
                 continue
 
-            existing = Furniture.objects.filter(article_code=product.article_code).first()
+            sale_info = f" [акція: {product.sale_price} грн]" if product.sale_price else ""
 
+            # Вже існує в БД
+            existing = Furniture.objects.filter(article_code=product.article_code).first()
             if existing:
                 changed = self._update_existing(existing, product, dry_run)
                 stats["updated" if changed else "skipped"] += 1
                 continue
 
             if dry_run:
-                self._log(f"  [DRY-RUN] {product.name} ({product.article_code}) — {product.price} грн")
-                stats["created"] += 1
+                is_variant = product.base_model_name in leaders if leaders else False
+                role = "ВАРІАНТ" if is_variant else "ЛІДЕР"
+                self._log(
+                    f"  [DRY-RUN] {role} {product.name} ({product.article_code})"
+                    f" [{product.base_model_name}] — {product.price} грн{sale_info}"
+                )
+                # В dry-run моделюємо: перший з base_model_name стає лідером
+                if product.base_model_name and product.base_model_name not in leaders:
+                    leaders[product.base_model_name] = True  # type: ignore[assignment]
+                    stats["created"] += 1
+                else:
+                    stats["variants"] += 1
                 continue
+
+            # Визначаємо роль: лідер або варіант
+            leader = leaders.get(product.base_model_name) if product.base_model_name else None
+
+            promo_fields: Dict = {}
+            if product.sale_price:
+                promo_fields = {
+                    "is_promotional": True,
+                    "promotional_price": product.sale_price,
+                }
 
             furniture = Furniture.objects.create(
                 name=product.name,
@@ -420,37 +527,60 @@ class EvrodimScraper:
                 price=product.price,
                 description=product.description or product.name,
                 stock_status="in_stock",
+                base_model_name=product.base_model_name,
+                variant_label=product.variant_label,
+                variant_group_leader=leader,
+                **promo_fields,
             )
 
-            for param_label, param_value in product.params.items():
-                if not param_label or not param_value:
-                    continue
-                key = slugify(_transliterate(param_label))[:100] or f"param_{abs(hash(param_label))}"
-                param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": param_label})
-                FurnitureParameter.objects.update_or_create(
-                    furniture=furniture,
-                    parameter=param,
-                    defaults={"value": param_value},
-                )
+            if product.params:
+                for param_label, param_value in product.params.items():
+                    if not param_label or not param_value:
+                        continue
+                    key = slugify(_transliterate(param_label))[:100] or f"param_{abs(hash(param_label))}"
+                    param, _ = Parameter.objects.get_or_create(key=key, defaults={"label": param_label})
+                    FurnitureParameter.objects.update_or_create(
+                        furniture=furniture,
+                        parameter=param,
+                        defaults={"value": param_value},
+                    )
 
             self._save_images(furniture, product.image_urls)
-            self._log(f"  Створено: {furniture.name} ({furniture.article_code})")
-            stats["created"] += 1
+
+            if leader:
+                self._log(
+                    f"  Варіант: {furniture.name} ({furniture.article_code})"
+                    f" → лідер {leader.article_code}{sale_info}"
+                )
+                stats["variants"] += 1
+            else:
+                self._log(f"  Лідер: {furniture.name} ({furniture.article_code}){sale_info}")
+                if product.base_model_name:
+                    leaders[product.base_model_name] = furniture
+                stats["created"] += 1
 
         stats["success"] = True
         return stats
 
     def _update_existing(self, furniture, product: EvrodimProduct, dry_run: bool) -> bool:
-        from furniture.models import FurnitureImage
-
         changed = False
+        update_fields = []
 
         if product.price and furniture.price != product.price:
             if not dry_run:
                 furniture.price = product.price
-                furniture.save(update_fields=["price"])
+                update_fields.append("price")
             self._log(f"  Оновлено ціну: {product.price}")
             changed = True
+
+        if not dry_run:
+            promo_fields = self._apply_promo(furniture, product)
+            update_fields.extend(promo_fields)
+            if promo_fields:
+                changed = True
+
+        if update_fields and not dry_run:
+            furniture.save(update_fields=update_fields)
 
         if not furniture.image and product.image_urls:
             if not dry_run:
@@ -493,14 +623,13 @@ class EvrodimScraper:
 
         furniture_map: Dict[str, Furniture] = {
             f.article_code: f
-            for f in Furniture.objects.filter(
-                sub_category__slug=subcategory_slug
-            ).only("id", "article_code", "price")
+            for f in Furniture.objects.filter(sub_category__slug=subcategory_slug)
+            .only("id", "article_code", "price", "is_promotional", "promotional_price")
             if f.article_code
         }
 
         if not furniture_map:
-            return {"success": False, "error": "Немає товарів у підкатегорії — спочатку запустіть import"}
+            return {"success": False, "error": "Немає товарів — спочатку запустіть import"}
 
         all_urls = self.collect_product_urls()
         stats = {"checked": 0, "updated": 0, "not_found": 0, "errors": []}
@@ -519,10 +648,19 @@ class EvrodimScraper:
                 continue
 
             stats["checked"] += 1
+            update_fields = []
+
             if product.price and furniture.price != product.price:
                 furniture.price = product.price
-                furniture.save(update_fields=["price"])
-                self._log(f"  {furniture.article_code}: {product.price} грн")
+                update_fields.append("price")
+
+            promo_fields = self._apply_promo(furniture, product)
+            update_fields.extend(promo_fields)
+
+            if update_fields:
+                furniture.save(update_fields=update_fields)
+                sale_info = f" → акція {product.sale_price} грн" if product.sale_price else ""
+                self._log(f"  {furniture.article_code}: {product.price} грн{sale_info}")
                 stats["updated"] += 1
 
         stats["success"] = True
