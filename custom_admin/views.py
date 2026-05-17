@@ -209,6 +209,7 @@ class SectionListView(SectionMixin, ListView):
             }
             context["furniture_bulk_edit_url"] = reverse("custom_admin:furniture_bulk_edit")
             context["furniture_variants_url"] = reverse("custom_admin:furniture_variants")
+            context["furniture_palettes_url"] = reverse("custom_admin:furniture_palettes")
             context["column_span"] += 1
         if self.section.slug == "fabric-color-palettes":
             context["palette_colors_bulk_add_url"] = reverse("custom_admin:palette_colors_bulk_add")
@@ -921,6 +922,100 @@ def furniture_bulk_edit_apply(request):
 
     messages.success(request, f"Зміни збережено для {len(selected_ids)} товарів.")
     return redirect("custom_admin:list", section_slug="furniture")
+
+
+@login_required
+def furniture_palettes(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from django.core.paginator import Paginator
+    from fabric_category.models import FabricColorPalette
+    from furniture.models import Furniture
+
+    palettes = FabricColorPalette.objects.filter(is_active=True).order_by("name")
+    sub_categories = SubCategory.objects.order_by("name")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        selected_ids = request.POST.getlist("selected_furniture")
+        palette_id_raw = request.POST.get("palette_id", "").strip()
+        get_params = request.POST.get("get_params", "")
+
+        if not selected_ids:
+            messages.warning(request, "Виберіть хоча б один товар.")
+        elif action in ("add_palette", "remove_palette") and not palette_id_raw:
+            messages.warning(request, "Виберіть палітру.")
+        else:
+            qs = Furniture.objects.filter(pk__in=selected_ids)
+            count = qs.count()
+
+            if action == "add_palette":
+                try:
+                    palette = FabricColorPalette.objects.get(pk=int(palette_id_raw))
+                    for f in qs:
+                        f.color_palettes.add(palette)
+                    messages.success(request, f"Палітру «{palette.name}» додано до {count} товарів.")
+                except (FabricColorPalette.DoesNotExist, ValueError):
+                    messages.error(request, "Палітру не знайдено.")
+
+            elif action == "remove_palette":
+                try:
+                    palette = FabricColorPalette.objects.get(pk=int(palette_id_raw))
+                    for f in qs:
+                        f.color_palettes.remove(palette)
+                    messages.success(request, f"Палітру «{palette.name}» видалено з {count} товарів.")
+                except (FabricColorPalette.DoesNotExist, ValueError):
+                    messages.error(request, "Палітру не знайдено.")
+
+            elif action == "clear_promo":
+                for f in qs:
+                    if f.is_promotional:
+                        f.is_promotional = False
+                        f.promotional_price = None
+                        f.sale_end_date = None
+                        f.save(update_fields=["is_promotional", "promotional_price", "sale_end_date"])
+                messages.success(request, f"Акційний флаг знято з {count} товарів.")
+
+        redirect_url = request.path
+        if get_params:
+            redirect_url += "?" + get_params
+        return redirect(redirect_url)
+
+    qs = (
+        Furniture.objects.prefetch_related("color_palettes")
+        .select_related("sub_category")
+        .order_by("name")
+    )
+
+    search = request.GET.get("q", "").strip()
+    if search:
+        qs = qs.filter(Q(name__icontains=search) | Q(article_code__icontains=search))
+
+    sub_cat_id = request.GET.get("sub_category", "").strip()
+    if sub_cat_id:
+        try:
+            qs = qs.filter(sub_category_id=int(sub_cat_id))
+        except ValueError:
+            pass
+
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    querydict = request.GET.copy()
+    querydict.pop("page", None)
+    current_query_string = querydict.urlencode()
+
+    return render(request, "custom_admin/furniture_palettes.html", {
+        "sections": list(registry.all()),
+        "palettes": palettes,
+        "sub_categories": sub_categories,
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        "search_query": search,
+        "selected_sub_category": sub_cat_id,
+        "current_query_string": current_query_string,
+    })
 
 
 def redirect_to_dashboard(request):

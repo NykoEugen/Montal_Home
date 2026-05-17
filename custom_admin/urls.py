@@ -57,6 +57,7 @@ urlpatterns = [
     ),
     path("furniture/bulk-edit/", views.furniture_bulk_edit, name="furniture_bulk_edit"),
     path("furniture/bulk-edit/apply/", views.furniture_bulk_edit_apply, name="furniture_bulk_edit_apply"),
+    path("furniture/palettes/", views.furniture_palettes, name="furniture_palettes"),
     path("furniture/variants/", views.furniture_variants, name="furniture_variants"),
     path("palette-colors/bulk-add/", views.palette_colors_bulk_add, name="palette_colors_bulk_add"),
     path("palette-colors/bulk-edit/", views.palette_colors_bulk_edit, name="palette_colors_bulk_edit"),

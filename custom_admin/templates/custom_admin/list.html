@@ -17,6 +17,11 @@
             <i class="fa-solid fa-layer-group mr-2"></i> Варіанти
         </a>
         {% endif %}
+        {% if furniture_palettes_url %}
+        <a href="{{ furniture_palettes_url }}" class="inline-flex items-center px-4 py-2 border border-beige-300 text-brown-600 rounded-md hover:bg-beige-100">
+            <i class="fa-solid fa-swatchbook mr-2"></i> Покриття
+        </a>
+        {% endif %}
         {% if palette_colors_bulk_add_url %}
         <a href="{{ palette_colors_bulk_add_url }}" class="inline-flex items-center px-4 py-2 border border-brown-400 text-brown-700 rounded-md hover:bg-beige-100">
             <i class="fa-solid fa-plus-circle mr-2"></i> Масове додавання кольорів
