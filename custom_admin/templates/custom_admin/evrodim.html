@@ -92,19 +92,32 @@
             Може займати ~5–10 хв. Нові товари не створюються.
         </p>
 
-        <form method="post" action="{% url 'custom_admin:evrodim_update_prices' %}"
-              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Оновлення...'">
-            {% csrf_token %}
-            <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors">
-                <i class="fa-solid fa-rotate"></i>
-                Оновити ціни зараз
-            </button>
-        </form>
+        <div class="flex flex-wrap gap-3">
+            <form method="post" action="{% url 'custom_admin:evrodim_update_prices' %}"
+                  onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Оновлення...'">
+                {% csrf_token %}
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors">
+                    <i class="fa-solid fa-rotate"></i>
+                    Оновити ціни
+                </button>
+            </form>
+            <form method="post" action="{% url 'custom_admin:evrodim_update_params' %}"
+                  onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Оновлення...'">
+                {% csrf_token %}
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-brown-600 text-white text-sm rounded-md hover:bg-brown-700 transition-colors">
+                    <i class="fa-solid fa-list"></i>
+                    Оновити характеристики
+                </button>
+            </form>
+        </div>
 
         <div class="mt-4 space-y-2">
             <p class="text-xs font-medium text-brown-600 mt-3">Або локально:</p>
             <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_evrodim_tables --update-prices</code>
+            <p class="text-xs font-medium text-brown-600 mt-3">Оновити характеристики (Розміри тощо):</p>
+            <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_evrodim_tables --update-params</code>
             <p class="text-xs font-medium text-brown-600 mt-3">На продакшн БД:</p>
             <code class="block bg-brown-900 text-green-300 rounded px-3 py-2 text-xs select-all">python manage.py import_evrodim_tables --database-url postgres://...</code>
         </div>

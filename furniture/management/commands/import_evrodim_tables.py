@@ -29,6 +29,11 @@ class Command(BaseCommand):
             help="Тільки оновити ціни існуючих товарів",
         )
         parser.add_argument(
+            "--update-params",
+            action="store_true",
+            help="Тільки оновити характеристики (Розміри тощо) існуючих товарів",
+        )
+        parser.add_argument(
             "--database-url",
             metavar="URL",
             help="URL продакшн БД (postgres://user:pass@host/db)",
@@ -48,11 +53,14 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         limit = options.get("limit")
         update_only = options["update_prices"]
+        update_params = options["update_params"]
 
         scraper = EvrodimScraper()
         scraper.set_progress_callback(lambda msg: self.stdout.write(msg))
 
-        if update_only:
+        if update_params:
+            result = scraper.update_params(subcategory_slug)
+        elif update_only:
             result = scraper.update_prices(subcategory_slug)
         else:
             self.stdout.write(
@@ -71,7 +79,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Помилка: {result.get('error')}"))
             return
 
-        if update_only:
+        if update_params:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Характеристики оновлено: перевірено={result['checked']}, "
+                    f"оновлено={result['updated']}, не знайдено={result['not_found']}"
+                )
+            )
+        elif update_only:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Ціни оновлено: перевірено={result['checked']}, "
