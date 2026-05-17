@@ -463,11 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
         stockLabel.textContent = targetText;
     }
 
-    const priceContainer = priceEl ? priceEl.parentElement : null;
-    const baseIsOnSale = priceContainer?.getAttribute('data-base-is-on-sale') === 'true';
-    const baseOriginalPrice = parseFloat(priceContainer?.getAttribute('data-base-original-price') || '0');
-
     function recompute() {
+        const priceContainer = priceEl ? priceEl.parentElement : null;
+        const baseIsOnSale = priceContainer?.getAttribute('data-base-is-on-sale') === 'true';
+        const baseOriginalPrice = parseFloat(
+            (priceContainer?.getAttribute('data-base-original-price') || '0').replace(/\s/g, '').replace(',', '.')
+        );
+
         let total = selectedPrice;
         let originalTotal = selectedPrice;
 
