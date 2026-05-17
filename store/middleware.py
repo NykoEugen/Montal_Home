@@ -34,38 +34,6 @@ class ConnectionResilienceMiddleware(MiddlewareMixin):
         )
     
     def process_request(self, request):
-        """Process incoming request and check connection health."""
-        # Skip connection check for static files and health checks
-        if (request.path.startswith('/static/') or 
-            request.path.startswith('/media/') or
-            request.path.startswith('/health/')):
-            return None
-        
-        # Check database connection
-        try:
-            if not check_database_connection():
-                logger.warning("Database connection lost, attempting reconnection")
-                ensure_database_connection()
-        except Exception as e:
-            logger.error(f"Failed to reconnect to database: {e}")
-            
-            # Handle different types of requests
-            if request.path.startswith('/admin/'):
-                messages.error(request, "Database connection lost. Please refresh the page.")
-            elif request.method == 'POST':
-                # For POST requests, save the data and return error
-                self._handle_post_connection_failure(request)
-                return JsonResponse({
-                    'error': 'Connection lost',
-                    'message': 'Your data has been saved. Please try again.',
-                    'retry_available': True
-                }, status=503)
-            else:
-                return JsonResponse({
-                    'error': 'Service temporarily unavailable',
-                    'message': 'Please try again in a moment'
-                }, status=503)
-        
         return None
     
     def process_response(self, request, response):
@@ -160,27 +128,6 @@ class AdminConnectionMonitorMiddleware(MiddlewareMixin):
     """
     
     def process_request(self, request):
-        """Monitor admin panel requests."""
-        if not request.path.startswith('/admin/'):
-            return None
-        
-        # Check connection status for admin requests
-        try:
-            db_connected = check_database_connection()
-            
-            if not db_connected:
-                logger.warning("Admin panel request with disconnected database")
-                
-                # Add warning message for admin users
-                if hasattr(request, 'user') and request.user.is_authenticated:
-                    messages.warning(
-                        request, 
-                        "Database connection lost. Some features may not work properly."
-                    )
-        
-        except Exception as e:
-            logger.error(f"Admin connection monitoring failed: {e}")
-        
         return None
     
     def process_response(self, request, response):

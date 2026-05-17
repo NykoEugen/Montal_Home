@@ -177,7 +177,11 @@ def admin_retry_failed_operations_view(request):
             if operation_type == 'clear_drafts':
                 # Clear all saved drafts
                 from django.core.cache import cache
-                cache.delete_many([key for key in cache._cache.keys() if key.startswith('form_draft_')])
+                try:
+                    cache.delete_pattern("*form_draft_*")
+                except AttributeError:
+                    raw = getattr(cache, '_cache', {})
+                    cache.delete_many([k for k in list(raw.keys()) if "form_draft_" in k])
                 messages.success(request, "All saved drafts have been cleared.")
             elif operation_type == 'retry_connection':
                 # Test database connection
