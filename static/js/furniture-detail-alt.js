@@ -510,21 +510,22 @@ document.addEventListener('DOMContentLoaded', () => {
         originalTotal = originalTotal * q;
         
         if (priceEl) {
-            if (isOnSale && originalTotal > total) {
-                // Show promotional price and original price
+            const showPromo = selectedSizeChip
+                ? (isOnSale && originalTotal > total)
+                : isOnSale;
+            if (showPromo) {
                 priceEl.textContent = Math.round(total) + ' грн';
                 priceEl.className = 'text-3xl text-red-600 font-semibold';
-                
                 if (origEl) {
-                    origEl.textContent = Math.round(originalTotal) + ' грн';
+                    if (originalTotal > total) {
+                        origEl.textContent = Math.round(originalTotal) + ' грн';
+                    }
                     origEl.className = 'text-lg text-brown-500 line-through';
                     origEl.style.display = 'block';
                 }
             } else {
-                // Show regular price
                 priceEl.textContent = Math.round(total) + ' грн';
                 priceEl.className = 'text-3xl text-brown-800 font-semibold';
-                
                 if (origEl) {
                     origEl.style.display = 'none';
                 }
