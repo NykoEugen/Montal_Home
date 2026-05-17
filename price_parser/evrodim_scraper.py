@@ -334,27 +334,15 @@ class EvrodimScraper:
 
     def _parse_params(self, soup: BeautifulSoup) -> Dict[str, str]:
         params: Dict[str, str] = {}
-        attrs_el = soup.select_one(".rm-product-tabs-attributtes-list")
-        if not attrs_el:
-            return params
-        items = [it.strip() for it in attrs_el.get_text(separator="|", strip=True).split("|") if it.strip()]
-        i = 0
-        while i < len(items) - 1:
-            key = items[i]
-            # Пропускаємо заголовки секцій (Характеристики, Розміри…)
-            if key.lower() in _PARAM_SECTION_HEADERS:
-                i += 1
-                continue
-            val = items[i + 1]
-            # Якщо значення теж є заголовком секції — пропускаємо тільки ключ
-            if val.lower() in _PARAM_SECTION_HEADERS:
-                i += 1
-                continue
-            if key and val:
-                params[key] = val
-                i += 2
-            else:
-                i += 1
+        # На сторінці є два окремих блоки з однаковим класом: Характеристики і Розміри
+        for block in soup.select(".rm-product-tabs-attributtes-list"):
+            for item in block.select(".rm-product-tabs-attributtes-list-item"):
+                divs = item.find_all("div", recursive=False)
+                if len(divs) >= 2:
+                    key = divs[0].get_text(strip=True)
+                    val = divs[1].get_text(strip=True)
+                    if key and val:
+                        params[key] = val
         return params
 
     def _extract_images(self, soup: BeautifulSoup) -> List[str]:
