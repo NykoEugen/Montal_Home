@@ -162,10 +162,11 @@ DATABASES = {
         "HOST": os.environ.get("PGHOST"),
         "PORT": os.environ.get("PGPORT", "5432"),
         # Connection optimization settings
-        "CONN_MAX_AGE": 300,  # Keep connections alive for 5 minutes
-        "CONN_HEALTH_CHECKS": True,  # Enable connection health checks
+        "CONN_MAX_AGE": 300,
+        "CONN_HEALTH_CHECKS": True,
+        "DISABLE_SERVER_SIDE_CURSORS": True,
         "OPTIONS": {
-            "connect_timeout": 10,  # Connection timeout in seconds
+            "connect_timeout": 10,
             "application_name": "montal_home",
         }
     }
@@ -176,10 +177,10 @@ if os.getenv("DATABASE_URL"):
     import dj_database_url
     db_config = dj_database_url.parse(
         os.environ["DATABASE_URL"],
-        conn_max_age=300,  # Increased from 60 to 300 seconds
+        conn_max_age=300,
         ssl_require=True
     )
-    # Add additional connection options for production
+    db_config["DISABLE_SERVER_SIDE_CURSORS"] = True
     db_config["OPTIONS"] = {
         "connect_timeout": 10,
         "application_name": "montal_home_prod",
