@@ -1421,3 +1421,68 @@ def eurosof_price_config(request):
     })
 
 
+# ── Divanoff scraper views ────────────────────────────────────────────────────
+
+@login_required
+def divanoff_page(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from furniture.models import Furniture
+
+    sub_cat_furniture = Furniture.objects.filter(
+        sub_category__slug="divany-divanoff"
+    ).order_by("-updated_at")
+
+    return render(request, "custom_admin/divanoff.html", {
+        "sections": list(registry.all()),
+        "furniture_count": sub_cat_furniture.count(),
+        "recent_furniture": sub_cat_furniture[:10],
+    })
+
+
+@login_required
+@require_POST
+def divanoff_update_prices(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import os
+    from price_parser.divanoff_scraper import DivanoffScraper
+
+    xlsx = request.POST.get("xlsx_path", "divanoff_price.xlsx")
+    if not os.path.isabs(xlsx):
+        from django.conf import settings
+        xlsx = os.path.join(settings.BASE_DIR, xlsx)
+
+    if not os.path.exists(xlsx):
+        messages.error(request, f"Файл прайсу не знайдено: {xlsx}")
+        return redirect("custom_admin:divanoff")
+
+    logs: list[str] = []
+    scraper = DivanoffScraper()
+    scraper.set_progress_callback(logs.append)
+
+    try:
+        result = scraper.update_prices(
+            subcategory_slug="divany-divanoff",
+            xlsx_path=xlsx,
+        )
+    except Exception as exc:
+        messages.error(request, f"Помилка під час оновлення: {exc}")
+        return redirect("custom_admin:divanoff")
+
+    if result.get("success"):
+        messages.success(
+            request,
+            f"Ціни оновлено: перевірено {result['checked']}, "
+            f"оновлено {result['updated']}, "
+            f"не знайдено в БД {result['not_found']}, "
+            f"не знайдено в прайсі {result['unmatched']}",
+        )
+    else:
+        messages.error(request, f"Помилка: {result.get('error')}")
+
+    return redirect("custom_admin:divanoff")
+
+

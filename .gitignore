@@ -168,3 +168,6 @@ uploads/
 matro_korpus_mebel.xml
 matro-matras.xml
 r_feed.xml
+
+# Price sheet files
+*.xlsx
