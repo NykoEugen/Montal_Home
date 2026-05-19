@@ -263,7 +263,7 @@ def load_price_rows(xlsx_path: str, price_col: int = PRICE_COL) -> List[PriceRow
     return rows
 
 
-def _optimal_optimal_fabric_step(all_prices: List[Optional[Decimal]]) -> Decimal:
+def _optimal_fabric_step(all_prices: List[Optional[Decimal]]) -> Decimal:
     """Minimum step S (rounded up to whole UAH) such that base + k*S >= actual_price[k].
 
     Iterates over categories 1..7 and picks the largest required step,
