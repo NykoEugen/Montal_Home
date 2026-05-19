@@ -287,7 +287,10 @@ def _ensure_divanoff_brand():
     from fabric_category.models import FabricBrand, FabricCategory
 
     brand, _ = FabricBrand.objects.get_or_create(name="Divanoff")
-    for i, label in enumerate(FABRIC_CATEGORY_LABELS):  # includes Category 0 (i=0)
+    # Category 0 → coeff 1, Category I → coeff 2, …, Category VII → coeff 8.
+    # furniture.price is stored as (price_0 − step), so:
+    #   displayed_price_k = furniture.price + (k+1) × fabric_value ≈ actual_price_k
+    for i, label in enumerate(FABRIC_CATEGORY_LABELS, start=1):
         FabricCategory.objects.get_or_create(
             brand=brand, name=label, defaults={"price": Decimal(str(i))}
         )
@@ -670,12 +673,13 @@ class DivanoffScraper:
                 leader = leaders.get(base_key) if multiple else None
 
                 step = _optimal_fabric_step(pr.all_prices)
+                base_price = (pr.all_prices[0] or pr.price) - step
                 furniture = Furniture.objects.create(
                     name=full_name,
                     article_code=article_code,
                     slug=_generate_slug(full_name),
                     sub_category=sub_category,
-                    price=pr.price,
+                    price=base_price,
                     description=product.description or full_name,
                     stock_status="in_stock",
                     base_model_name=base_key if multiple else "",
@@ -727,8 +731,8 @@ class DivanoffScraper:
         )
 
     def _update_existing(self, furniture, pr: "PriceRow", dry_run: bool) -> bool:
-        new_price = pr.price
         new_step = _optimal_fabric_step(pr.all_prices)
+        new_price = (pr.all_prices[0] or pr.price) - new_step
         if furniture.price == new_price and furniture.fabric_step_raw == new_step:
             return False
         self._log(f"  Оновлено {furniture.article_code}: {furniture.price} → {new_price}")
@@ -796,9 +800,10 @@ class DivanoffScraper:
 
                 stats["checked"] += 1
                 step = _optimal_fabric_step(pr.all_prices)
+                new_price = (pr.all_prices[0] or pr.price) - step
                 update_fields = []
-                if furniture.price != pr.price:
-                    furniture.price = pr.price
+                if furniture.price != new_price:
+                    furniture.price = new_price
                     update_fields.append("price")
                 if furniture.fabric_step_raw != step:
                     furniture.fabric_step_raw = step
