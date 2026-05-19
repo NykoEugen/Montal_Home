@@ -263,20 +263,31 @@ def load_price_rows(xlsx_path: str, price_col: int = PRICE_COL) -> List[PriceRow
     return rows
 
 
-def _fabric_step(all_prices: List[Optional[Decimal]]) -> Decimal:
-    """Raw price step between Category 0 and Category I."""
-    p0 = all_prices[0] if all_prices else None
-    p1 = all_prices[1] if len(all_prices) > 1 else None
-    if p0 and p1 and p1 > p0:
-        return p1 - p0
-    return Decimal("0")
+def _optimal_optimal_fabric_step(all_prices: List[Optional[Decimal]]) -> Decimal:
+    """Minimum step S (rounded up to whole UAH) such that base + k*S >= actual_price[k].
+
+    Iterates over categories 1..7 and picks the largest required step,
+    guaranteeing the displayed price is never below the spreadsheet price.
+    """
+    import math
+
+    base = all_prices[0] if all_prices else None
+    if not base:
+        return Decimal("0")
+    min_step = Decimal("0")
+    for k, price in enumerate(all_prices[1:], start=1):
+        if price and price > base:
+            needed = Decimal(str(math.ceil(float((price - base) / k))))
+            if needed > min_step:
+                min_step = needed
+    return min_step
 
 
 def _ensure_divanoff_brand():
     from fabric_category.models import FabricBrand, FabricCategory
 
     brand, _ = FabricBrand.objects.get_or_create(name="Divanoff")
-    for i, label in enumerate(FABRIC_CATEGORY_LABELS[1:], start=1):
+    for i, label in enumerate(FABRIC_CATEGORY_LABELS):  # includes Category 0 (i=0)
         FabricCategory.objects.get_or_create(
             brand=brand, name=label, defaults={"price": Decimal(str(i))}
         )
@@ -658,7 +669,7 @@ class DivanoffScraper:
 
                 leader = leaders.get(base_key) if multiple else None
 
-                step = _fabric_step(pr.all_prices)
+                step = _optimal_fabric_step(pr.all_prices)
                 furniture = Furniture.objects.create(
                     name=full_name,
                     article_code=article_code,
@@ -672,6 +683,7 @@ class DivanoffScraper:
                     variant_group_leader=leader,
                     selected_fabric_brand=fabric_brand,
                     fabric_step_raw=step,
+                    fabric_value=step,
                 )
 
                 # Specs params
@@ -716,14 +728,15 @@ class DivanoffScraper:
 
     def _update_existing(self, furniture, pr: "PriceRow", dry_run: bool) -> bool:
         new_price = pr.price
-        new_step = _fabric_step(pr.all_prices)
+        new_step = _optimal_fabric_step(pr.all_prices)
         if furniture.price == new_price and furniture.fabric_step_raw == new_step:
             return False
         self._log(f"  Оновлено {furniture.article_code}: {furniture.price} → {new_price}")
         if not dry_run:
             furniture.price = new_price
             furniture.fabric_step_raw = new_step
-            furniture.save(update_fields=["price", "fabric_step_raw"])
+            furniture.fabric_value = new_step
+            furniture.save(update_fields=["price", "fabric_step_raw", "fabric_value"])
         return True
 
     # ── Price update ──────────────────────────────────────────────────────────
@@ -782,14 +795,15 @@ class DivanoffScraper:
                     continue
 
                 stats["checked"] += 1
-                step = _fabric_step(pr.all_prices)
+                step = _optimal_fabric_step(pr.all_prices)
                 update_fields = []
                 if furniture.price != pr.price:
                     furniture.price = pr.price
                     update_fields.append("price")
                 if furniture.fabric_step_raw != step:
                     furniture.fabric_step_raw = step
-                    update_fields.append("fabric_step_raw")
+                    furniture.fabric_value = step
+                    update_fields += ["fabric_step_raw", "fabric_value"]
                 if not furniture.selected_fabric_brand_id:
                     furniture.selected_fabric_brand = fabric_brand
                     update_fields.append("selected_fabric_brand")
