@@ -672,7 +672,6 @@ class DivanoffScraper:
                     variant_group_leader=leader,
                     selected_fabric_brand=fabric_brand,
                     fabric_step_raw=step,
-                    fabric_value=step,
                 )
 
                 # Specs params
@@ -724,8 +723,7 @@ class DivanoffScraper:
         if not dry_run:
             furniture.price = new_price
             furniture.fabric_step_raw = new_step
-            furniture.fabric_value = new_step
-            furniture.save(update_fields=["price", "fabric_step_raw", "fabric_value"])
+            furniture.save(update_fields=["price", "fabric_step_raw"])
         return True
 
     # ── Price update ──────────────────────────────────────────────────────────
@@ -791,8 +789,7 @@ class DivanoffScraper:
                     update_fields.append("price")
                 if furniture.fabric_step_raw != step:
                     furniture.fabric_step_raw = step
-                    furniture.fabric_value = step
-                    update_fields += ["fabric_step_raw", "fabric_value"]
+                    update_fields.append("fabric_step_raw")
                 if not furniture.selected_fabric_brand_id:
                     furniture.selected_fabric_brand = fabric_brand
                     update_fields.append("selected_fabric_brand")
