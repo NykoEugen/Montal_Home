@@ -263,35 +263,23 @@ def load_price_rows(xlsx_path: str, price_col: int = PRICE_COL) -> List[PriceRow
     return rows
 
 
-def _compute_fabric_coefficients(xlsx_path: str, sample_size: int = 10) -> List[Decimal]:
-    """Average relative price increase per category vs Category 0, rounded UP to 1 decimal.
-
-    coeff_k = avg(price_k / price_0 - 1) over sample_size rows with all 8 prices.
-    Result: [coeff_I, coeff_II, ..., coeff_VII] — 7 values.
-    """
+def _per_sofa_step(all_prices: List[Optional[Decimal]]) -> Decimal:
+    """Minimum step S (whole UAH) such that price_0 + k*S >= actual_price[k] for k=1..7."""
     import math
 
-    rows = load_price_rows(xlsx_path)
-    complete = [
-        r for r in rows
-        if len(r.all_prices) == 8 and all(p and p > 0 for p in r.all_prices)
-    ][:sample_size]
-
-    if not complete:
-        return [Decimal(str(round(i * 0.1, 1))) for i in range(1, 8)]
-
-    coefficients = []
-    for k in range(1, 8):
-        avg_ratio = sum(
-            float(r.all_prices[k]) / float(r.all_prices[0]) - 1.0
-            for r in complete
-        ) / len(complete)
-        rounded = Decimal(str(math.ceil(avg_ratio * 10) / 10))
-        coefficients.append(rounded)
-    return coefficients
+    base = all_prices[0] if all_prices else None
+    if not base:
+        return Decimal("0")
+    best = Decimal("0")
+    for k, price in enumerate(all_prices[1:], start=1):
+        if price and price > base:
+            needed = Decimal(str(math.ceil(float((price - base) / k))))
+            if needed > best:
+                best = needed
+    return best
 
 
-def _ensure_divanoff_brand(coefficients: List[Decimal] = None):
+def _ensure_divanoff_brand():
     from fabric_category.models import FabricBrand, FabricCategory
 
     brand, _ = FabricBrand.objects.get_or_create(name="Divanoff")
@@ -304,12 +292,10 @@ def _ensure_divanoff_brand(coefficients: List[Decimal] = None):
         brand=brand, name="Стандарт", defaults={"price": Decimal("0")}
     )
 
-    if coefficients is None:
-        coefficients = [Decimal(str(round(i * 0.1, 1))) for i in range(1, 8)]
-
-    for label, coeff in zip(FABRIC_CATEGORY_LABELS[1:], coefficients):
+    # Fixed integer multipliers 1..7 — easy to read and adjust manually
+    for i, label in enumerate(FABRIC_CATEGORY_LABELS[1:], start=1):
         FabricCategory.objects.update_or_create(
-            brand=brand, name=label, defaults={"price": coeff}
+            brand=brand, name=label, defaults={"price": Decimal(str(i))}
         )
     return brand
 
@@ -612,9 +598,7 @@ class DivanoffScraper:
                 sub_category = self._ensure_subcategory(subcategory_slug)
             except RuntimeError as exc:
                 return {"success": False, "error": str(exc)}
-            coefficients = _compute_fabric_coefficients(xlsx_path)
-            self._log(f"Коефіцієнти тканин: {[str(c) for c in coefficients]}")
-            fabric_brand = _ensure_divanoff_brand(coefficients)
+            fabric_brand = _ensure_divanoff_brand()
 
         price_rows = load_price_rows(xlsx_path, price_col)
         self._log(f"Завантажено {len(price_rows)} рядків з прайсу")
@@ -692,6 +676,7 @@ class DivanoffScraper:
                 leader = leaders.get(base_key) if multiple else None
 
                 price_0 = pr.all_prices[0] or pr.price
+                step = _per_sofa_step(pr.all_prices)
                 furniture = Furniture.objects.create(
                     name=full_name,
                     article_code=article_code,
@@ -704,7 +689,7 @@ class DivanoffScraper:
                     variant_label=variant_label,
                     variant_group_leader=leader,
                     selected_fabric_brand=fabric_brand,
-                    fabric_value=price_0,
+                    fabric_value=step,
                 )
 
                 # Specs params
@@ -749,12 +734,13 @@ class DivanoffScraper:
 
     def _update_existing(self, furniture, pr: "PriceRow", dry_run: bool) -> bool:
         new_price = pr.all_prices[0] or pr.price
-        if furniture.price == new_price and furniture.fabric_value == new_price:
+        new_step = _per_sofa_step(pr.all_prices)
+        if furniture.price == new_price and furniture.fabric_value == new_step:
             return False
         self._log(f"  Оновлено {furniture.article_code}: {furniture.price} → {new_price}")
         if not dry_run:
             furniture.price = new_price
-            furniture.fabric_value = new_price
+            furniture.fabric_value = new_step
             furniture.save(update_fields=["price", "fabric_value"])
         return True
 
@@ -770,9 +756,7 @@ class DivanoffScraper:
 
         self._log("Оновлення цін Divanoff...")
 
-        coefficients = _compute_fabric_coefficients(xlsx_path)
-        self._log(f"Коефіцієнти тканин: {[str(c) for c in coefficients]}")
-        fabric_brand = _ensure_divanoff_brand(coefficients)
+        fabric_brand = _ensure_divanoff_brand()
         price_rows = load_price_rows(xlsx_path, price_col)
         self._log(f"Завантажено {len(price_rows)} рядків з прайсу")
 
@@ -817,10 +801,11 @@ class DivanoffScraper:
 
                 stats["checked"] += 1
                 new_price = pr.all_prices[0] or pr.price
+                new_step = _per_sofa_step(pr.all_prices)
                 update_fields = []
-                if furniture.price != new_price:
+                if furniture.price != new_price or furniture.fabric_value != new_step:
                     furniture.price = new_price
-                    furniture.fabric_value = new_price
+                    furniture.fabric_value = new_step
                     update_fields += ["price", "fabric_value"]
                 if not furniture.selected_fabric_brand_id:
                     furniture.selected_fabric_brand = fabric_brand
