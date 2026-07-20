@@ -339,7 +339,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_USE_SESSIONS = True  # Store CSRF token in session for better reliability
+CSRF_USE_SESSIONS = False  # cookie-based CSRF: avoids forcing a DB session write on every anonymous GET (bots)
 
 # Enhanced cache settings with fallback
 CACHES = {
