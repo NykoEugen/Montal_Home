@@ -49,6 +49,29 @@ from .registry import AdminSection, registry
 from .services import start_job
 
 
+def _bulk_run(configs, updater_cls, method_name: str) -> dict:
+    """Run updater_cls(config).<method_name>() for each config, aggregating results."""
+    success_count = 0
+    errors: list[str] = []
+    for config in configs:
+        try:
+            result = getattr(updater_cls(config), method_name)()
+            if result.get("success"):
+                success_count += 1
+            else:
+                errors.append(
+                    f"{config.name}: {result.get('error', 'невідома помилка')}"
+                )
+        except Exception as exc:
+            errors.append(f"{config.name}: {exc}")
+    return {
+        "success": True,
+        "updated_configs": success_count,
+        "total_configs": configs.count(),
+        "errors": errors,
+    }
+
+
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Ensure the user is authenticated and flagged as staff."""
 
@@ -540,22 +563,14 @@ def update_price_config_prices(request, pk: int):
         "custom_admin:list", kwargs={"section_slug": "price-configs"}
     )
 
-    try:
-        updater = GoogleSheetsPriceUpdater(config)
-        result = updater.update_prices()
-    except Exception as exc:
-        messages.error(request, f"Не вдалося оновити ціни: {exc}")
-        return redirect(redirect_url)
+    def run():
+        return GoogleSheetsPriceUpdater(config).update_prices()
 
-    if result.get("success"):
-        messages.success(
-            request,
-            f"Оновлено {result.get('updated_count', 0)} товарів з {result.get('processed_count', 0)}.",
-        )
+    job = start_job(request, "google_sheet", "update_prices", run, catalog_key=str(pk))
+    if job is None:
+        messages.warning(request, f"Оновлення «{config.name}» вже виконується.")
     else:
-        messages.error(
-            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
-        )
+        messages.info(request, f"Запущено оновлення «{config.name}» у фоні.")
     return redirect(redirect_url)
 
 
@@ -611,21 +626,34 @@ def price_config_bulk_action(request):
         messages.error(request, "Обрані конфігурації не знайдено.")
         return redirect(redirect_url)
 
+    if action not in ("update", "test"):
+        messages.error(request, "Невідома дія.")
+        return redirect(redirect_url)
+
+    if action == "update":
+        config_ids = sorted(configs.values_list("pk", flat=True))
+        catalog_key = "bulk:" + ",".join(str(i) for i in config_ids)
+
+        def run():
+            return _bulk_run(configs, GoogleSheetsPriceUpdater, "update_prices")
+
+        job = start_job(
+            request, "google_sheet", "update_prices", run, catalog_key=catalog_key
+        )
+        if job is None:
+            messages.warning(request, "Масове оновлення вже виконується.")
+        else:
+            messages.info(
+                request,
+                f"Запущено масове оновлення для {configs.count()} конфігурацій у фоні.",
+            )
+        return redirect(redirect_url)
+
     success_count = 0
     errors: list[str] = []
-    action_label = "оновлення" if action == "update" else "тестування"
-
     for config in configs:
         try:
-            updater = GoogleSheetsPriceUpdater(config)
-            if action == "update":
-                result = updater.update_prices()
-            elif action == "test":
-                result = updater.test_parse()
-            else:
-                messages.error(request, "Невідома дія.")
-                return redirect(redirect_url)
-
+            result = GoogleSheetsPriceUpdater(config).test_parse()
             if result.get("success"):
                 success_count += 1
             else:
@@ -638,7 +666,7 @@ def price_config_bulk_action(request):
     if success_count:
         messages.success(
             request,
-            f"Успішно виконано {action_label} для {success_count} конфігурацій.",
+            f"Успішно виконано тестування для {success_count} конфігурацій.",
         )
     if errors:
         preview = " ; ".join(errors[:3])
@@ -660,25 +688,14 @@ def update_supplier_feed_prices(request, pk: int):
         "custom_admin:list", kwargs={"section_slug": "supplier-feeds"}
     )
 
-    try:
-        updater = SupplierFeedPriceUpdater(config)
-        result = updater.update_prices()
-    except Exception as exc:
-        messages.error(request, f"Не вдалося оновити ціни: {exc}")
-        return redirect(redirect_url)
+    def run():
+        return SupplierFeedPriceUpdater(config).update_prices()
 
-    if result.get("success"):
-        messages.success(
-            request,
-            "Оновлено {updated} товарів (збігів {matched}).".format(
-                updated=result.get("items_updated", 0),
-                matched=result.get("items_matched", 0),
-            ),
-        )
+    job = start_job(request, "supplier_feed", "update_prices", run, catalog_key=str(pk))
+    if job is None:
+        messages.warning(request, f"Оновлення «{config.name}» вже виконується.")
     else:
-        messages.error(
-            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
-        )
+        messages.info(request, f"Запущено оновлення «{config.name}» у фоні.")
     return redirect(redirect_url)
 
 
@@ -734,21 +751,34 @@ def supplier_feed_bulk_action(request):
         messages.error(request, "Обрані фіди не знайдено.")
         return redirect(redirect_url)
 
+    if action not in ("update", "test"):
+        messages.error(request, "Невідома дія.")
+        return redirect(redirect_url)
+
+    if action == "update":
+        config_ids = sorted(configs.values_list("pk", flat=True))
+        catalog_key = "bulk:" + ",".join(str(i) for i in config_ids)
+
+        def run():
+            return _bulk_run(configs, SupplierFeedPriceUpdater, "update_prices")
+
+        job = start_job(
+            request, "supplier_feed", "update_prices", run, catalog_key=catalog_key
+        )
+        if job is None:
+            messages.warning(request, "Масове оновлення вже виконується.")
+        else:
+            messages.info(
+                request,
+                f"Запущено масове оновлення для {configs.count()} фідів у фоні.",
+            )
+        return redirect(redirect_url)
+
     success_count = 0
     errors: list[str] = []
-    action_label = "оновлення" if action == "update" else "тестування"
-
     for config in configs:
         try:
-            updater = SupplierFeedPriceUpdater(config)
-            if action == "update":
-                result = updater.update_prices()
-            elif action == "test":
-                result = updater.test_parse()
-            else:
-                messages.error(request, "Невідома дія.")
-                return redirect(redirect_url)
-
+            result = SupplierFeedPriceUpdater(config).test_parse()
             if result.get("success"):
                 success_count += 1
             else:
@@ -758,21 +788,16 @@ def supplier_feed_bulk_action(request):
         except Exception as exc:
             errors.append(f"{config.name}: {exc}")
 
-    total = configs.count()
-    if errors:
-        messages.warning(
+    if success_count:
+        messages.success(
             request,
-            f"{action_label.capitalize()} виконано частково — успішно {success_count} з {total}.",
+            f"Успішно виконано тестування для {success_count} фідів.",
         )
+    if errors:
         preview = " ; ".join(errors[:3])
         if len(errors) > 3:
             preview += " ..."
         messages.error(request, preview)
-    else:
-        messages.success(
-            request,
-            f"{action_label.capitalize()} успішно для {success_count} конфігурацій.",
-        )
     return redirect(redirect_url)
 
 
@@ -785,28 +810,14 @@ def update_supplier_web_prices(request, pk: int):
     config = get_object_or_404(SupplierWebConfig, pk=pk)
     redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-web"})
 
-    try:
-        updater = SupplierWebPriceUpdater(config)
-        result = updater.update_prices()
-    except Exception as exc:
-        messages.error(request, f"Не вдалося оновити ціни: {exc}")
-        return redirect(redirect_url)
-    finally:
-        close_old_connections()
+    def run():
+        return SupplierWebPriceUpdater(config).update_prices()
 
-    if result.get("success"):
-        messages.success(
-            request,
-            "Оновлено {updated} товарів (збігів {matched}, перевірено {processed}).".format(
-                updated=result.get("items_updated", 0),
-                matched=result.get("items_matched", 0),
-                processed=result.get("items_processed", 0),
-            ),
-        )
+    job = start_job(request, "supplier_web", "update_prices", run, catalog_key=str(pk))
+    if job is None:
+        messages.warning(request, f"Оновлення «{config.name}» вже виконується.")
     else:
-        messages.error(
-            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
-        )
+        messages.info(request, f"Запущено оновлення «{config.name}» у фоні.")
     return redirect(redirect_url)
 
 
@@ -860,21 +871,34 @@ def supplier_web_bulk_action(request):
         messages.error(request, "Обрані веб-конфігурації не знайдено.")
         return redirect(redirect_url)
 
+    if action not in ("update", "test"):
+        messages.error(request, "Невідома дія.")
+        return redirect(redirect_url)
+
+    if action == "update":
+        config_ids = sorted(configs.values_list("pk", flat=True))
+        catalog_key = "bulk:" + ",".join(str(i) for i in config_ids)
+
+        def run():
+            return _bulk_run(configs, SupplierWebPriceUpdater, "update_prices")
+
+        job = start_job(
+            request, "supplier_web", "update_prices", run, catalog_key=catalog_key
+        )
+        if job is None:
+            messages.warning(request, "Масове оновлення вже виконується.")
+        else:
+            messages.info(
+                request,
+                f"Запущено масове оновлення для {configs.count()} веб-конфігурацій у фоні.",
+            )
+        return redirect(redirect_url)
+
     success_count = 0
     errors: list[str] = []
-    action_label = "оновлення" if action == "update" else "тестування"
-
     for config in configs:
         try:
-            updater = SupplierWebPriceUpdater(config)
-            if action == "update":
-                result = updater.update_prices()
-            elif action == "test":
-                result = updater.test_parse()
-            else:
-                messages.error(request, "Невідома дія.")
-                return redirect(redirect_url)
-
+            result = SupplierWebPriceUpdater(config).test_parse()
             if result.get("success"):
                 success_count += 1
             else:
@@ -886,21 +910,16 @@ def supplier_web_bulk_action(request):
         finally:
             close_old_connections()
 
-    total = configs.count()
-    if errors:
-        messages.warning(
+    if success_count:
+        messages.success(
             request,
-            f"{action_label.capitalize()} виконано частково — успішно {success_count} з {total}.",
+            f"Успішно виконано тестування для {success_count} веб-конфігурацій.",
         )
+    if errors:
         preview = " ; ".join(errors[:3])
         if len(errors) > 3:
             preview += " ..."
         messages.error(request, preview)
-    else:
-        messages.success(
-            request,
-            f"{action_label.capitalize()} успішно для {success_count} веб-конфігурацій.",
-        )
     return redirect(redirect_url)
 
 
@@ -1251,6 +1270,11 @@ def catalog_updates_page(request):
         "eurosof_jobs": _jobs("eurosof"),
         "eurosof_prices_running": _running("eurosof", "update_prices", "all"),
         "eurosof_import_running": _running("eurosof", "import", "all"),
+        "feed_jobs": list(
+            CatalogUpdateJob.objects.filter(
+                supplier__in=["google_sheet", "supplier_feed", "supplier_web"]
+            )[:8]
+        ),
         "has_running_jobs": CatalogUpdateJob.objects.filter(status="running").exists(),
     }
     return render(request, "custom_admin/catalog_updates.html", context)
