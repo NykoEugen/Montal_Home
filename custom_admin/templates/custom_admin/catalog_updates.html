@@ -190,21 +190,23 @@
     <h2 class="text-lg font-semibold text-brown-900 mb-1">Прайс-фіди за конфігурацією</h2>
     <p class="text-xs text-brown-400 mb-4">
         JEM, Matroluxe та інші постачальники, підключені через конфігурації — там уже є власні кнопки «Оновити»/«Тест».
+        Оновлення (в т.ч. XML/YML-фіди) також виконуються у фоні через потоки.
     </p>
-    <div class="flex flex-wrap gap-3">
+    <div class="flex flex-wrap gap-3 mb-4">
         <a href="{% url 'custom_admin:list' 'price-configs' %}"
            class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
             <i class="fa-solid fa-table"></i> Google Sheets прайси
         </a>
         <a href="{% url 'custom_admin:list' 'supplier-feeds' %}"
            class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
-            <i class="fa-solid fa-file-code"></i> XML-фіди постачальників
+            <i class="fa-solid fa-file-code"></i> XML/YML-фіди постачальників
         </a>
         <a href="{% url 'custom_admin:list' 'supplier-web' %}"
            class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
             <i class="fa-solid fa-globe"></i> Веб-скрапінг постачальників
         </a>
     </div>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=feed_jobs %}
 </div>
 
 {% endblock %}

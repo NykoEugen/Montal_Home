@@ -8,6 +8,9 @@ class CatalogUpdateJob(models.Model):
         ("andersen", "Andersen"),
         ("kreslalux", "Kreslalux"),
         ("eurosof", "Eurosof"),
+        ("google_sheet", "Google Sheets"),
+        ("supplier_feed", "XML/YML фід"),
+        ("supplier_web", "Веб-скрапінг"),
     ]
     ACTION_CHOICES = [
         ("import", "Імпорт нових товарів"),
