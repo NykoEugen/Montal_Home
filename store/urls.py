@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
+from django.views.decorators.cache import cache_page
 from checkout.webhooks import salesdrive_order_status_webhook
 from . import views
 from .admin_utils import admin_connection_status_view, admin_retry_failed_operations_view
@@ -33,7 +34,7 @@ urlpatterns = [
     path("health/", views.health_check, name="health_check"),
     path("health/simple/", views.simple_health_check, name="simple_health_check"),
     path("robots.txt", views.robots_txt, name="robots_txt"),
-    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
+    path("sitemap.xml", cache_page(60 * 60)(sitemap), {"sitemaps": SITEMAPS}, name="sitemap"),
     path("", include("shop.urls", namespace="shop")),
     path("catalogue/", include("categories.urls")),
     path("furniture/", include("furniture.urls")),
