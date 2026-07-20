@@ -1,0 +1,210 @@
+{% extends "custom_admin/base.html" %}
+
+{% block title %}Каталоги та ціни{% endblock %}
+
+{% block extra_head %}
+{% if has_running_jobs %}
+<meta http-equiv="refresh" content="10">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-semibold text-brown-900">Каталоги та ціни постачальників</h1>
+        <p class="text-brown-500 text-sm mt-1">
+            Оновлення товарів і цін від постачальників без командного рядка. Кожна дія запускається окремо у фоні
+            (5–10 хв) — статус зʼявиться в блоці постачальника, сторінка оновлюється автоматично.
+        </p>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-6 space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-lg text-sm font-medium
+        {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+        {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-700 border border-yellow-200
+        {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% comment %} ── Evrodim ─────────────────────────────────────────────────── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="text-lg font-semibold text-brown-900">Evrodim — столи Generic</h2>
+            <p class="text-xs text-brown-400 mt-1">
+                Товарів: {{ evrodim_count }} ·
+                <a href="https://evrodim-company.com.ua/yevrodim" target="_blank" class="hover:underline">evrodim-company.com.ua</a>
+            </p>
+        </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+        <form method="post" action="{% url 'custom_admin:evrodim_update_prices' %}">
+            {% csrf_token %}
+            <button type="submit" {% if evrodim_prices_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate"></i>
+                {% if evrodim_prices_running %}Виконується...{% else %}Оновити ціни{% endif %}
+            </button>
+        </form>
+        <form method="post" action="{% url 'custom_admin:evrodim_update_params' %}">
+            {% csrf_token %}
+            <button type="submit" {% if evrodim_params_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-600 text-white text-sm rounded-md hover:bg-brown-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-list"></i>
+                {% if evrodim_params_running %}Виконується...{% else %}Оновити характеристики{% endif %}
+            </button>
+        </form>
+    </div>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=evrodim_jobs %}
+</div>
+
+{% comment %} ── Andersen ────────────────────────────────────────────────── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="text-lg font-semibold text-brown-900">Andersen — матраци / подушки / наматрацники</h2>
+            <p class="text-xs text-brown-400 mt-1">
+                <a href="https://andersen.ua" target="_blank" class="hover:underline">andersen.ua</a>
+            </p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'custom_admin:andersen_update_prices' %}" class="inline-block align-top mr-3 mb-4">
+        {% csrf_token %}
+        <div class="flex items-end gap-2">
+            <div>
+                <label class="block text-xs text-brown-500 mb-1">Каталог</label>
+                <select name="catalog" class="border border-beige-300 rounded-md text-sm px-2 py-1.5">
+                    <option value="all">Всі</option>
+                    {% for key, cfg in andersen_catalogs %}
+                    <option value="{{ key }}">{{ cfg.subcategory_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" {% if andersen_prices_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate"></i>
+                {% if andersen_prices_running %}Виконується...{% else %}Оновити ціни{% endif %}
+            </button>
+        </div>
+    </form>
+    <form method="post" action="{% url 'custom_admin:andersen_run_import' %}" class="inline-block align-top mb-4">
+        {% csrf_token %}
+        <div class="flex items-end gap-2">
+            <div>
+                <label class="block text-xs text-brown-500 mb-1">Каталог</label>
+                <select name="catalog" class="border border-beige-300 rounded-md text-sm px-2 py-1.5">
+                    <option value="all">Всі</option>
+                    {% for key, cfg in andersen_catalogs %}
+                    <option value="{{ key }}">{{ cfg.subcategory_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" {% if andersen_import_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-600 text-white text-sm rounded-md hover:bg-brown-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-laptop-code"></i>
+                {% if andersen_import_running %}Виконується...{% else %}Імпорт нових товарів{% endif %}
+            </button>
+        </div>
+    </form>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=andersen_jobs %}
+</div>
+
+{% comment %} ── Kreslalux ───────────────────────────────────────────────── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="text-lg font-semibold text-brown-900">Kreslalux — ортопедичні крісла</h2>
+            <p class="text-xs text-brown-400 mt-1">
+                Товарів: {{ kreslalux_count }} ·
+                <a href="https://kreslalux.ua/uk/18-kresla-dlya-doma" target="_blank" class="hover:underline">kreslalux.ua</a>
+            </p>
+        </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+        <form method="post" action="{% url 'custom_admin:kreslalux_update_prices' %}">
+            {% csrf_token %}
+            <button type="submit" {% if kreslalux_prices_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate"></i>
+                {% if kreslalux_prices_running %}Виконується...{% else %}Оновити ціни{% endif %}
+            </button>
+        </form>
+        <form method="post" action="{% url 'custom_admin:kreslalux_run_import' %}">
+            {% csrf_token %}
+            <button type="submit" {% if kreslalux_import_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-600 text-white text-sm rounded-md hover:bg-brown-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-laptop-code"></i>
+                {% if kreslalux_import_running %}Виконується...{% else %}Імпорт нових товарів{% endif %}
+            </button>
+        </form>
+    </div>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=kreslalux_jobs %}
+</div>
+
+{% comment %} ── Eurosof ─────────────────────────────────────────────────── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="text-lg font-semibold text-brown-900">Eurosof — дивани та ліжка</h2>
+            <p class="text-xs text-brown-400 mt-1">
+                Ціни беруться з Excel-прайсу в корені проєкту ·
+                <a href="{% url 'custom_admin:eurosof_price_config' %}" class="hover:underline">коефіцієнти цін</a>
+            </p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'custom_admin:eurosof_run_import' %}" class="mb-4">
+        {% csrf_token %}
+        <div class="flex items-end gap-3 flex-wrap">
+            <div>
+                <label class="block text-xs text-brown-500 mb-1">Каталог</label>
+                <select name="catalog" class="border border-beige-300 rounded-md text-sm px-2 py-1.5">
+                    <option value="all">Всі</option>
+                    {% for key, cfg in eurosof_catalogs %}
+                    <option value="{{ key }}">{{ cfg.subcategory_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-brown-600 pb-2">
+                <input type="checkbox" name="update_prices_only" checked>
+                Тільки оновити ціни (без нових товарів)
+            </label>
+            <button type="submit" {% if eurosof_prices_running or eurosof_import_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate"></i>
+                {% if eurosof_prices_running or eurosof_import_running %}Виконується...{% else %}Запустити{% endif %}
+            </button>
+        </div>
+    </form>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=eurosof_jobs %}
+</div>
+
+{% comment %} ── Фідові постачальники (Google Sheets / XML / веб-скрапінг) ── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6">
+    <h2 class="text-lg font-semibold text-brown-900 mb-1">Прайс-фіди за конфігурацією</h2>
+    <p class="text-xs text-brown-400 mb-4">
+        JEM, Matroluxe та інші постачальники, підключені через конфігурації — там уже є власні кнопки «Оновити»/«Тест».
+    </p>
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'custom_admin:list' 'price-configs' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
+            <i class="fa-solid fa-table"></i> Google Sheets прайси
+        </a>
+        <a href="{% url 'custom_admin:list' 'supplier-feeds' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
+            <i class="fa-solid fa-file-code"></i> XML-фіди постачальників
+        </a>
+        <a href="{% url 'custom_admin:list' 'supplier-web' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 border border-beige-300 text-brown-700 text-sm rounded-md hover:bg-beige-100 transition-colors">
+            <i class="fa-solid fa-globe"></i> Веб-скрапінг постачальників
+        </a>
+    </div>
+</div>
+
+{% endblock %}

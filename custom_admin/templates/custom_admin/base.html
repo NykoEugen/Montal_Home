@@ -67,6 +67,9 @@
                 <a href="{% url 'custom_admin:dashboard' %}" class="nav-link text-brown-700 hover:text-brown-900 font-medium">
                     <i class="fa-solid fa-chart-line mr-2"></i>Дашборд
                 </a>
+                <a href="{% url 'custom_admin:catalog_updates' %}" class="nav-link text-brown-700 hover:text-brown-900 font-medium">
+                    <i class="fa-solid fa-rotate mr-2"></i>Каталоги та ціни
+                </a>
                 {% if sections %}
                     {% for nav_section in sections %}
                         <a href="{% url 'custom_admin:list' nav_section.slug %}" class="nav-link text-brown-600 hover:text-brown-900">
