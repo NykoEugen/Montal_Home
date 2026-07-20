@@ -8,8 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import FieldError
-from django.db import close_old_connections
-from django.db import transaction
+from django.db import close_old_connections, transaction
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -21,8 +20,15 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from checkout.models import Order
 from checkout.invoice import generate_and_upload_invoice
+from checkout.models import Order
+from price_parser.andersen_scraper import CATALOG_CONFIGS as ANDERSEN_CATALOG_CONFIGS
+from price_parser.management.commands.import_eurosof import (
+    CATALOG_CONFIGS as EUROSOF_CATALOG_CONFIGS,
+)
+from price_parser.management.commands.import_eurosof import (
+    DEFAULT_XLSX as EUROSOF_DEFAULT_XLSX,
+)
 from price_parser.models import GoogleSheetConfig, SupplierFeedConfig, SupplierWebConfig
 from price_parser.services import (
     GoogleSheetsPriceUpdater,
@@ -34,12 +40,13 @@ from sub_categories.models import SubCategory
 from .forms import (
     FurnitureCustomOptionFormSet,
     FurnitureImageFormSet,
-    OrderItemFormSet,
     FurnitureParameterFormSet,
     FurnitureSizeVariantFormSet,
     FurnitureVariantImageFormSet,
+    OrderItemFormSet,
 )
 from .registry import AdminSection, registry
+from .services import start_job
 
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -204,16 +211,28 @@ class SectionListView(SectionMixin, ListView):
             context["filter_options"] = {
                 "sub_categories": SubCategory.objects.order_by("name"),
                 "selected_sub_category": self.request.GET.get("sub_category", ""),
-                "stock_choices": getattr(self.section.model, "STOCK_STATUS_CHOICES", []),
+                "stock_choices": getattr(
+                    self.section.model, "STOCK_STATUS_CHOICES", []
+                ),
                 "selected_stock_status": self.request.GET.get("stock_status", ""),
             }
-            context["furniture_bulk_edit_url"] = reverse("custom_admin:furniture_bulk_edit")
-            context["furniture_variants_url"] = reverse("custom_admin:furniture_variants")
-            context["furniture_palettes_url"] = reverse("custom_admin:furniture_palettes")
+            context["furniture_bulk_edit_url"] = reverse(
+                "custom_admin:furniture_bulk_edit"
+            )
+            context["furniture_variants_url"] = reverse(
+                "custom_admin:furniture_variants"
+            )
+            context["furniture_palettes_url"] = reverse(
+                "custom_admin:furniture_palettes"
+            )
             context["column_span"] += 1
         if self.section.slug == "fabric-color-palettes":
-            context["palette_colors_bulk_add_url"] = reverse("custom_admin:palette_colors_bulk_add")
-            context["palette_colors_bulk_edit_base_url"] = reverse("custom_admin:palette_colors_bulk_edit")
+            context["palette_colors_bulk_add_url"] = reverse(
+                "custom_admin:palette_colors_bulk_add"
+            )
+            context["palette_colors_bulk_edit_base_url"] = reverse(
+                "custom_admin:palette_colors_bulk_edit"
+            )
         return context
 
     def _get_bulk_action_context(self) -> Optional[dict[str, str]]:
@@ -289,14 +308,16 @@ class SectionFormMixin(SectionMixin):
         label = getattr(obj, "name", None) or getattr(obj, "title", None) or str(obj)
         edit_url = reverse("custom_admin:edit", args=[self.section.slug, obj.pk])
         message = mark_safe(
-            f'Зміни успішно збережено для '
+            f"Зміни успішно збережено для "
             f'<a href="{edit_url}" class="text-brown-700 underline hover:text-brown-900">{escape(label)}</a>.'
         )
         messages.success(self.request, message)
 
     def _redirect_after_save(self):
         if "save_continue" in self.request.POST:
-            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=self.object.pk)
+            return redirect(
+                "custom_admin:edit", section_slug=self.section.slug, pk=self.object.pk
+            )
         return redirect(self.get_success_url())
 
 
@@ -323,7 +344,9 @@ class SectionUpdateView(SectionFormMixin, UpdateView):
             raise Http404("Редагування у цьому розділі недоступне.")
         if self.section.read_only and request.method.lower() != "get":
             messages.info(request, _("Цей розділ доступний лише для перегляду."))
-            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk"))
+            return redirect(
+                "custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk")
+            )
         return super().dispatch(request, *args, **kwargs)
 
     def _uses_formsets(self) -> bool:
@@ -435,7 +458,9 @@ class SectionDetailView(SectionMixin, DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         if not self.section.read_only:
-            return redirect("custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk"))
+            return redirect(
+                "custom_admin:edit", section_slug=self.section.slug, pk=kwargs.get("pk")
+            )
         if not self.section.form_class:
             raise Http404("Детальний перегляд недоступний.")
         return super().dispatch(request, *args, **kwargs)
@@ -484,7 +509,9 @@ def generate_iban_invoice(request, pk: int):
         raise Http404("Сторінку не знайдено")
 
     order = get_object_or_404(Order, pk=pk)
-    redirect_url = reverse("custom_admin:edit", kwargs={"section_slug": "orders", "pk": order.pk})
+    redirect_url = reverse(
+        "custom_admin:edit", kwargs={"section_slug": "orders", "pk": order.pk}
+    )
 
     if order.payment_type != "iban":
         messages.error(request, "Це замовлення не потребує рахунку IBAN.")
@@ -509,7 +536,9 @@ def update_price_config_prices(request, pk: int):
         raise Http404("Сторінку не знайдено")
 
     config = get_object_or_404(GoogleSheetConfig, pk=pk)
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "price-configs"}
+    )
 
     try:
         updater = GoogleSheetsPriceUpdater(config)
@@ -524,7 +553,9 @@ def update_price_config_prices(request, pk: int):
             f"Оновлено {result.get('updated_count', 0)} товарів з {result.get('processed_count', 0)}.",
         )
     else:
-        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
+        )
     return redirect(redirect_url)
 
 
@@ -535,7 +566,9 @@ def test_price_config_parse(request, pk: int):
         raise Http404("Сторінку не знайдено")
 
     config = get_object_or_404(GoogleSheetConfig, pk=pk)
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "price-configs"}
+    )
 
     try:
         updater = GoogleSheetsPriceUpdater(config)
@@ -550,7 +583,10 @@ def test_price_config_parse(request, pk: int):
             f"Тестовий парсинг успішний. Знайдено {len(result.get('data', []))} рядків.",
         )
     else:
-        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request,
+            f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}",
+        )
     return redirect(redirect_url)
 
 
@@ -562,7 +598,9 @@ def price_config_bulk_action(request):
 
     action = request.POST.get("action")
     selected_ids = request.POST.getlist("selected_configs")
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "price-configs"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "price-configs"}
+    )
 
     if not selected_ids:
         messages.warning(request, "Будь ласка, виберіть хоча б одну конфігурацію.")
@@ -591,12 +629,17 @@ def price_config_bulk_action(request):
             if result.get("success"):
                 success_count += 1
             else:
-                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+                errors.append(
+                    f"{config.name}: {result.get('error', 'невідома помилка')}"
+                )
         except Exception as exc:
             errors.append(f"{config.name}: {exc}")
 
     if success_count:
-        messages.success(request, f"Успішно виконано {action_label} для {success_count} конфігурацій.")
+        messages.success(
+            request,
+            f"Успішно виконано {action_label} для {success_count} конфігурацій.",
+        )
     if errors:
         preview = " ; ".join(errors[:3])
         if len(errors) > 3:
@@ -613,7 +656,9 @@ def update_supplier_feed_prices(request, pk: int):
         raise Http404("Сторінку не знайдено")
 
     config = get_object_or_404(SupplierFeedConfig, pk=pk)
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "supplier-feeds"}
+    )
 
     try:
         updater = SupplierFeedPriceUpdater(config)
@@ -631,7 +676,9 @@ def update_supplier_feed_prices(request, pk: int):
             ),
         )
     else:
-        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
+        )
     return redirect(redirect_url)
 
 
@@ -642,7 +689,9 @@ def test_supplier_feed_parse(request, pk: int):
         raise Http404("Сторінку не знайдено")
 
     config = get_object_or_404(SupplierFeedConfig, pk=pk)
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "supplier-feeds"}
+    )
 
     try:
         updater = SupplierFeedPriceUpdater(config)
@@ -657,7 +706,10 @@ def test_supplier_feed_parse(request, pk: int):
             f"Тестовий парсинг успішний. Знайдено {result.get('offers_total', 0)} оферів.",
         )
     else:
-        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request,
+            f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}",
+        )
     return redirect(redirect_url)
 
 
@@ -669,7 +721,9 @@ def supplier_feed_bulk_action(request):
 
     action = request.POST.get("action")
     selected_ids = request.POST.getlist("selected_feeds")
-    redirect_url = reverse("custom_admin:list", kwargs={"section_slug": "supplier-feeds"})
+    redirect_url = reverse(
+        "custom_admin:list", kwargs={"section_slug": "supplier-feeds"}
+    )
 
     if not selected_ids:
         messages.warning(request, "Будь ласка, виберіть хоча б один фід.")
@@ -698,7 +752,9 @@ def supplier_feed_bulk_action(request):
             if result.get("success"):
                 success_count += 1
             else:
-                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+                errors.append(
+                    f"{config.name}: {result.get('error', 'невідома помилка')}"
+                )
         except Exception as exc:
             errors.append(f"{config.name}: {exc}")
 
@@ -748,7 +804,9 @@ def update_supplier_web_prices(request, pk: int):
             ),
         )
     else:
-        messages.error(request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request, f"Помилка оновлення: {result.get('error', 'Невідома помилка')}"
+        )
     return redirect(redirect_url)
 
 
@@ -776,7 +834,10 @@ def test_supplier_web_parse(request, pk: int):
             f"Тестовий парсинг успішний. Зібрано URL: {result.get('urls_total', 0)}.",
         )
     else:
-        messages.error(request, f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}")
+        messages.error(
+            request,
+            f"Помилка тестового парсингу: {result.get('error', 'Невідома помилка')}",
+        )
     return redirect(redirect_url)
 
 
@@ -817,7 +878,9 @@ def supplier_web_bulk_action(request):
             if result.get("success"):
                 success_count += 1
             else:
-                errors.append(f"{config.name}: {result.get('error', 'невідома помилка')}")
+                errors.append(
+                    f"{config.name}: {result.get('error', 'невідома помилка')}"
+                )
         except Exception as exc:
             errors.append(f"{config.name}: {exc}")
         finally:
@@ -887,7 +950,9 @@ def furniture_bulk_edit_apply(request):
     from params.models import FurnitureParameter
 
     selected_ids = request.POST.getlist("selected_ids")
-    furniture_qs = Furniture.objects.filter(pk__in=selected_ids).prefetch_related("parameters")
+    furniture_qs = Furniture.objects.filter(pk__in=selected_ids).prefetch_related(
+        "parameters"
+    )
 
     updated_count = 0
 
@@ -930,6 +995,7 @@ def furniture_palettes(request):
         raise Http404("Сторінку не знайдено")
 
     from django.core.paginator import Paginator
+
     from fabric_category.models import FabricColorPalette
     from furniture.models import Furniture
 
@@ -955,7 +1021,9 @@ def furniture_palettes(request):
                     palette = FabricColorPalette.objects.get(pk=int(palette_id_raw))
                     for f in qs:
                         f.color_palettes.add(palette)
-                    messages.success(request, f"Палітру «{palette.name}» додано до {count} товарів.")
+                    messages.success(
+                        request, f"Палітру «{palette.name}» додано до {count} товарів."
+                    )
                 except (FabricColorPalette.DoesNotExist, ValueError):
                     messages.error(request, "Палітру не знайдено.")
 
@@ -964,7 +1032,9 @@ def furniture_palettes(request):
                     palette = FabricColorPalette.objects.get(pk=int(palette_id_raw))
                     for f in qs:
                         f.color_palettes.remove(palette)
-                    messages.success(request, f"Палітру «{palette.name}» видалено з {count} товарів.")
+                    messages.success(
+                        request, f"Палітру «{palette.name}» видалено з {count} товарів."
+                    )
                 except (FabricColorPalette.DoesNotExist, ValueError):
                     messages.error(request, "Палітру не знайдено.")
 
@@ -974,7 +1044,13 @@ def furniture_palettes(request):
                         f.is_promotional = False
                         f.promotional_price = None
                         f.sale_end_date = None
-                        f.save(update_fields=["is_promotional", "promotional_price", "sale_end_date"])
+                        f.save(
+                            update_fields=[
+                                "is_promotional",
+                                "promotional_price",
+                                "sale_end_date",
+                            ]
+                        )
                 messages.success(request, f"Акційний флаг знято з {count} товарів.")
 
         redirect_url = request.path
@@ -1006,16 +1082,20 @@ def furniture_palettes(request):
     querydict.pop("page", None)
     current_query_string = querydict.urlencode()
 
-    return render(request, "custom_admin/furniture_palettes.html", {
-        "sections": list(registry.all()),
-        "palettes": palettes,
-        "sub_categories": sub_categories,
-        "page_obj": page_obj,
-        "is_paginated": page_obj.has_other_pages(),
-        "search_query": search,
-        "selected_sub_category": sub_cat_id,
-        "current_query_string": current_query_string,
-    })
+    return render(
+        request,
+        "custom_admin/furniture_palettes.html",
+        {
+            "sections": list(registry.all()),
+            "palettes": palettes,
+            "sub_categories": sub_categories,
+            "page_obj": page_obj,
+            "is_paginated": page_obj.has_other_pages(),
+            "search_query": search,
+            "selected_sub_category": sub_cat_id,
+            "current_query_string": current_query_string,
+        },
+    )
 
 
 def redirect_to_dashboard(request):
@@ -1026,16 +1106,20 @@ def redirect_to_dashboard(request):
 
 # ── Variant group bulk editor ─────────────────────────────────────────────────
 
+
 @login_required
 def furniture_variants(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
-    from furniture.models import Furniture
     from collections import defaultdict
 
+    from furniture.models import Furniture
+
     sub_categories = SubCategory.objects.order_by("name")
-    selected_sub_cat_id = request.GET.get("sub_category") or request.POST.get("sub_category")
+    selected_sub_cat_id = request.GET.get("sub_category") or request.POST.get(
+        "sub_category"
+    )
 
     furniture_qs = None
     if selected_sub_cat_id:
@@ -1054,7 +1138,12 @@ def furniture_variants(request):
                 bname = request.POST.get(f"base_model_name_{fid}", "").strip()
                 label = request.POST.get(f"variant_label_{fid}", "").strip()
                 new_name = request.POST.get(f"name_{fid}", "").strip()
-                updates[f.pk] = {"base_model_name": bname, "variant_label": label, "name": new_name, "obj": f}
+                updates[f.pk] = {
+                    "base_model_name": bname,
+                    "variant_label": label,
+                    "name": new_name,
+                    "obj": f,
+                }
 
             # Group by base_model_name
             groups: dict[str, list[int]] = defaultdict(list)
@@ -1111,31 +1200,60 @@ def furniture_variants(request):
         "custom_admin/furniture_variants.html",
         {
             "sub_categories": sub_categories,
-            "selected_sub_cat_id": int(selected_sub_cat_id) if selected_sub_cat_id else None,
+            "selected_sub_cat_id": (
+                int(selected_sub_cat_id) if selected_sub_cat_id else None
+            ),
             "grouped": grouped,
             "sections": list(registry.all()),
         },
     )
 
 
-# ── Evrodim scraper views ────────────────────────────────────────────────────
+# ── Catalog updates hub (Evrodim / Andersen / Kreslalux / Eurosof) ──────────
+
 
 @login_required
-def evrodim_page(request):
+def catalog_updates_page(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
     from furniture.models import Furniture
 
-    sub_cat_furniture = Furniture.objects.filter(
-        sub_category__slug="stoly-evrodim"
-    ).order_by("-updated_at")
+    from .models import CatalogUpdateJob
 
-    return render(request, "custom_admin/evrodim.html", {
+    def _jobs(supplier: str):
+        return list(CatalogUpdateJob.objects.filter(supplier=supplier)[:5])
+
+    def _running(supplier: str, action: str, catalog_key: str = "") -> bool:
+        return CatalogUpdateJob.objects.filter(
+            supplier=supplier, action=action, catalog_key=catalog_key, status="running"
+        ).exists()
+
+    context = {
         "sections": list(registry.all()),
-        "furniture_count": sub_cat_furniture.count(),
-        "recent_furniture": sub_cat_furniture[:10],
-    })
+        "evrodim_count": Furniture.objects.filter(
+            sub_category__slug="stoly-evrodim"
+        ).count(),
+        "evrodim_jobs": _jobs("evrodim"),
+        "evrodim_prices_running": _running("evrodim", "update_prices"),
+        "evrodim_params_running": _running("evrodim", "update_params"),
+        "andersen_catalogs": list(ANDERSEN_CATALOG_CONFIGS.items()),
+        "andersen_jobs": _jobs("andersen"),
+        "andersen_prices_running": _running("andersen", "update_prices", "all"),
+        "andersen_import_running": _running("andersen", "import", "all"),
+        "kreslalux_count": Furniture.objects.filter(
+            sub_category__slug="ortopedichni-krisla"
+        ).count(),
+        "kreslalux_jobs": _jobs("kreslalux"),
+        "kreslalux_prices_running": _running("kreslalux", "update_prices"),
+        "kreslalux_import_running": _running("kreslalux", "import"),
+        "eurosof_catalogs": list(EUROSOF_CATALOG_CONFIGS.items()),
+        "eurosof_jobs": _jobs("eurosof"),
+        "eurosof_prices_running": _running("eurosof", "update_prices", "all"),
+        "eurosof_import_running": _running("eurosof", "import", "all"),
+        "has_running_jobs": CatalogUpdateJob.objects.filter(status="running").exists(),
+    }
+    return render(request, "custom_admin/catalog_updates.html", context)
 
 
 @login_required
@@ -1146,75 +1264,227 @@ def evrodim_update_prices(request):
 
     from price_parser.evrodim_scraper import EvrodimScraper
 
-    logs: list[str] = []
-    scraper = EvrodimScraper()
-    scraper.set_progress_callback(logs.append)
+    def run():
+        return EvrodimScraper().update_prices(subcategory_slug="stoly-evrodim")
 
-    try:
-        result = scraper.update_prices(subcategory_slug="stoly-evrodim")
-    except Exception as exc:
-        messages.error(request, f"Помилка під час оновлення: {exc}")
-        return redirect("custom_admin:evrodim")
-
-    if result.get("success"):
-        messages.success(
-            request,
-            f"Ціни оновлено: перевірено {result['checked']}, "
-            f"оновлено {result['updated']}, не знайдено {result['not_found']}",
-        )
+    job = start_job(request, "evrodim", "update_prices", run)
+    if job is None:
+        messages.warning(request, "Оновлення цін Evrodim вже виконується.")
     else:
-        messages.error(request, f"Помилка: {result.get('error')}")
-
-    return redirect("custom_admin:evrodim")
+        messages.info(
+            request,
+            "Запущено оновлення цін Evrodim у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
 
 
 @login_required
+@require_POST
 def evrodim_update_params(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
     from price_parser.evrodim_scraper import EvrodimScraper
 
-    logs: list[str] = []
-    scraper = EvrodimScraper()
-    scraper.set_progress_callback(logs.append)
+    def run():
+        return EvrodimScraper().update_params(subcategory_slug="stoly-evrodim")
 
-    try:
-        result = scraper.update_params(subcategory_slug="stoly-evrodim")
-    except Exception as exc:
-        messages.error(request, f"Помилка під час оновлення характеристик: {exc}")
-        return redirect("custom_admin:evrodim")
-
-    if result.get("success"):
-        messages.success(
-            request,
-            f"Характеристики оновлено: перевірено {result['checked']}, "
-            f"оновлено {result['updated']}, не знайдено {result['not_found']}",
-        )
+    job = start_job(request, "evrodim", "update_params", run)
+    if job is None:
+        messages.warning(request, "Оновлення характеристик Evrodim вже виконується.")
     else:
-        messages.error(request, f"Помилка: {result.get('error')}")
+        messages.info(
+            request,
+            "Запущено оновлення характеристик Evrodim у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
 
-    return redirect("custom_admin:evrodim")
+
+# ── Andersen scraper views ───────────────────────────────────────────────────
+
+
+@login_required
+@require_POST
+def andersen_update_prices(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.andersen_scraper import AndersenScraper
+
+    catalog_arg = request.POST.get("catalog", "all")
+    catalogs = (
+        list(ANDERSEN_CATALOG_CONFIGS.keys()) if catalog_arg == "all" else [catalog_arg]
+    )
+
+    def run():
+        scraper = AndersenScraper()
+        totals = {"checked": 0, "updated": 0, "not_found": 0, "errors": []}
+        for catalog_key in catalogs:
+            result = scraper.update_prices(catalog_key)
+            if not result.get("success", True):
+                totals["errors"].append(f"{catalog_key}: {result.get('error')}")
+                continue
+            for key in ("checked", "updated", "not_found"):
+                totals[key] += result.get(key, 0)
+            totals["errors"].extend(result.get("errors", []))
+        return totals
+
+    job = start_job(request, "andersen", "update_prices", run, catalog_key=catalog_arg)
+    if job is None:
+        messages.warning(request, "Оновлення цін Andersen вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено оновлення цін Andersen у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
+
+
+@login_required
+@require_POST
+def andersen_run_import(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.andersen_scraper import AndersenScraper
+
+    catalog_arg = request.POST.get("catalog", "all")
+    catalogs = (
+        list(ANDERSEN_CATALOG_CONFIGS.keys()) if catalog_arg == "all" else [catalog_arg]
+    )
+
+    def run():
+        scraper = AndersenScraper()
+        totals = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+        for catalog_key in catalogs:
+            result = scraper.run_import(catalog_key=catalog_key, dry_run=False)
+            if not result.get("success", True):
+                totals["errors"].append(f"{catalog_key}: {result.get('error')}")
+                continue
+            for key in ("created", "updated", "skipped"):
+                totals[key] += result.get(key, 0)
+            totals["errors"].extend(result.get("errors", []))
+        return totals
+
+    job = start_job(request, "andersen", "import", run, catalog_key=catalog_arg)
+    if job is None:
+        messages.warning(request, "Імпорт Andersen вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено імпорт Andersen у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
 
 
 # ── Kreslalux scraper views ───────────────────────────────────────────────────
 
+
 @login_required
-def kreslalux_page(request):
+@require_POST
+def kreslalux_update_prices(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
-    from furniture.models import Furniture
+    from price_parser.kreslalux_scraper import KreslaluxScraper
 
-    sub_cat_furniture = Furniture.objects.filter(
-        sub_category__slug="ortopedichni-krisla"
-    ).order_by("-updated_at")
+    def run():
+        return KreslaluxScraper().update_prices()
 
-    return render(request, "custom_admin/kreslalux.html", {
-        "sections": list(registry.all()),
-        "furniture_count": sub_cat_furniture.count(),
-        "recent_furniture": sub_cat_furniture[:10],
-    })
+    job = start_job(request, "kreslalux", "update_prices", run)
+    if job is None:
+        messages.warning(request, "Оновлення цін Kreslalux вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено оновлення цін Kreslalux у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
+
+
+@login_required
+@require_POST
+def kreslalux_run_import(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    from price_parser.kreslalux_scraper import KreslaluxScraper
+
+    def run():
+        return KreslaluxScraper().run_import(
+            dry_run=False, subcategory_slug="ortopedichni-krisla"
+        )
+
+    job = start_job(request, "kreslalux", "import", run)
+    if job is None:
+        messages.warning(request, "Імпорт Kreslalux вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено імпорт Kreslalux у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
+
+
+# ── Eurosof scraper views ────────────────────────────────────────────────────
+
+
+@login_required
+@require_POST
+def eurosof_run_import(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import os
+
+    from price_parser.eurosof_scraper import EurosofImporter
+
+    catalog_arg = request.POST.get("catalog", "all")
+    update_prices_only = request.POST.get("update_prices_only") == "on"
+    catalogs = (
+        list(EUROSOF_CATALOG_CONFIGS.values())
+        if catalog_arg == "all"
+        else [EUROSOF_CATALOG_CONFIGS[catalog_arg]]
+    )
+    action = "update_prices" if update_prices_only else "import"
+
+    if not os.path.exists(EUROSOF_DEFAULT_XLSX):
+        messages.error(request, f"Excel-файл не знайдено: {EUROSOF_DEFAULT_XLSX}")
+        return redirect("custom_admin:catalog_updates")
+
+    def run():
+        importer = EurosofImporter(xlsx_path=EUROSOF_DEFAULT_XLSX)
+        totals = {
+            "created": 0,
+            "updated": 0,
+            "skipped": 0,
+            "unmatched": 0,
+            "errors": [],
+        }
+        for cfg in catalogs:
+            result = importer.run(
+                catalog_urls=[cfg["url"]],
+                subcategory_name=cfg["subcategory_name"],
+                subcategory_slug=cfg["subcategory_slug"],
+                category_name=cfg["category_name"],
+                corner=cfg.get("corner", False),
+                bed=cfg.get("bed", False),
+                dry_run=False,
+                update_prices=update_prices_only,
+            )
+            for key in ("created", "updated", "skipped", "unmatched"):
+                totals[key] += result.get(key, 0)
+            totals["errors"].extend(result.get("errors", []))
+        return totals
+
+    job = start_job(request, "eurosof", action, run, catalog_key=catalog_arg)
+    if job is None:
+        messages.warning(request, "Ця операція Eurosof вже виконується.")
+    else:
+        messages.info(
+            request, "Запущено у фоні — статус з'явиться нижче за кілька хвилин."
+        )
+    return redirect("custom_admin:catalog_updates")
 
 
 @login_required
@@ -1222,7 +1492,7 @@ def palette_colors_bulk_add(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
-    from fabric_category.models import FabricColorPalette, FabricColor
+    from fabric_category.models import FabricColor, FabricColorPalette
 
     palettes = FabricColorPalette.objects.filter(is_active=True).order_by("name")
     errors: list[str] = []
@@ -1258,7 +1528,9 @@ def palette_colors_bulk_add(request):
                 image = request.FILES.get(f"image_{i}")
 
                 if FabricColor.objects.filter(palette=palette, name=name).exists():
-                    errors.append(f"Рядок {i + 1}: «{name}» вже є в палітрі «{palette.name}».")
+                    errors.append(
+                        f"Рядок {i + 1}: «{name}» вже є в палітрі «{palette.name}»."
+                    )
                     continue
 
                 color = FabricColor(
@@ -1280,11 +1552,15 @@ def palette_colors_bulk_add(request):
         if not errors:
             return redirect("custom_admin:palette_colors_bulk_add")
 
-    return render(request, "custom_admin/palette_colors_bulk_add.html", {
-        "sections": list(registry.all()),
-        "palettes": palettes,
-        "errors": errors,
-    })
+    return render(
+        request,
+        "custom_admin/palette_colors_bulk_add.html",
+        {
+            "sections": list(registry.all()),
+            "palettes": palettes,
+            "errors": errors,
+        },
+    )
 
 
 @login_required
@@ -1292,7 +1568,7 @@ def palette_colors_bulk_edit(request):
     if not request.user.is_staff:
         raise Http404("Сторінку не знайдено")
 
-    from fabric_category.models import FabricColorPalette, FabricColor
+    from fabric_category.models import FabricColor, FabricColorPalette
 
     palettes = FabricColorPalette.objects.filter(is_active=True).order_by("name")
     palette_id = (request.POST.get("palette") or request.GET.get("palette", "")).strip()
@@ -1342,15 +1618,21 @@ def palette_colors_bulk_edit(request):
                 if changed:
                     color.save()
                     updated += 1
-        messages.success(request, f"Оновлено {updated} кольорів у палітрі «{selected_palette.name}».")
+        messages.success(
+            request, f"Оновлено {updated} кольорів у палітрі «{selected_palette.name}»."
+        )
         return redirect(f"{request.path}?palette={selected_palette.pk}")
 
-    return render(request, "custom_admin/palette_colors_bulk_edit.html", {
-        "sections": list(registry.all()),
-        "palettes": palettes,
-        "selected_palette": selected_palette,
-        "colors": colors,
-    })
+    return render(
+        request,
+        "custom_admin/palette_colors_bulk_edit.html",
+        {
+            "sections": list(registry.all()),
+            "palettes": palettes,
+            "selected_palette": selected_palette,
+            "colors": colors,
+        },
+    )
 
 
 def eurosof_price_config(request):
@@ -1359,8 +1641,9 @@ def eurosof_price_config(request):
 
     import math
     from decimal import Decimal
-    from price_parser.models import EurosofPriceConfig
+
     from furniture.models import Furniture, FurnitureSizeVariant
+    from price_parser.models import EurosofPriceConfig
 
     config = EurosofPriceConfig.get()
     message = None
@@ -1387,7 +1670,9 @@ def eurosof_price_config(request):
                 multiplier = config.price_multiplier
                 addon = config.price_addon
 
-                furniture_qs = Furniture.objects.filter(article_code__startswith="eurosof-")
+                furniture_qs = Furniture.objects.filter(
+                    article_code__startswith="eurosof-"
+                )
                 for f in furniture_qs.prefetch_related("size_variants"):
                     new_fabric_value = (
                         Decimal(str(math.ceil(float(f.fabric_step_raw * multiplier))))
@@ -1408,16 +1693,23 @@ def eurosof_price_config(request):
                     f.save(update_fields=["price", "fabric_value"])
                     recalc_count += 1
 
-                message = ("success", f"Перераховано ціни для {recalc_count} товарів Eurosof.")
+                message = (
+                    "success",
+                    f"Перераховано ціни для {recalc_count} товарів Eurosof.",
+                )
             except Exception as exc:
                 message = ("error", f"Помилка при перерахунку: {exc}")
 
-    eurosof_count = Furniture.objects.filter(article_code__startswith="eurosof-").count()
-    return render(request, "custom_admin/eurosof_price_config.html", {
-        "sections": list(registry.all()),
-        "config": config,
-        "eurosof_count": eurosof_count,
-        "message": message,
-    })
-
-
+    eurosof_count = Furniture.objects.filter(
+        article_code__startswith="eurosof-"
+    ).count()
+    return render(
+        request,
+        "custom_admin/eurosof_price_config.html",
+        {
+            "sections": list(registry.all()),
+            "config": config,
+            "eurosof_count": eurosof_count,
+            "message": message,
+        },
+    )

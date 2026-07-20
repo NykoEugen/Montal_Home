@@ -9,7 +9,11 @@ urlpatterns = [
     path("login/", views.CustomAdminLoginView.as_view(), name="login"),
     path("logout/", views.CustomAdminLogoutView.as_view(), name="logout"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
-    path("orders/<int:pk>/generate-iban/", views.generate_iban_invoice, name="generate_iban_invoice"),
+    path(
+        "orders/<int:pk>/generate-iban/",
+        views.generate_iban_invoice,
+        name="generate_iban_invoice",
+    ),
     path(
         "price-configs/<int:pk>/update-prices/",
         views.update_price_config_prices,
@@ -56,18 +60,54 @@ urlpatterns = [
         name="supplier_web_bulk_action",
     ),
     path("furniture/bulk-edit/", views.furniture_bulk_edit, name="furniture_bulk_edit"),
-    path("furniture/bulk-edit/apply/", views.furniture_bulk_edit_apply, name="furniture_bulk_edit_apply"),
+    path(
+        "furniture/bulk-edit/apply/",
+        views.furniture_bulk_edit_apply,
+        name="furniture_bulk_edit_apply",
+    ),
     path("furniture/palettes/", views.furniture_palettes, name="furniture_palettes"),
     path("furniture/variants/", views.furniture_variants, name="furniture_variants"),
-    path("palette-colors/bulk-add/", views.palette_colors_bulk_add, name="palette_colors_bulk_add"),
-    path("palette-colors/bulk-edit/", views.palette_colors_bulk_edit, name="palette_colors_bulk_edit"),
-    path("evrodim/", views.evrodim_page, name="evrodim"),
-    path("evrodim/update-prices/", views.evrodim_update_prices, name="evrodim_update_prices"),
-    path("evrodim/update-params/", views.evrodim_update_params, name="evrodim_update_params"),
-    path("kreslalux/", views.kreslalux_page, name="kreslalux"),
+    path(
+        "palette-colors/bulk-add/",
+        views.palette_colors_bulk_add,
+        name="palette_colors_bulk_add",
+    ),
+    path(
+        "palette-colors/bulk-edit/",
+        views.palette_colors_bulk_edit,
+        name="palette_colors_bulk_edit",
+    ),
+    path("catalog-updates/", views.catalog_updates_page, name="catalog_updates"),
+    path(
+        "evrodim/update-prices/",
+        views.evrodim_update_prices,
+        name="evrodim_update_prices",
+    ),
+    path(
+        "evrodim/update-params/",
+        views.evrodim_update_params,
+        name="evrodim_update_params",
+    ),
+    path(
+        "andersen/update-prices/",
+        views.andersen_update_prices,
+        name="andersen_update_prices",
+    ),
+    path("andersen/run-import/", views.andersen_run_import, name="andersen_run_import"),
+    path(
+        "kreslalux/update-prices/",
+        views.kreslalux_update_prices,
+        name="kreslalux_update_prices",
+    ),
+    path(
+        "kreslalux/run-import/", views.kreslalux_run_import, name="kreslalux_run_import"
+    ),
+    path("eurosof/run-import/", views.eurosof_run_import, name="eurosof_run_import"),
     path("eurosof-prices/", views.eurosof_price_config, name="eurosof_price_config"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
-    path("<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"),
+    path(
+        "<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"
+    ),
     path(
         "<slug:section_slug>/<int:pk>/",
         views.SectionDetailView.as_view(),
