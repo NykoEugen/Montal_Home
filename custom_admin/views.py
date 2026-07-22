@@ -29,6 +29,9 @@ from price_parser.management.commands.import_eurosof import (
 from price_parser.management.commands.import_eurosof import (
     DEFAULT_XLSX as EUROSOF_DEFAULT_XLSX,
 )
+from price_parser.management.commands.import_divanoff import (
+    DEFAULT_XLSX as DIVANOFF_DEFAULT_XLSX,
+)
 from price_parser.models import GoogleSheetConfig, SupplierFeedConfig, SupplierWebConfig
 from price_parser.services import (
     GoogleSheetsPriceUpdater,
@@ -1270,6 +1273,12 @@ def catalog_updates_page(request):
         "eurosof_jobs": _jobs("eurosof"),
         "eurosof_prices_running": _running("eurosof", "update_prices", "all"),
         "eurosof_import_running": _running("eurosof", "import", "all"),
+        "divanoff_count": Furniture.objects.filter(
+            sub_category__slug="divany-divanoff"
+        ).count(),
+        "divanoff_jobs": _jobs("divanoff"),
+        "divanoff_prices_running": _running("divanoff", "update_prices"),
+        "divanoff_import_running": _running("divanoff", "import"),
         "feed_jobs": list(
             CatalogUpdateJob.objects.filter(
                 supplier__in=["google_sheet", "supplier_feed", "supplier_web"]
@@ -1737,3 +1746,68 @@ def eurosof_price_config(request):
             "message": message,
         },
     )
+
+
+# ── Divanoff scraper views ────────────────────────────────────────────────────
+
+
+@login_required
+@require_POST
+def divanoff_update_prices(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import os
+
+    from price_parser.divanoff_scraper import DivanoffScraper
+
+    if not os.path.exists(DIVANOFF_DEFAULT_XLSX):
+        messages.error(request, f"Excel-файл не знайдено: {DIVANOFF_DEFAULT_XLSX}")
+        return redirect("custom_admin:catalog_updates")
+
+    def run():
+        return DivanoffScraper().update_prices(
+            subcategory_slug="divany-divanoff",
+            xlsx_path=DIVANOFF_DEFAULT_XLSX,
+        )
+
+    job = start_job(request, "divanoff", "update_prices", run)
+    if job is None:
+        messages.warning(request, "Оновлення цін Divanoff вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено оновлення цін Divanoff у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")
+
+
+@login_required
+@require_POST
+def divanoff_run_import(request):
+    if not request.user.is_staff:
+        raise Http404("Сторінку не знайдено")
+
+    import os
+
+    from price_parser.divanoff_scraper import DivanoffScraper
+
+    if not os.path.exists(DIVANOFF_DEFAULT_XLSX):
+        messages.error(request, f"Excel-файл не знайдено: {DIVANOFF_DEFAULT_XLSX}")
+        return redirect("custom_admin:catalog_updates")
+
+    def run():
+        return DivanoffScraper().run_import(
+            subcategory_slug="divany-divanoff",
+            xlsx_path=DIVANOFF_DEFAULT_XLSX,
+        )
+
+    job = start_job(request, "divanoff", "import", run)
+    if job is None:
+        messages.warning(request, "Імпорт Divanoff вже виконується.")
+    else:
+        messages.info(
+            request,
+            "Запущено імпорт Divanoff у фоні — статус з'явиться нижче за кілька хвилин.",
+        )
+    return redirect("custom_admin:catalog_updates")

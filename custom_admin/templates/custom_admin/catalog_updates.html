@@ -148,6 +148,39 @@
     {% include "custom_admin/_catalog_job_list.html" with jobs=kreslalux_jobs %}
 </div>
 
+{% comment %} ── Divanoff ────────────────────────────────────────────────── {% endcomment %}
+<div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="text-lg font-semibold text-brown-900">Divanoff — дивани</h2>
+            <p class="text-xs text-brown-400 mt-1">
+                Товарів: {{ divanoff_count }} ·
+                <a href="https://divanoff.ua/divany" target="_blank" class="hover:underline">divanoff.ua</a>
+                · прайс: divanoff_price.xlsx (запускати локально)
+            </p>
+        </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+        <form method="post" action="{% url 'custom_admin:divanoff_update_prices' %}">
+            {% csrf_token %}
+            <button type="submit" {% if divanoff_prices_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-700 text-white text-sm rounded-md hover:bg-brown-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate"></i>
+                {% if divanoff_prices_running %}Виконується...{% else %}Оновити ціни{% endif %}
+            </button>
+        </form>
+        <form method="post" action="{% url 'custom_admin:divanoff_run_import' %}">
+            {% csrf_token %}
+            <button type="submit" {% if divanoff_import_running %}disabled{% endif %}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-brown-600 text-white text-sm rounded-md hover:bg-brown-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-laptop-code"></i>
+                {% if divanoff_import_running %}Виконується...{% else %}Імпорт нових товарів{% endif %}
+            </button>
+        </form>
+    </div>
+    {% include "custom_admin/_catalog_job_list.html" with jobs=divanoff_jobs %}
+</div>
+
 {% comment %} ── Eurosof ─────────────────────────────────────────────────── {% endcomment %}
 <div class="bg-white rounded-xl border border-beige-300 shadow-sm p-6 mb-6">
     <div class="flex items-center justify-between mb-3">

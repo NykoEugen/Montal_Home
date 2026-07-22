@@ -103,6 +103,14 @@ urlpatterns = [
         "kreslalux/run-import/", views.kreslalux_run_import, name="kreslalux_run_import"
     ),
     path("eurosof/run-import/", views.eurosof_run_import, name="eurosof_run_import"),
+    path(
+        "divanoff/update-prices/",
+        views.divanoff_update_prices,
+        name="divanoff_update_prices",
+    ),
+    path(
+        "divanoff/run-import/", views.divanoff_run_import, name="divanoff_run_import"
+    ),
     path("eurosof-prices/", views.eurosof_price_config, name="eurosof_price_config"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
     path(

@@ -717,3 +717,34 @@ class EurosofPriceConfig(models.Model):
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class DivanoffPriceConfig(models.Model):
+    """Singleton config for Divanoff base price calculation.
+
+    Застосовується лише до базової ціни (категорія тканини "Стандарт").
+    Крок за категорію тканини (Furniture.fabric_value) рахується окремо
+    від сирих цін прайсу і формулою не множиться — лишається як є.
+    """
+    price_multiplier = models.DecimalField(
+        max_digits=6, decimal_places=4, default="1.4500",
+        verbose_name="Коефіцієнт множення",
+        help_text="На цей коефіцієнт множиться базова ціна з прайсу (зараз 1.45)",
+    )
+    price_addon = models.DecimalField(
+        max_digits=10, decimal_places=2, default="2000.00",
+        verbose_name="Надбавка (грн)",
+        help_text="Фіксована надбавка до базової ціни після множення (зараз 2000)",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Останнє оновлення")
+
+    class Meta:
+        verbose_name = "Конфігурація цін Divanoff"
+
+    def __str__(self):
+        return f"Divanoff: ×{self.price_multiplier} + {self.price_addon}"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

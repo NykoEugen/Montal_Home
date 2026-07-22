@@ -8,6 +8,7 @@ class CatalogUpdateJob(models.Model):
         ("andersen", "Andersen"),
         ("kreslalux", "Kreslalux"),
         ("eurosof", "Eurosof"),
+        ("divanoff", "Divanoff"),
         ("google_sheet", "Google Sheets"),
         ("supplier_feed", "XML/YML фід"),
         ("supplier_web", "Веб-скрапінг"),
