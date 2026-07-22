@@ -32,3 +32,8 @@ Settings module: `store.settings`. Env змінні: `.env` в корені пр
 - **`/custom-admin/`** — основний UI персоналу, не `/admin/`.
 - **SalesDrive** — fire-and-forget. Помилки в логах, замовлення не блокує.
 - **WebP варіанти** — генеруються асинхронно після upload.
+
+Сховище Obsidian
+
+Звертайся до цього сховища, тут є вся інформація у тому числі знаходження Chroma
+~/Documents/Claude/Obsidian/montal home

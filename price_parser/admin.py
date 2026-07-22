@@ -9,6 +9,7 @@ from .models import (
     GoogleSheetConfig,
     PriceUpdateLog,
     FurniturePriceCellMapping,
+    FurnitureModelPriceMapping,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
     SupplierWebConfig,
@@ -23,7 +24,7 @@ from .services import (
 
 @admin.register(GoogleSheetConfig)
 class GoogleSheetConfigAdmin(admin.ModelAdmin):
-    list_display = ['name', 'sheet_id', 'is_active', 'created_at', 'updated_at']
+    list_display = ['name', 'sheet_id', 'parsing_mode', 'is_active', 'created_at', 'updated_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'sheet_id']
     readonly_fields = ['sheet_id', 'created_at', 'updated_at']
@@ -33,7 +34,7 @@ class GoogleSheetConfigAdmin(admin.ModelAdmin):
             'fields': ('name', 'is_active')
         }),
         ('Google Таблиці', {
-            'fields': ('sheet_url', 'sheet_id', 'sheet_name', 'sheet_gid'),
+            'fields': ('sheet_url', 'sheet_id', 'sheet_name', 'sheet_gid', 'parsing_mode'),
             'description': 'Налаштування для Google таблиць'
         }),
         ('XLSX Файли', {
@@ -125,7 +126,7 @@ class GoogleSheetConfigAdmin(admin.ModelAdmin):
 
 @admin.register(SupplierFeedConfig)
 class SupplierFeedConfigAdmin(admin.ModelAdmin):
-    list_display = ['name', 'supplier', 'category_hint', 'is_active', 'updated_at']
+    list_display = ['name', 'supplier', 'category_hint', 'fetch_mode', 'is_active', 'updated_at']
     list_filter = ['is_active', 'supplier']
     search_fields = ['name', 'supplier', 'category_hint']
     readonly_fields = ['created_at', 'updated_at']
@@ -135,8 +136,12 @@ class SupplierFeedConfigAdmin(admin.ModelAdmin):
             'fields': ('name', 'supplier', 'category_hint', 'is_active')
         }),
         ('Джерело', {
-            'fields': ('feed_url',),
-            'description': 'Посилання на XML/YML фід постачальника'
+            'fields': ('feed_url', 'fetch_mode', 'manual_feed_content'),
+            'description': (
+                'Посилання на XML/YML фід постачальника. Якщо сервер отримує 403 Forbidden '
+                'при автоматичному завантаженні — оберіть "Вручну" і вставте вміст фіда, '
+                'скопійований у браузері за посиланням вище.'
+            )
         }),
         ('Налаштування пошуку', {
             'fields': ('match_by_article', 'match_by_name', 'article_tag_name', 'article_prefix_parts'),
@@ -631,4 +636,37 @@ class FurniturePriceCellMappingAdmin(admin.ModelAdmin):
     )
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('furniture', 'config', 'size_variant') 
+        return super().get_queryset(request).select_related('furniture', 'config', 'size_variant')
+
+
+@admin.register(FurnitureModelPriceMapping)
+class FurnitureModelPriceMappingAdmin(admin.ModelAdmin):
+    list_display = ['furniture', 'config', 'model_label', 'price_type', 'size_variant', 'is_active']
+    list_filter = ['is_active', 'config']
+    search_fields = ['furniture__name', 'model_label', 'price_type']
+    autocomplete_fields = ['furniture', 'size_variant']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('furniture', 'config', 'is_active')
+        }),
+        ('Пошук у таблиці', {
+            'fields': ('model_label', 'price_type'),
+            'description': (
+                'Введіть текст точно як у таблиці постачальника. Парсер шукає цей текст '
+                'у блоках таблиці при кожному оновленні — позиція рядка/колонки не має значення.'
+            )
+        }),
+        ('Розмірний варіант', {
+            'fields': ('size_variant',),
+            'description': 'Виберіть, якщо у моделі в таблиці декілька рядків розміру'
+        }),
+        ('Системна інформація', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('furniture', 'config', 'size_variant')

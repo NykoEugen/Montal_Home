@@ -5,6 +5,7 @@ from furniture.models import Bed, Furniture
 from params.models import Parameter
 from price_parser.models import (
     FurniturePriceCellMapping,
+    FurnitureModelPriceMapping,
     GoogleSheetConfig,
     PriceUpdateLog,
     SupplierFeedConfig,
@@ -19,6 +20,7 @@ from .forms import (
     CategoryForm,
     FurnitureForm,
     FurniturePriceCellMappingForm,
+    FurnitureModelPriceMappingForm,
     FabricBrandForm,
     FabricCategoryForm,
     FabricColorForm,
@@ -317,6 +319,7 @@ def register_default_sections() -> None:
                 "name",
                 "supplier",
                 "category_hint",
+                "fetch_mode",
                 "price_multiplier",
                 "is_active",
                 "updated_at",
@@ -325,6 +328,7 @@ def register_default_sections() -> None:
                 "Назва",
                 "Постачальник",
                 "Категорія",
+                "Спосіб отримання",
                 "Множник",
                 "Активний",
                 "Оновлено",
@@ -332,7 +336,11 @@ def register_default_sections() -> None:
             search_fields=("name", "supplier", "category_hint"),
             ordering=("-updated_at",),
             title="Фіди постачальників",
-            description="XML/YML джерела (наприклад, Matrolux) для автоматичного оновлення цін.",
+            description=(
+                "XML/YML джерела (наприклад, Matrolux) для автоматичного оновлення цін. "
+                "Якщо постачальник блокує сервер (403 Forbidden) — перемкніть конфігурацію "
+                "на режим 'Вручну' та вставте вміст фіда, скопійований у браузері."
+            ),
             icon="fa-cloud-arrow-down",
         )
     )
@@ -390,6 +398,37 @@ def register_default_sections() -> None:
             title="Парсер цін — мапінги",
             description="Привʼязка товарів до конкретних комірок прайсів.",
             icon="fa-table-cells",
+        )
+    )
+    registry.register(
+        AdminSection(
+            slug="price-model-mappings",
+            model=FurnitureModelPriceMapping,
+            form_class=FurnitureModelPriceMappingForm,
+            list_display=(
+                "furniture",
+                "config",
+                "model_label",
+                "price_type",
+                "size_variant",
+                "is_active",
+            ),
+            list_display_labels=(
+                "Меблі",
+                "Конфігурація",
+                "Модель в таблиці",
+                "Тип ціни",
+                "Розмірний варіант",
+                "Активна",
+            ),
+            search_fields=("furniture__name", "config__name", "model_label", "price_type"),
+            ordering=("config", "model_label", "price_type"),
+            title="Парсер цін — мапінги за моделлю (блочні прайси)",
+            description=(
+                "Привʼязка товарів до назви моделі в блочних Google Sheets прайсах "
+                "(напр. Джем) — без ручного підрахунку рядків/колонок."
+            ),
+            icon="fa-layer-group",
         )
     )
     registry.register(
