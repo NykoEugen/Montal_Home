@@ -58,6 +58,25 @@ class GoogleSheetConfig(models.Model):
         help_text="GID сторінки (знаходиться в URL після #gid=). Якщо не вказано, буде використовуватися перша сторінка (gid=0)"
     )
 
+    PARSING_MODE_CELL_MAPPING = 'cell_mapping'
+    PARSING_MODE_BLOCK_STRUCTURED = 'block_structured'
+    PARSING_MODE_CHOICES = [
+        (PARSING_MODE_CELL_MAPPING, 'За коміркою (рядок/колонка)'),
+        (PARSING_MODE_BLOCK_STRUCTURED, 'Блочна структура (пошук моделі за назвою)'),
+    ]
+    parsing_mode = models.CharField(
+        max_length=20,
+        choices=PARSING_MODE_CHOICES,
+        default=PARSING_MODE_CELL_MAPPING,
+        verbose_name="Режим парсингу",
+        help_text=(
+            "«За коміркою» — фіксовані рядок/колонка (FurniturePriceCellMapping). "
+            "«Блочна структура» — пошук моделі за текстовою назвою в таблиці "
+            "(FurnitureModelPriceMapping), для прайсів на кшталт «Джем», де "
+            "постачальник групує моделі блоками з локальними заголовками."
+        )
+    )
+
     is_active = models.BooleanField(
         default=True,
         verbose_name="Активна",
@@ -166,6 +185,13 @@ class PriceUpdateLog(models.Model):
 class SupplierFeedConfig(models.Model):
     """Configuration for supplier XML/YML feeds."""
 
+    FETCH_MODE_URL = 'url'
+    FETCH_MODE_MANUAL = 'manual'
+    FETCH_MODE_CHOICES = [
+        (FETCH_MODE_URL, 'Автоматично за посиланням'),
+        (FETCH_MODE_MANUAL, 'Вручну (вставити текст фіда)'),
+    ]
+
     name = models.CharField(
         max_length=200,
         verbose_name="Назва конфігурації",
@@ -174,6 +200,30 @@ class SupplierFeedConfig(models.Model):
     feed_url = models.URLField(
         verbose_name="URL фіда",
         help_text="Посилання на XML/YML файл (наприклад, YML для Matrolux)"
+    )
+    fetch_mode = models.CharField(
+        max_length=20,
+        choices=FETCH_MODE_CHOICES,
+        default=FETCH_MODE_URL,
+        verbose_name="Спосіб отримання фіда",
+        help_text=(
+            "'Автоматично' — сервер сам завантажує фід за URL. "
+            "'Вручну' — якщо постачальник блокує сервер (403), перейдіть за посиланням "
+            "у браузері, скопіюйте вміст і вставте його в поле нижче."
+        )
+    )
+    manual_feed_content = models.TextField(
+        blank=True,
+        default='',
+        verbose_name="Вміст фіда (вручну)",
+        help_text=(
+            "Використовується лише при 'Вручну'. Покрокова інструкція: "
+            "1) Перейдіть за посиланням з поля 'URL фіда' у новій вкладці. "
+            "2) Виділіть увесь вміст сторінки (Ctrl+A/Cmd+A) і скопіюйте (Ctrl+C/Cmd+C). "
+            "3) Вставте сюди (Ctrl+V/Cmd+V), повністю замінивши попередній текст. "
+            "4) Збережіть конфігурацію. "
+            "5) У списку 'Фіди постачальників' натисніть 'Тестувати парсер' або 'Оновити ціни'."
+        )
     )
     supplier = models.CharField(
         max_length=120,
@@ -573,7 +623,74 @@ class FurniturePriceCellMapping(models.Model):
     @property
     def cell_reference(self):
         """Get Excel-style cell reference."""
-        return f"{self.sheet_column}{self.sheet_row}" 
+        return f"{self.sheet_column}{self.sheet_row}"
+
+
+class FurnitureModelPriceMapping(models.Model):
+    """Block-structured mapping: locate furniture price by matching the model's
+    name and price-type text within the sheet, instead of a fixed row/column.
+
+    Used for suppliers (e.g. "Джем") whose Google Sheet groups models into
+    blocks with their own local headers, so a fixed cell reference breaks
+    whenever the supplier edits the sheet layout.
+    """
+
+    furniture = models.ForeignKey(
+        Furniture,
+        on_delete=models.CASCADE,
+        related_name='model_price_mappings',
+        verbose_name="Меблі"
+    )
+    config = models.ForeignKey(
+        GoogleSheetConfig,
+        on_delete=models.CASCADE,
+        related_name='model_price_mappings',
+        verbose_name="Конфігурація Google таблиці"
+    )
+    model_label = models.CharField(
+        max_length=200,
+        verbose_name="Назва моделі в таблиці",
+        help_text="Текст точно як у таблиці постачальника, наприклад 'Slim', 'Boston А'."
+    )
+    price_type = models.CharField(
+        max_length=150,
+        verbose_name="Тип ціни",
+        help_text="Текст заголовка цінової колонки в блоці, наприклад 'HPL покриття'."
+    )
+    size_variant = models.ForeignKey(
+        'furniture.FurnitureSizeVariant',
+        on_delete=models.CASCADE,
+        related_name='model_price_mappings',
+        verbose_name="Розмірний варіант",
+        null=True,
+        blank=True,
+        help_text=(
+            "Вкажіть, якщо у моделі в таблиці декілька рядків розміру. "
+            "Парсер зіставляє рядок таблиці з варіантом за шириною/довжиною/висотою."
+        )
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активне"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата створення"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата оновлення"
+    )
+
+    class Meta:
+        db_table = "price_parser_furniture_model_price_mapping"
+        verbose_name = "Зв'язок меблів з моделлю (блочний прайс)"
+        verbose_name_plural = "Зв'язки меблів з моделями (блочний прайс)"
+        unique_together = ['furniture', 'config', 'model_label', 'price_type', 'size_variant']
+        ordering = ['config', 'model_label', 'price_type']
+
+    def __str__(self):
+        return f"{self.furniture.name} — {self.model_label} / {self.price_type}"
 
 
 class EurosofPriceConfig(models.Model):

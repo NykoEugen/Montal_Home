@@ -19,6 +19,7 @@ from .models import (
     GoogleSheetConfig,
     PriceUpdateLog,
     FurniturePriceCellMapping,
+    FurnitureModelPriceMapping,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
     SupplierWebConfig,
@@ -50,57 +51,67 @@ class GoogleSheetsPriceUpdater:
             data = self._fetch_sheet_data()
             if not data:
                 return {'success': False, 'error': 'Не вдалося отримати дані з таблиці'}
-            
-            # Count active cell mappings
-            cell_mappings_count = FurniturePriceCellMapping.objects.filter(
-                config=self.config,
-                is_active=True
-            ).count()
-            
+
+            # Count active mappings for whichever parsing mode this config uses
+            if self.config.parsing_mode == GoogleSheetConfig.PARSING_MODE_BLOCK_STRUCTURED:
+                mappings_count = FurnitureModelPriceMapping.objects.filter(
+                    config=self.config,
+                    is_active=True
+                ).count()
+                label = 'мапінгів моделей'
+            else:
+                mappings_count = FurniturePriceCellMapping.objects.filter(
+                    config=self.config,
+                    is_active=True
+                ).count()
+                label = 'мапінгів комірок'
+
             return {
                 'success': True,
                 'data': data[:10],  # Return first 10 rows for preview
-                'count': cell_mappings_count,
-                'message': f'Sheet loaded successfully. Found {cell_mappings_count} active cell mappings.'
+                'count': mappings_count,
+                'message': f'Sheet loaded successfully. Found {mappings_count} active {label}.'
             }
         except Exception as e:
             logger.error(f"Error testing sheet access for config {self.config.name}: {str(e)}")
             return {'success': False, 'error': str(e)}
-    
+
     def update_prices(self) -> Dict:
-        """Update furniture prices from Google Sheets using direct cell mappings."""
+        """Update furniture prices from Google Sheets using the config's parsing mode."""
         start_time = timezone.now()
-        
+
         # Create log entry
         self.log = PriceUpdateLog.objects.create(
             config=self.config,
             status='success',
             started_at=start_time
         )
-        
+
         try:
             # Fetch data from Google Sheets
             data = self._fetch_sheet_data()
             if not data:
                 self._update_log_error("Не вдалося отримати дані з таблиці")
                 return {'success': False, 'error': 'Не вдалося отримати дані з таблиці'}
-            
-            # Update prices using direct cell mappings only
-            updated_count, processed_count = self._update_prices_from_cell_mappings(data)
-            
+
+            if self.config.parsing_mode == GoogleSheetConfig.PARSING_MODE_BLOCK_STRUCTURED:
+                updated_count, processed_count = self._update_prices_from_model_blocks(data)
+            else:
+                updated_count, processed_count = self._update_prices_from_cell_mappings(data)
+
             # Update log
             self.log.items_processed = processed_count
             self.log.items_updated = updated_count
             self.log.completed_at = timezone.now()
             self.log.log_details = f"Оновлено {updated_count} товарів з {processed_count} комірок"
             self.log.save()
-            
+
             return {
                 'success': True,
                 'updated_count': updated_count,
                 'processed_count': processed_count,
             }
-            
+
         except Exception as e:
             error_msg = f"Помилка оновлення цін: {str(e)}"
             logger.error(error_msg)
@@ -382,7 +393,199 @@ class GoogleSheetsPriceUpdater:
                 })
         
         return updated_count, processed_count
-    
+
+    def _parse_size_component(self, raw: str) -> Tuple[Optional[Decimal], Optional[Decimal]]:
+        """Parse a sheet size cell into (lo, hi) as Decimal.
+
+        '900-1400' -> (900, 1400); '650' -> (650, None); '' or unparsable -> (None, None).
+        """
+        raw = (raw or '').strip()
+        if not raw:
+            return None, None
+        m = re.match(r'^(\d+)\s*-\s*(\d+)$', raw)
+        if m:
+            return Decimal(m.group(1)), Decimal(m.group(2))
+        m = re.match(r'^(\d+)$', raw)
+        if m:
+            return Decimal(m.group(1)), None
+        return None, None
+
+    def _parse_model_blocks(self, data: List[List]) -> List[Dict]:
+        """Parse a block-structured sheet (repeating 'Модель' groups) into data rows.
+
+        Each block starts at a row whose first cell is 'Модель' (case-insensitive),
+        followed by a header row with 'Довжина'/'Ширина'/'Висота' in columns D/E/F
+        and price-type labels in the remaining non-empty columns. Data rows follow
+        until a blank row or the next 'Модель' header; a row's model name is
+        inherited forward while its own first cell is empty (multi-size models).
+        """
+
+        def cell(row: List[str], idx: int) -> str:
+            return row[idx].strip() if idx < len(row) else ''
+
+        blocks_rows: List[Dict] = []
+        n = len(data)
+        i = 0
+        while i < n:
+            row = data[i]
+            if cell(row, 0).lower() != 'модель':
+                i += 1
+                continue
+
+            header_row_idx = i + 1
+            if header_row_idx >= n:
+                break
+            header_row = data[header_row_idx]
+
+            # Column D holds either 'Довжина' (rectangular) or 'Діаметр'/'Діаметр/довжина'
+            # (round tables); round tables have no width column (E is blank).
+            length_label = cell(header_row, 3).lower()
+            width_label = cell(header_row, 4).lower()
+            height_label = cell(header_row, 5).lower()
+            length_ok = length_label.startswith('довжин') or length_label.startswith('діаметр')
+            width_ok = not width_label or width_label.startswith('ширин')
+            height_ok = height_label.startswith('висот')
+            if not (length_ok and width_ok and height_ok):
+                self.log.errors.append({
+                    'блок': f'рядок {i + 1}',
+                    'error': (
+                        'Блок з "Модель" має нестандартні заголовки '
+                        '(очікувались Довжина/Діаметр, Ширина, Висота в колонках D/E/F) — блок пропущено.'
+                    ),
+                })
+                i = header_row_idx + 1
+                continue
+
+            price_columns: Dict[int, str] = {}
+            for col_idx in range(6, len(header_row)):
+                label = cell(header_row, col_idx)
+                if not label or label.lower() == 'відео огляд':
+                    continue
+                price_columns[col_idx] = label
+
+            current_model_label = ''
+            row_idx = header_row_idx + 1
+            while row_idx < n:
+                data_row = data[row_idx]
+                if not any(cell(data_row, c) for c in range(len(data_row))):
+                    row_idx += 1
+                    break
+                first = cell(data_row, 0)
+                if first.lower() == 'модель':
+                    break
+                if first:
+                    current_model_label = first
+                if current_model_label:
+                    prices = {
+                        label: cell(data_row, col_idx)
+                        for col_idx, label in price_columns.items()
+                        if cell(data_row, col_idx)
+                    }
+                    blocks_rows.append({
+                        'model_label': current_model_label,
+                        'length_raw': cell(data_row, 3),
+                        'width_raw': cell(data_row, 4),
+                        'height_raw': cell(data_row, 5),
+                        'prices': prices,
+                    })
+                row_idx += 1
+            i = row_idx
+
+        return blocks_rows
+
+    def _update_prices_from_model_blocks(self, data: List[List]) -> Tuple[int, int]:
+        """Update prices for block-structured sheets (e.g. 'Джем') by matching
+        model_label/price_type text against dynamically parsed blocks, instead
+        of fixed row/column references."""
+        updated_count = 0
+
+        mappings = list(
+            FurnitureModelPriceMapping.objects.filter(
+                config=self.config,
+                is_active=True,
+            ).select_related('furniture', 'size_variant')
+        )
+        processed_count = len(mappings)
+        if not mappings:
+            return updated_count, processed_count
+
+        mappings_by_key: Dict[Tuple[str, str], List[FurnitureModelPriceMapping]] = {}
+        for mapping in mappings:
+            key = (mapping.model_label.strip().lower(), mapping.price_type.strip().lower())
+            mappings_by_key.setdefault(key, []).append(mapping)
+
+        rows = self._parse_model_blocks(data)
+
+        rows_per_model: Dict[str, int] = {}
+        for row in rows:
+            key = row['model_label'].strip().lower()
+            rows_per_model[key] = rows_per_model.get(key, 0) + 1
+
+        for row in rows:
+            model_key = row['model_label'].strip().lower()
+            row_length_lo, row_length_hi = self._parse_size_component(row['length_raw'])
+            row_width, _ = self._parse_size_component(row['width_raw'])
+            row_height, _ = self._parse_size_component(row['height_raw'])
+
+            for price_type_label, price_str in row['prices'].items():
+                candidates = mappings_by_key.get((model_key, price_type_label.strip().lower()))
+                if not candidates:
+                    continue
+
+                for mapping in candidates:
+                    if mapping.size_variant is None:
+                        if rows_per_model.get(model_key, 0) > 1:
+                            self.log.errors.append({
+                                'модель': row['model_label'],
+                                'тип_ціни': price_type_label,
+                                'меблі': mapping.furniture.name,
+                                'error': (
+                                    f'Модель "{row["model_label"]}" має декілька розмірів у таблиці, '
+                                    'а мапінг не вказує розмірний варіант. Вкажіть size_variant у мапінгу.'
+                                ),
+                            })
+                            continue
+                        price = self._parse_price(price_str)
+                        if price is None:
+                            self.log.errors.append({
+                                'модель': row['model_label'],
+                                'тип_ціни': price_type_label,
+                                'меблі': mapping.furniture.name,
+                                'error': f'Не вдалося розібрати ціну: {price_str}',
+                            })
+                            continue
+                        mapping.furniture.price = price
+                        mapping.furniture.save()
+                        updated_count += 1
+                        continue
+
+                    variant = mapping.size_variant
+                    if row_width is not None and variant.width != row_width:
+                        continue
+                    if row_height is not None and variant.height != row_height:
+                        continue
+                    if row_length_lo is not None:
+                        if variant.length != row_length_lo:
+                            continue
+                        if row_length_hi is not None and variant.unfolded_length is not None:
+                            if variant.unfolded_length != row_length_hi:
+                                continue
+
+                    price = self._parse_price(price_str)
+                    if price is None:
+                        self.log.errors.append({
+                            'модель': row['model_label'],
+                            'тип_ціни': price_type_label,
+                            'меблі': mapping.furniture.name,
+                            'error': f'Не вдалося розібрати ціну: {price_str}',
+                        })
+                        continue
+                    variant.price = price
+                    variant.save()
+                    updated_count += 1
+
+        return updated_count, processed_count
+
     def _update_log_error(self, error_msg: str):
         """Update log with error information."""
         if self.log:
@@ -390,6 +593,10 @@ class GoogleSheetsPriceUpdater:
             self.log.completed_at = timezone.now()
             self.log.errors.append({'error': error_msg})
             self.log.save()
+
+
+class SupplierFeedAccessError(Exception):
+    """Raised when a supplier feed request is rejected (e.g. 403 from a WAF/IP block)."""
 
 
 @dataclass
@@ -623,14 +830,75 @@ class SupplierFeedPriceUpdater:
 
     # --- Internal helpers -------------------------------------------------
 
+    def _build_warmed_session(self) -> requests.Session:
+        """Create a requests.Session and warm it up with a homepage visit.
+
+        Some supplier WAFs (e.g. matroluxe.ua) reject bare, cookie-less requests
+        from datacenter IPs. Visiting the homepage first collects cookies that
+        make the subsequent feed request look like a real browser session.
+        Failure to warm up is non-fatal — we fall back to a cookie-less request.
+        """
+        session = requests.Session()
+        parsed = urlparse(self.config.feed_url)
+        homepage_url = f"{parsed.scheme}://{parsed.netloc}/"
+        try:
+            session.get(homepage_url, headers=DEFAULT_FEED_HEADERS, timeout=15)
+        except Exception as exc:
+            logger.warning(
+                "Feed session warm-up failed for %s (%s): %s",
+                self.config.name,
+                homepage_url,
+                exc,
+            )
+        return session
+
     def _fetch_offers(self) -> List[SupplierOffer]:
-        response = requests.get(
-            self.config.feed_url,
-            headers=DEFAULT_FEED_HEADERS,
-            timeout=60,
-        )
-        response.raise_for_status()
-        root = ET.fromstring(response.content)
+        content = self._get_feed_content()
+        return self._parse_offers_from_content(content)
+
+    def _get_feed_content(self) -> bytes:
+        if self.config.fetch_mode == SupplierFeedConfig.FETCH_MODE_MANUAL:
+            raw = (self.config.manual_feed_content or '').strip()
+            if not raw:
+                raise SupplierFeedAccessError(
+                    "Фід не вставлено вручну. Перейдіть за посиланням із поля 'URL фіда', "
+                    "скопіюйте вміст XML/YML і вставте його в поле 'Вміст фіда (вручну)' "
+                    "у конфігурації постачальника."
+                )
+            return raw.encode('utf-8')
+
+        session = self._build_warmed_session()
+        parsed = urlparse(self.config.feed_url)
+        homepage_url = f"{parsed.scheme}://{parsed.netloc}/"
+        feed_headers = {
+            **DEFAULT_FEED_HEADERS,
+            "Referer": homepage_url,
+            "Accept-Language": "uk-UA,uk;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+        }
+        response = session.get(self.config.feed_url, headers=feed_headers, timeout=60)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as exc:
+            if response.status_code == 403:
+                snippet = response.text[:500].replace("\n", " ")
+                logger.error(
+                    "Feed 403 Forbidden for %s (url=%s): headers=%s body_snippet=%r",
+                    self.config.name,
+                    self.config.feed_url,
+                    dict(response.headers),
+                    snippet,
+                )
+                raise SupplierFeedAccessError(
+                    f"Постачальник повернув 403 Forbidden (ймовірно блокування IP сервера/WAF). "
+                    f"Скористайтесь режимом 'Вручну' в конфігурації. "
+                    f"Body (перші 500 симв.): {snippet}"
+                ) from exc
+            raise
+        return response.content
+
+    def _parse_offers_from_content(self, content: bytes) -> List[SupplierOffer]:
+        root = ET.fromstring(content)
 
         article_tag = (self.config.article_tag_name or 'model').strip()
         prefix_parts = self.config.article_prefix_parts or 0

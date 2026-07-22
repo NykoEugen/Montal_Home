@@ -2,6 +2,7 @@ import json
 
 from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
+from django.utils.html import format_html
 
 from categories.models import Category
 from checkout.models import Order, OrderItem, OrderStatus
@@ -23,6 +24,7 @@ from params.models import Parameter, FurnitureParameter
 from price_parser.models import (
     GoogleSheetConfig,
     FurniturePriceCellMapping,
+    FurnitureModelPriceMapping,
     PriceUpdateLog,
     SupplierFeedConfig,
     SupplierFeedUpdateLog,
@@ -323,6 +325,7 @@ class GoogleSheetConfigForm(StyledModelForm):
             "price_multiplier",
             "sheet_name",
             "sheet_gid",
+            "parsing_mode",
             "is_active",
         ]
 
@@ -341,6 +344,19 @@ class FurniturePriceCellMappingForm(StyledModelForm):
         ]
 
 
+class FurnitureModelPriceMappingForm(StyledModelForm):
+    class Meta:
+        model = FurnitureModelPriceMapping
+        fields = [
+            "furniture",
+            "config",
+            "model_label",
+            "price_type",
+            "size_variant",
+            "is_active",
+        ]
+
+
 class SupplierFeedConfigForm(StyledModelForm):
     class Meta:
         model = SupplierFeedConfig
@@ -349,6 +365,8 @@ class SupplierFeedConfigForm(StyledModelForm):
             "supplier",
             "category_hint",
             "feed_url",
+            "fetch_mode",
+            "manual_feed_content",
             "price_multiplier",
             "article_tag_name",
             "article_prefix_parts",
@@ -358,6 +376,31 @@ class SupplierFeedConfigForm(StyledModelForm):
             "match_by_name",
             "is_active",
         ]
+        widgets = {
+            "manual_feed_content": forms.Textarea(attrs={"rows": 16, "class": "font-mono text-xs"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        feed_url = self.instance.feed_url if self.instance and self.instance.pk else ""
+        if feed_url:
+            link_html = format_html(
+                '<a href="{0}" target="_blank" rel="noopener" class="text-brown-700 underline">'
+                "Відкрити фід постачальника у новій вкладці</a>",
+                feed_url,
+            )
+        else:
+            link_html = "Спершу вкажіть і збережіть 'URL фіда' — після цього тут з'явиться клікабельне посилання."
+        self.fields["manual_feed_content"].help_text = format_html(
+            "{}<br><br>"
+            "<strong>Покрокова інструкція (режим 'Вручну'):</strong><br>"
+            "1) Перейдіть за посиланням вище (відкриється фід постачальника).<br>"
+            "2) Виділіть увесь текст на сторінці (Ctrl+A / Cmd+A) і скопіюйте (Ctrl+C / Cmd+C).<br>"
+            "3) Вставте скопійований текст у поле нижче (Ctrl+V / Cmd+V), повністю замінивши попередній вміст.<br>"
+            "4) Натисніть 'Зберегти'.<br>"
+            "5) У списку 'Фіди постачальників' натисніть 'Тестувати парсер' (перевірити) або 'Оновити ціни'.",
+            link_html,
+        )
 
 
 class SupplierWebConfigForm(StyledModelForm):
