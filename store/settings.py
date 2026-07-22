@@ -40,6 +40,10 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 INTERNAL_IPS = ["127.0.0.1"]
 
+# Django default (2.5MB) is too small for manually pasted supplier XML/YML feeds
+# (custom_admin SupplierFeedConfig.manual_feed_content), some of which exceed 5-10MB.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB
+
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
 
