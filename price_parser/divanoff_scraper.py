@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://divanoff.ua"
 CATALOG_URL = f"{BASE_URL}/divany"
-MAX_PAGES = 2
+MAX_PAGES = 20  # safety cap — цикл зупиняється раніше на першій порожній сторінці
 REQUEST_DELAY = 0.8
 IMAGE_CACHE_DIR = "supplier_cache/divanoff"
 # 0-indexed columns C–J = Category 0 (cheapest) through Category VII
@@ -419,6 +419,8 @@ class DivanoffScraper:
                         break
 
             self._log(f"  Знайдено {len(page_urls)} посилань")
+            if not page_urls:
+                break
             all_urls.extend(page_urls)
             if limit and len(all_urls) >= limit:
                 break
@@ -676,8 +678,9 @@ class DivanoffScraper:
 
                 if dry_run:
                     role = "ЛІДЕР" if base_key not in leaders else "ВАРІАНТ"
+                    preview_price = _apply_price_formula(pr.all_prices[0] or pr.price)
                     self._log(
-                        f"  [DRY-RUN] {role} {full_name} ({article_code}) — {pr.price} грн"
+                        f"  [DRY-RUN] {role} {full_name} ({article_code}) — {preview_price} грн"
                     )
                     if base_key not in leaders:
                         leaders[base_key] = True  # type: ignore[assignment]
@@ -727,7 +730,7 @@ class DivanoffScraper:
                         leaders[base_key] = furniture
                         stats["created"] += 1
                 else:
-                    self._log(f"  Створено: {furniture.name} ({article_code}) — {pr.price} грн")
+                    self._log(f"  Створено: {furniture.name} ({article_code}) — {furniture.price} грн")
                     stats["created"] += 1
 
         stats["success"] = True
