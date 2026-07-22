@@ -897,7 +897,18 @@ class SupplierFeedPriceUpdater:
             raise
         return response.content
 
+    def _sanitize_xml_content(self, content: bytes) -> bytes:
+        """Escape stray '&' not part of a valid XML entity/char-ref.
+
+        Постачальники (Matroluxe) інколи віддають фід з необрізаними URL
+        (напр. 'route=product/product&product_id=123') — невалідний XML,
+        який валить ET.fromstring. Виправляємо лише сирі '&', не чіпаючи
+        вже валідні сутності.
+        """
+        return re.sub(rb'&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)', b'&amp;', content)
+
     def _parse_offers_from_content(self, content: bytes) -> List[SupplierOffer]:
+        content = self._sanitize_xml_content(content)
         root = ET.fromstring(content)
 
         article_tag = (self.config.article_tag_name or 'model').strip()
