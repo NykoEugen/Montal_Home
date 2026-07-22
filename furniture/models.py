@@ -98,7 +98,7 @@ class Furniture(models.Model):
         verbose_name="Обраний бренд тканини"
     )
     fabric_value = models.DecimalField(
-        max_digits=5,
+        max_digits=10,
         decimal_places=2,
         default=1.0,
         validators=[MinValueValidator(0)],
