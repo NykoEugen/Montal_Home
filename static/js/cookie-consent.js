@@ -5,6 +5,20 @@
 
     var STORAGE_KEY = 'cookie_consent';
 
+    function insertNoscriptFrame(id) {
+        if (document.getElementById('gtm-noscript-frame')) {
+            return;
+        }
+        var iframe = document.createElement('iframe');
+        iframe.id = 'gtm-noscript-frame';
+        iframe.src = 'https://www.googletagmanager.com/ns.html?id=' + id;
+        iframe.height = '0';
+        iframe.width = '0';
+        iframe.style.display = 'none';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+    }
+
     function loadGTM() {
         (function (w, d, s, l, i) {
             w[l] = w[l] || [];
@@ -16,6 +30,7 @@
             j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
             f.parentNode.insertBefore(j, f);
         })(window, document, 'script', 'dataLayer', window.GTM_ID);
+        insertNoscriptFrame(window.GTM_ID);
     }
 
     var consent = localStorage.getItem(STORAGE_KEY);
