@@ -82,6 +82,7 @@ MIDDLEWARE = [
     "store.middleware.PostRequestResilienceMiddleware",  # POST request resilience
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "store.middleware.FrameAncestorsMiddleware",  # allow Tag Assistant preview framing
     "store.middleware.AdminConnectionMonitorMiddleware",  # Admin connection monitoring
 ]
 
