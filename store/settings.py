@@ -112,6 +112,7 @@ WSGI_APPLICATION = "store.wsgi.application"
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "montal.com.ua")
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", f"https://{SITE_DOMAIN}")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
+GOOGLE_TAG_MANAGER_ID = os.getenv("GOOGLE_TAG_MANAGER_ID", "")
 HEALTHCHECK_SHARED_SECRET = os.getenv("HEALTHCHECK_SHARED_SECRET", "")
 REDIS_URL = os.getenv("REDIS_URL")
 REDIS_SSL_CERT_REQS = os.getenv("REDIS_SSL_CERT_REQS", "required")

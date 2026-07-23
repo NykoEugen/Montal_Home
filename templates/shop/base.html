@@ -36,6 +36,13 @@
     <link rel="stylesheet" href="{% static 'css/carousel.css' %}">
     <link rel="stylesheet" href="{% static 'css/chat-button.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% if google_tag_manager_id %}
+    <link rel="stylesheet" href="{% static 'css/cookie-consent.css' %}">
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        window.GTM_ID = "{{ google_tag_manager_id }}";
+    </script>
+    {% endif %}
     {% block extra_head %}{% endblock %}
     {% block structured_data %}{% endblock %}
     <meta name="csrf-token" content="{{ csrf_token }}">
@@ -354,6 +361,20 @@
 
         </div>
     </div>
+
+    {% if google_tag_manager_id %}
+    <div id="cookie-consent-banner" class="cookie-consent-banner">
+        <p class="cookie-consent-banner__text">
+            Ми використовуємо файли cookie для аналітики та покращення роботи сайту.
+            Детальніше — у <a href="{% url 'shop:offer' %}">Публічній оферті</a>.
+        </p>
+        <div class="cookie-consent-banner__actions">
+            <button type="button" id="cookie-consent-decline" class="cookie-consent-banner__btn cookie-consent-banner__btn--outline">Відхилити</button>
+            <button type="button" id="cookie-consent-accept" class="cookie-consent-banner__btn cookie-consent-banner__btn--filled">Прийняти</button>
+        </div>
+    </div>
+    <script src="{% static 'js/cookie-consent.js' %}"></script>
+    {% endif %}
 
     {% block extra_body %}{% endblock %}
 </body>
