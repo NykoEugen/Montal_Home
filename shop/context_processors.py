@@ -138,6 +138,7 @@ def seo_defaults(request: HttpRequest) -> dict:
     default_keywords = "меблі, інтернет-магазин меблів, купити меблі Україна, Montal Home"
 
     google_verification = getattr(settings, "GOOGLE_SITE_VERIFICATION", "")
+    google_tag_manager_id = getattr(settings, "GOOGLE_TAG_MANAGER_ID", "")
 
     return {
         "default_meta_title": default_title,
@@ -158,6 +159,7 @@ def seo_defaults(request: HttpRequest) -> dict:
         "seo_site_domain": site_domain,
         "seo_site_url": base_url.rstrip("/"),
         "google_site_verification_token": google_verification,
+        "google_tag_manager_id": google_tag_manager_id,
     }
 
 
