@@ -108,11 +108,14 @@ urlpatterns = [
         views.divanoff_update_prices,
         name="divanoff_update_prices",
     ),
-    path(
-        "divanoff/run-import/", views.divanoff_run_import, name="divanoff_run_import"
-    ),
+    path("divanoff/run-import/", views.divanoff_run_import, name="divanoff_run_import"),
     path("eurosof-prices/", views.eurosof_price_config, name="eurosof_price_config"),
     path("<slug:section_slug>/", views.SectionListView.as_view(), name="list"),
+    path(
+        "<slug:section_slug>/inline-save/",
+        views.price_mapping_inline_save,
+        name="price_mapping_inline_save",
+    ),
     path(
         "<slug:section_slug>/create/", views.SectionCreateView.as_view(), name="create"
     ),

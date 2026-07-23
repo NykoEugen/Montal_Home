@@ -7,8 +7,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.core.exceptions import FieldError
-from django.db import close_old_connections, transaction
+from django.core.exceptions import FieldError, ValidationError
+from django.db import IntegrityError, close_old_connections, transaction
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -22,15 +22,16 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from checkout.invoice import generate_and_upload_invoice
 from checkout.models import Order
+from furniture.models import FurnitureSizeVariant
 from price_parser.andersen_scraper import CATALOG_CONFIGS as ANDERSEN_CATALOG_CONFIGS
+from price_parser.management.commands.import_divanoff import (
+    DEFAULT_XLSX as DIVANOFF_DEFAULT_XLSX,
+)
 from price_parser.management.commands.import_eurosof import (
     CATALOG_CONFIGS as EUROSOF_CATALOG_CONFIGS,
 )
 from price_parser.management.commands.import_eurosof import (
     DEFAULT_XLSX as EUROSOF_DEFAULT_XLSX,
-)
-from price_parser.management.commands.import_divanoff import (
-    DEFAULT_XLSX as DIVANOFF_DEFAULT_XLSX,
 )
 from price_parser.models import GoogleSheetConfig, SupplierFeedConfig, SupplierWebConfig
 from price_parser.services import (
@@ -142,6 +143,12 @@ class DashboardView(StaffRequiredMixin, TemplateView):
         return context
 
 
+_INLINE_EDIT_FIELDS = {
+    "price-mappings": ["price_type", "sheet_row", "sheet_column", "is_active"],
+    "price-model-mappings": ["model_label", "price_type", "size_variant", "is_active"],
+}
+
+
 class SectionMixin(StaffRequiredMixin):
     section_slug_kwarg = "section_slug"
 
@@ -201,6 +208,8 @@ class SectionListView(SectionMixin, ListView):
             stock_status = self.request.GET.get("stock_status")
             if stock_status:
                 queryset = queryset.filter(stock_status=stock_status)
+        if self.section.slug in {"price-mappings", "price-model-mappings"}:
+            queryset = queryset.select_related("furniture", "config", "size_variant")
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -259,6 +268,25 @@ class SectionListView(SectionMixin, ListView):
             context["palette_colors_bulk_edit_base_url"] = reverse(
                 "custom_admin:palette_colors_bulk_edit"
             )
+        if self.section.slug in _INLINE_EDIT_FIELDS:
+            page_objects = context["objects"]
+            furniture_ids = {obj.furniture_id for obj in page_objects}
+            size_variants_by_furniture: dict[int, list] = {}
+            for variant in FurnitureSizeVariant.objects.filter(
+                furniture_id__in=furniture_ids
+            ).order_by("height", "width", "length"):
+                size_variants_by_furniture.setdefault(variant.furniture_id, []).append(
+                    variant
+                )
+            context["inline_edit"] = {
+                "save_url": reverse(
+                    "custom_admin:price_mapping_inline_save", args=[self.section.slug]
+                ),
+                "editable_fields": _INLINE_EDIT_FIELDS[self.section.slug],
+                "size_variants_by_furniture": size_variants_by_furniture,
+                "return_page": self.request.GET.get("page", "1"),
+                "return_query": context["current_query_string"],
+            }
         return context
 
     def _get_bulk_action_context(self) -> Optional[dict[str, str]]:
@@ -1666,6 +1694,78 @@ def palette_colors_bulk_edit(request):
             "colors": colors,
         },
     )
+
+
+@login_required
+@require_POST
+def price_mapping_inline_save(request, section_slug):
+    if not request.user.is_staff or section_slug not in _INLINE_EDIT_FIELDS:
+        raise Http404("Сторінку не знайдено")
+
+    section = registry.get(section_slug)
+    fields = _INLINE_EDIT_FIELDS[section_slug]
+    pks = request.POST.getlist("pks")
+    objects = {
+        obj.pk: obj
+        for obj in section.model.objects.filter(pk__in=pks).select_related("furniture")
+    }
+
+    updated, errors = 0, []
+    for pk in pks:
+        obj = objects.get(int(pk))
+        if obj is None:
+            continue
+        changed = False
+        for field in fields:
+            if field == "is_active":
+                value = bool(request.POST.get(f"is_active_{pk}"))
+            elif field == "sheet_row":
+                raw = request.POST.get(f"sheet_row_{pk}", "")
+                try:
+                    value = int(raw)
+                except ValueError:
+                    errors.append(f"{obj}: некоректний рядок «{raw}».")
+                    continue
+            elif field == "size_variant":
+                raw = request.POST.get(f"size_variant_{pk}", "")
+                value = None
+                if raw:
+                    try:
+                        value = obj.furniture.size_variants.get(pk=int(raw))
+                    except (ValueError, FurnitureSizeVariant.DoesNotExist):
+                        errors.append(f"{obj}: некоректний розмірний варіант.")
+                        continue
+            else:
+                value = request.POST.get(f"{field}_{pk}", "").strip()
+
+            current = (
+                obj.size_variant_id if field == "size_variant" else getattr(obj, field)
+            )
+            new_id = value.pk if field == "size_variant" and value else value
+            if new_id != current:
+                setattr(obj, field, value)
+                changed = True
+
+        if not changed:
+            continue
+        try:
+            with transaction.atomic():
+                obj.full_clean()
+                obj.save()
+            updated += 1
+        except (ValidationError, IntegrityError) as exc:
+            errors.append(f"{obj}: {exc}")
+
+    if updated:
+        messages.success(request, f"Оновлено {updated} записів.")
+    for err in errors:
+        messages.error(request, err)
+
+    url = reverse("custom_admin:list", args=[section_slug])
+    query = f"page={request.POST.get('return_page', '1')}"
+    if request.POST.get("return_query"):
+        query += f"&{request.POST['return_query']}"
+    return redirect(f"{url}?{query}")
 
 
 def eurosof_price_config(request):

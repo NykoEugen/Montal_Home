@@ -108,6 +108,17 @@
             <i class="fa-solid fa-pen-to-square mr-2"></i> Масове редагування
         </button>
     </div>
+{% elif inline_edit %}
+<form method="post" action="{{ inline_edit.save_url }}" class="space-y-4">
+    {% csrf_token %}
+    <input type="hidden" name="return_page" value="{{ inline_edit.return_page }}">
+    <input type="hidden" name="return_query" value="{{ inline_edit.return_query }}">
+    <div class="bg-white border border-beige-300 rounded-xl shadow-sm p-4 flex items-center justify-between gap-3">
+        <span class="text-brown-500 text-sm">Редагуйте значення прямо в таблиці та збережіть усі зміни одразу.</span>
+        <button type="submit" class="inline-flex items-center px-4 py-2 bg-brown-600 text-white rounded-md hover:bg-brown-700 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:ring-offset-2 whitespace-nowrap">
+            <i class="fa-solid fa-floppy-disk mr-2"></i> Зберегти зміни
+        </button>
+    </div>
 {% endif %}
 
 <div class="bg-white rounded-xl shadow-sm border border-beige-300 overflow-hidden">
@@ -144,9 +155,31 @@
                                 <input type="checkbox" name="selected_furniture" value="{{ obj.pk }}" class="furniture-checkbox rounded border-beige-300 text-brown-600 focus:ring-brown-500">
                             </td>
                         {% endif %}
+                        {% if inline_edit %}
+                            <input type="hidden" name="pks" value="{{ obj.pk }}">
+                        {% endif %}
                         {% for column in list_display %}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {% if forloop.first or column == 'name' or column == 'id' or column == 'pk' %}
+                                {% if inline_edit and column in inline_edit.editable_fields %}
+                                    {% if column == 'sheet_row' %}
+                                        <input type="number" name="sheet_row_{{ obj.pk }}" value="{{ obj.sheet_row }}" class="w-24 border border-beige-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                    {% elif column == 'sheet_column' %}
+                                        <input type="text" name="sheet_column_{{ obj.pk }}" value="{{ obj.sheet_column }}" class="w-20 border border-beige-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                    {% elif column == 'price_type' %}
+                                        <input type="text" name="price_type_{{ obj.pk }}" value="{{ obj.price_type }}" class="w-full min-w-[160px] border border-beige-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                    {% elif column == 'model_label' %}
+                                        <input type="text" name="model_label_{{ obj.pk }}" value="{{ obj.model_label }}" class="w-full min-w-[160px] border border-beige-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                    {% elif column == 'size_variant' %}
+                                        <select name="size_variant_{{ obj.pk }}" class="w-full min-w-[160px] border border-beige-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent">
+                                            <option value="">—</option>
+                                            {% for sv in inline_edit.size_variants_by_furniture|get_item:obj.furniture_id %}
+                                                <option value="{{ sv.pk }}" {% if obj.size_variant_id == sv.pk %}selected{% endif %}>{{ sv }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% elif column == 'is_active' %}
+                                        <input type="checkbox" name="is_active_{{ obj.pk }}" {% if obj.is_active %}checked{% endif %} class="h-4 w-4 rounded border-beige-300 text-brown-600 focus:ring-brown-500">
+                                    {% endif %}
+                                {% elif forloop.first or column == 'name' or column == 'id' or column == 'pk' %}
                                     {% if section_read_only %}
                                         <a href="{% url 'custom_admin:detail' section.slug obj.pk %}" class="text-brown-700 hover:text-brown-900 font-semibold underline-offset-2 hover:underline">
                                     {% else %}
@@ -252,5 +285,7 @@
         });
     });
 </script>
+{% elif inline_edit %}
+</form>
 {% endif %}
 {% endblock %}
