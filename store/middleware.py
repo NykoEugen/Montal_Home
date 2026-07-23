@@ -21,6 +21,27 @@ from .connection_utils import (
 logger = logging.getLogger('store.connection')
 
 
+class FrameAncestorsMiddleware:
+    """Allow Google Tag Assistant to preview-frame the site.
+
+    X-Frame-Options: DENY (set by Django's XFrameOptionsMiddleware) blocks
+    Tag Assistant's connect flow, which loads the site in an iframe. CSP's
+    frame-ancestors takes precedence over X-Frame-Options in modern browsers,
+    so this narrowly allows tagassistant.google.com without disabling
+    clickjacking protection for anyone else.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response['Content-Security-Policy'] = (
+            "frame-ancestors 'self' https://tagassistant.google.com"
+        )
+        return response
+
+
 class ConnectionResilienceMiddleware(MiddlewareMixin):
     """
     Middleware for handling connection resilience across all requests.
