@@ -33,18 +33,11 @@
         insertNoscriptFrame(window.GTM_ID);
     }
 
-    var consent = localStorage.getItem(STORAGE_KEY);
-    if (consent === 'granted') {
-        loadGTM();
-        return;
-    }
-    if (consent === 'denied') {
-        return;
-    }
+    loadGTM();
 
     document.addEventListener('DOMContentLoaded', function () {
         var banner = document.getElementById('cookie-consent-banner');
-        if (!banner) {
+        if (!banner || localStorage.getItem(STORAGE_KEY)) {
             return;
         }
         banner.classList.add('cookie-consent-banner--visible');
@@ -52,7 +45,6 @@
         document.getElementById('cookie-consent-accept').addEventListener('click', function () {
             localStorage.setItem(STORAGE_KEY, 'granted');
             banner.classList.remove('cookie-consent-banner--visible');
-            loadGTM();
         });
 
         document.getElementById('cookie-consent-decline').addEventListener('click', function () {
