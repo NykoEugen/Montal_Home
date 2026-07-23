@@ -48,3 +48,11 @@ def in_list(value: str, csv_values: str) -> bool:
     """Check if the provided value is within a comma-separated list."""
     items = [item.strip() for item in csv_values.split(",") if item.strip()]
     return str(value) in items
+
+
+@register.filter
+def get_item(mapping: Any, key: Any) -> Any:
+    """Look up a dict value by a dynamic key inside a template."""
+    if mapping is None:
+        return None
+    return mapping.get(key)
